@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/main"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#F8FAFC"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- TARJETA CONTENEDORA PRINCIPAL CON BORDES REDONDEADOS -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="#FFFFFF"
+                app:cardCornerRadius="24dp"
+                app:cardElevation="2dp"
+                app:strokeColor="#E2E8F0"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <!-- ENCABEZADO OSCURO CON BOTÓN REGRESAR -->
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="140dp"
+                        android:background="#121D33">
+
+                        <ImageButton
+                            android:id="@+id/btnRegresar"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:layout_gravity="start|top"
+                            android:layout_margin="8dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="Regresar"
+                            android:padding="12dp"
+                            android:src="@android:drawable/ic_menu_revert"
+                            app:tint="#FFFFFF" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_horizontal|top"
+                            android:layout_marginTop="20dp"
+                            android:text="Configuración del Negocio"
+                            android:textColor="#FFFFFF"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+                    </FrameLayout>
+
+                    <!-- LOGO CENTRADO CON BOTÓN EDITABLE DE CÁMARA -->
+                    <FrameLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_marginTop="-50dp">
+
+                        <com.google.android.material.imageview.ShapeableImageView
+                            android:id="@+id/imgLogoNegocio"
+                            android:layout_width="100dp"
+                            android:layout_height="100dp"
+                            android:scaleType="centerCrop"
+                            android:src="@drawable/bg_avatar_circulo"
+                            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full"
+                            app:strokeColor="#FFFFFF"
+                            app:strokeWidth="4dp" />
+
+                        <!-- BOTÓN FLOTANTE DE CÁMARA -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/btnSubirLogo"
+                            android:layout_width="34dp"
+                            android:layout_height="34dp"
+                            android:layout_gravity="bottom|end"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="?attr/selectableItemBackground"
+                            app:cardBackgroundColor="#EA580C"
+                            app:cardCornerRadius="17dp"
+                            app:cardElevation="4dp"
+                            app:strokeColor="#FFFFFF"
+                            app:strokeWidth="2dp">
+
+                            <ImageView
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:layout_gravity="center"
+                                android:src="@android:drawable/ic_menu_camera"
+                                app:tint="#FFFFFF" />
+                        </com.google.android.material.card.MaterialCardView>
+                    </FrameLayout>
+
+                    <!-- CONTENIDO DEL FORMULARIO -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="20dp">
+
+                        <!-- BLOQUE 1: RUC Y NOMBRE COMERCIAL -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="12dp"
+                            android:orientation="horizontal"
+                            android:weightSum="2">
+
+                            <com.google.android.material.textfield.TextInputLayout
+                                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="4dp"
+                                android:layout_weight="1"
+                                android:hint="RUC *"
+                                android:textColorHint="#64748B"
+                                app:boxCornerRadiusBottomEnd="10dp"
+                                app:boxCornerRadiusBottomStart="10dp"
+                                app:boxCornerRadiusTopEnd="10dp"
+                                app:boxCornerRadiusTopStart="10dp"
+                                app:boxStrokeColor="#CBD5E1"
+                                app:boxStrokeWidth="1dp"
+                                app:hintTextColor="#EA580C">
+
+                                <com.google.android.material.textfield.TextInputEditText
+                                    android:id="@+id/etRuc"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:inputType="number"
+                                    android:maxLength="13"
+                                    android:paddingVertical="10dp"
+                                    android:textColor="#0F172A"
+                                    android:textSize="13sp" />
+                            </com.google.android.material.textfield.TextInputLayout>
+
+                            <com.google.android.material.textfield.TextInputLayout
+                                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="4dp"
+                                android:layout_weight="1"
+                                android:hint="Nombre Comercial *"
+                                android:textColorHint="#64748B"
+                                app:boxCornerRadiusBottomEnd="10dp"
+                                app:boxCornerRadiusBottomStart="10dp"
+                                app:boxCornerRadiusTopEnd="10dp"
+                                app:boxCornerRadiusTopStart="10dp"
+                                app:boxStrokeColor="#CBD5E1"
+                                app:boxStrokeWidth="1dp"
+                                app:hintTextColor="#EA580C">
+
+                                <com.google.android.material.textfield.TextInputEditText
+                                    android:id="@+id/etNombreComercial"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:inputType="textCapWords"
+                                    android:paddingVertical="10dp"
+                                    android:textColor="#0F172A"
+                                    android:textSize="13sp" />
+                            </com.google.android.material.textfield.TextInputLayout>
+                        </LinearLayout>
+
+                        <!-- RAZÓN SOCIAL -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="12dp"
+                            android:hint="Razón Social *"
+                            android:textColorHint="#64748B"
+                            app:boxCornerRadiusBottomEnd="10dp"
+                            app:boxCornerRadiusBottomStart="10dp"
+                            app:boxCornerRadiusTopEnd="10dp"
+                            app:boxCornerRadiusTopStart="10dp"
+                            app:boxStrokeColor="#CBD5E1"
+                            app:boxStrokeWidth="1dp"
+                            app:hintTextColor="#EA580C">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etRazonSocial"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textCapWords"
+                                android:paddingVertical="10dp"
+                                android:textColor="#0F172A"
+                                android:textSize="13sp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <!-- DIRECCIÓN MATRIZ -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="16dp"
+                            android:hint="Dirección Matriz *"
+                            android:textColorHint="#64748B"
+                            app:boxCornerRadiusBottomEnd="10dp"
+                            app:boxCornerRadiusBottomStart="10dp"
+                            app:boxCornerRadiusTopEnd="10dp"
+                            app:boxCornerRadiusTopStart="10dp"
+                            app:boxStrokeColor="#CBD5E1"
+                            app:boxStrokeWidth="1dp"
+                            app:hintTextColor="#EA580C">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etDireccion"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textPostalAddress"
+                                android:paddingVertical="10dp"
+                                android:textColor="#0F172A"
+                                android:textSize="13sp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <!-- MÉTODO DE COSTEO (DESPLEGABLE DINÁMICO DESDE BASE DE DATOS) -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="16dp"
+                            android:hint="Método Valoración Inventario *"
+                            android:textColorHint="#64748B"
+                            app:boxCornerRadiusBottomEnd="10dp"
+                            app:boxCornerRadiusBottomStart="10dp"
+                            app:boxCornerRadiusTopEnd="10dp"
+                            app:boxCornerRadiusTopStart="10dp"
+                            app:boxStrokeColor="#CBD5E1"
+                            app:boxStrokeWidth="1dp"
+                            app:hintTextColor="#EA580C">
+
+                            <AutoCompleteTextView
+                                android:id="@+id/spinnerMetodoCosteo"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="none"
+                                android:paddingVertical="10dp"
+                                android:textColor="#0F172A"
+                                android:textSize="13sp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <!-- TARJETA: OBLIGADO A LLEVAR CONTABILIDAD -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="24dp"
+                            app:cardBackgroundColor="#FFF7ED"
+                            app:cardCornerRadius="14dp"
+                            app:cardElevation="0dp"
+                            app:strokeColor="#FFEDD5"
+                            app:strokeWidth="1dp">
+
+                            <com.google.android.material.checkbox.MaterialCheckBox
+                                android:id="@+id/cbObligadoContabilidad"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:paddingHorizontal="12dp"
+                                android:paddingVertical="6dp"
+                                android:text="Obligado a llevar contabilidad"
+                                android:textColor="#C2410C"
+                                android:textSize="13sp"
+                                android:textStyle="bold"
+                                app:buttonTint="#EA580C" />
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <!-- BOTÓN GUARDAR CONFIGURACIÓN -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnGuardarConfiguracion"
+                            android:layout_width="match_parent"
+                            android:layout_height="52dp"
+                            android:backgroundTint="#EA580C"
+                            android:text="Guardar Configuración"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            app:cornerRadius="14dp"
+                            app:elevation="2dp" />
+
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- SPINNER DE CARGA (OVERLAY) -->
+    <FrameLayout
+        android:id="@+id/layoutLoading"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#66000000"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone">
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            app:cardBackgroundColor="#FFFFFF"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="6dp"
+            app:strokeWidth="0dp">
+
+            <ProgressBar
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_margin="24dp"
+                android:indeterminateTint="#EA580C" />
+        </com.google.android.material.card.MaterialCardView>
+    </FrameLayout>
+</FrameLayout>

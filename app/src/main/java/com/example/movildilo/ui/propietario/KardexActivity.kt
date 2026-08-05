@@ -56,7 +56,6 @@ class KardexActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_kardex_movimientos)
 
-        setupEdgeToEdgeInsets()
 
         sessionManager = SessionManager(this)
         negocioId = sessionManager.getNegocioId()
@@ -79,14 +78,6 @@ class KardexActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupEdgeToEdgeInsets() {
-        val rootView = findViewById<View>(android.R.id.content)
-        ViewCompat.setOnApplyWindowInsetsListener(rootView) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
-    }
 
     private fun initViews() {
         btnRegresarKardex = findViewById(R.id.btnRegresarKardex)

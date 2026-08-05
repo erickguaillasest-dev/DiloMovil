@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="16dp">
+
+    <!-- TARJETA CENTRADA CON BORDES REDONDEADOS -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="520dp"
+        android:layout_gravity="center"
+        app:cardBackgroundColor="#F4F6F9"
+        app:cardCornerRadius="24dp"
+        app:cardElevation="12dp"
+        app:strokeWidth="0dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <!-- CABECERA OSCURA -->
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="#1A2234"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="12dp">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentStart="true"
+                    android:layout_centerVertical="true"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <!-- Avatar Header -->
+                    <com.google.android.material.imageview.ShapeableImageView
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/zoe"
+                        app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:text="Zoe"
+                        android:textColor="@color/white"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Botón Altavoz (leer respuestas en voz alta) + Botón Cerrar (X) -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnIniciarGuia"
+                        style="@style/Widget.Material3.Button.IconButton"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_marginEnd="6dp"
+                        android:contentDescription="Guía de bienvenida"
+                        app:backgroundTint="#2B354A"
+                        app:cornerRadius="16dp"
+                        app:icon="@android:drawable/ic_menu_directions"
+                        app:iconSize="16dp"
+                        app:iconTint="@color/white" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnToggleVozChat"
+                        style="@style/Widget.Material3.Button.IconButton"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_marginEnd="6dp"
+                        app:backgroundTint="#2B354A"
+                        app:cornerRadius="16dp"
+                        app:icon="@android:drawable/ic_lock_silent_mode_off"
+                        app:iconSize="16dp"
+                        app:iconTint="@color/white" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnCambiarVoz"
+                        style="@style/Widget.Material3.Button.IconButton"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_marginEnd="6dp"
+                        android:contentDescription="Cambiar voz de Zoe"
+                        app:backgroundTint="#2B354A"
+                        app:cornerRadius="16dp"
+                        app:icon="@android:drawable/ic_menu_myplaces"
+                        app:iconSize="16dp"
+                        app:iconTint="@color/white" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnCerrarChat"
+                        style="@style/Widget.Material3.Button.IconButton"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        app:backgroundTint="#2B354A"
+                        app:cornerRadius="16dp"
+                        app:icon="@android:drawable/ic_menu_close_clear_cancel"
+                        app:iconSize="16dp"
+                        app:iconTint="@color/white" />
+                </LinearLayout>
+            </RelativeLayout>
+
+            <!-- LÍNEA NARANJA DE SEPARACIÓN -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="3dp"
+                android:background="#EA580C" />
+
+            <!-- HISTORIAL DE MENSAJES -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvChatMensajes"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:clipToPadding="false"
+                android:padding="16dp" />
+
+            <!-- BARRA INFERIOR DE ENTRADA -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@color/white"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="12dp">
+
+                <EditText
+                    android:id="@+id/etMensajeChat"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_chat_input"
+                    android:hint="Pregúntame lo que necesites..."
+                    android:inputType="textCapSentences"
+                    android:paddingHorizontal="16dp"
+                    android:textColor="#1E293B"
+                    android:textColorHint="#94A3B8"
+                    android:textSize="14sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnMicChat"
+                    style="@style/Widget.Material3.Button.IconButton"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="8dp"
+                    android:contentDescription="Hablar con Zoe"
+                    app:backgroundTint="#7C3AED"
+                    app:cornerRadius="22dp"
+                    app:icon="@android:drawable/ic_btn_speak_now"
+                    app:iconSize="18dp"
+                    app:iconTint="@color/white" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnEnviarMensaje"
+                    style="@style/Widget.Material3.Button.IconButton"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="10dp"
+                    app:backgroundTint="#EA580C"
+                    app:cornerRadius="22dp"
+                    app:icon="@android:drawable/ic_menu_send"
+                    app:iconSize="18dp"
+                    app:iconTint="@color/white" />
+            </LinearLayout>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+</FrameLayout>

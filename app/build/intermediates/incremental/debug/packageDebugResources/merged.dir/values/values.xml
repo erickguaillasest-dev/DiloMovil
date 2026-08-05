@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="opciones_bodega">
+        <item>Todas las bodegas</item>
+        <item>Bodega Central</item>
+        <item>Bodega Norte</item>
+        <item>Bodega Sur</item>
+    </string-array>
+    <string-array name="opciones_categoria_producto">
+        <item>Todas las categorías</item>
+        <item>Tecnología</item>
+        <item>Papelería</item>
+        <item>Insumos de oficina</item>
+        <item>Mobiliario</item>
+    </string-array>
+    <string-array name="opciones_estado_factura">
+        <item>Todos los estados</item>
+        <item>Autorizada</item>
+        <item>Pendiente</item>
+        <item>Rechazada</item>
+    </string-array>
+    <string-array name="opciones_forma_pago">
+        <item>Efectivo</item>
+        <item>Transferencia bancaria</item>
+        <item>Tarjeta de crédito</item>
+        <item>Tarjeta de débito</item>
+        <item>Cheque</item>
+    </string-array>
+    <string-array name="opciones_iva">
+        <item>15%</item>
+        <item>0%</item>
+    </string-array>
+    <string-array name="opciones_metodo_factura">
+        <item>Todos los métodos</item>
+        <item>Voz</item>
+        <item>Manual</item>
+    </string-array>
+    <string-array name="opciones_tipo_cliente">
+        <item>Todos los tipos</item>
+        <item>RUC</item>
+        <item>Cédula</item>
+        <item>Consumidor Final</item>
+    </string-array>
+    <string-array name="opciones_tipo_identificacion">
+        <item>RUC</item>
+        <item>Cédula</item>
+        <item>Pasaporte</item>
+        <item>Consumidor final</item>
+    </string-array>
+    <color name="accent">#10B981</color>
+    <color name="azul_marino">#0F172A</color>
+    <color name="azul_medio">#1E293B</color>
+    <color name="black">#FF000000</color>
+    <color name="blanco">#FFFFFF</color>
+    <color name="button_orange">#FF5722</color>
+    <color name="card_background">#FFFFFF</color>
+    <color name="color_fondo">#f6eee3</color>
+    <color name="color_primario">#0F172A</color>
+    <color name="color_superficie">#FFFFFF</color>
+    <color name="color_texto_principal">#0F172A</color>
+    <color name="color_texto_secundario">#475569</color>
+    <color name="gris_400">#94A3B8</color>
+    <color name="input_background">#F1F5F9</color>
+    <color name="input_stroke">#E2E8F0</color>
+    <color name="morado">#6B46C1</color>
+    <color name="naranja">#FF5722</color>
+    <color name="naranja_claro">#FF8A65</color>
+    <color name="naranja_oscuro">#E64A19</color>
+    <color name="orange_link">#FF8A65</color>
+    <color name="primary">#0F172A</color>
+    <color name="primary_dark">#113b61</color>
+    <color name="text_main">#0F172A</color>
+    <color name="text_muted">#475569</color>
+    <color name="text_placeholder">#94A3B8</color>
+    <color name="verde">#10B981</color>
+    <color name="web_background">#f6eee3</color>
+    <color name="white">#FFFFFFFF</color>
+    <dimen name="elevacion_tarjeta">2dp</dimen>
+    <dimen name="espacio_chico">8dp</dimen>
+    <dimen name="espacio_grande">20dp</dimen>
+    <dimen name="espacio_medio">12dp</dimen>
+    <dimen name="margen_pantalla">16dp</dimen>
+    <dimen name="radio_tarjeta">16dp</dimen>
+    <dimen name="tamano_avatar">44dp</dimen>
+    <dimen name="tamano_avatar_grande">52dp</dimen>
+    <dimen name="tamano_boton_mic">96dp</dimen>
+    <string name="app_name">MovilDilo</string>
+    <string name="ca_buscar_hint">Buscar producto...</string>
+    <string name="ca_subtitulo">Gestiona tus artículos y existencias</string>
+    <string name="ca_titulo">Catálogo de Productos</string>
+    <string name="cl_buscar_hint">Buscar cliente por nombre o DNI...</string>
+    <string name="cl_subtitulo">Directorio y cuentas por cobrar</string>
+    <string name="cl_titulo">Mis Clientes</string>
+    <string name="md_subtitulo">Resumen de ventas y objetivos analíticos</string>
+    <string name="md_titulo">Mi Desempeño</string>
+    <string name="nav_inicio">Inicio</string>
+    <style name="BotonOutline">
+        <item name="android:background">@drawable/bg_boton_outline</item>
+        <item name="android:textColor">@color/color_primario</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:paddingTop">14dp</item>
+        <item name="android:paddingBottom">14dp</item>
+        <item name="android:gravity">center</item>
+    </style>
+    <style name="BotonPrimario">
+        <item name="android:background">@drawable/bg_boton_primario</item>
+        <item name="android:textColor">@color/blanco</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:paddingTop">14dp</item>
+        <item name="android:paddingBottom">14dp</item>
+        <item name="android:gravity">center</item>
+    </style>
+    <style name="CampoTexto">
+        <item name="android:background">@drawable/bg_campo_entrada</item>
+        <item name="android:paddingStart">12dp</item>
+        <item name="android:paddingEnd">12dp</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/color_texto_principal</item>
+        <item name="android:textColorHint">@color/gris_400</item>
+    </style>
+    <style name="RegisterLabelStyle">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/color_texto_principal</item>
+        <item name="android:layout_marginTop">12dp</item>
+    </style>
+    <style name="ShapeAppearance.BottomRoundedPanel" parent="ShapeAppearance.Material3.Corner.None">
+            <item name="cornerSizeTopLeft">0dp</item>
+            <item name="cornerSizeTopRight">0dp</item>
+            <item name="cornerSizeBottomLeft">32dp</item>
+            <item name="cornerSizeBottomRight">32dp</item>
+        </style>
+    <style name="TextoEtiqueta">
+        <item name="android:textColor">@color/color_texto_secundario</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+    <style name="TextoSubtitulo">
+        <item name="android:textColor">@color/color_texto_secundario</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+    <style name="TextoTitulo">
+        <item name="android:textColor">@color/color_texto_principal</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+    <style name="Theme.Dilo" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/naranja</item>
+        <item name="colorPrimaryVariant">@color/naranja_claro</item>
+        <item name="colorOnPrimary">@color/blanco</item>
+        <item name="colorSecondary">@color/azul_marino</item>
+        <item name="colorSecondaryVariant">@color/azul_medio</item>
+        <item name="colorOnSecondary">@color/blanco</item>
+        <item name="android:statusBarColor">@color/azul_marino</item>
+        <item name="android:windowBackground">@color/color_fondo</item>
+        <item name="android:navigationBarColor">@color/color_superficie</item>
+    </style>
+    <style name="Theme.Dilo.Login">
+        <item name="android:windowBackground">@color/azul_marino</item>
+        <item name="android:statusBarColor">@color/azul_marino</item>
+    </style>
+</resources>
