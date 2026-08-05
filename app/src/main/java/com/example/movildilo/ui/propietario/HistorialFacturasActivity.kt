@@ -15,6 +15,10 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
+import android.text.Editable
+import android.text.InputType
+import android.text.TextWatcher
 import android.view.View
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -55,10 +59,12 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 
-private enum class VoiceStep { OFF, ESCUCHANDO, PROCESANDO }
+private enum class VoiceStep { OFF, ESCUCHANDO, PROCESANDO, CONFIRMAR }
 
 class HistorialFacturasActivity : AppCompatActivity() {
 
@@ -67,11 +73,11 @@ class HistorialFacturasActivity : AppCompatActivity() {
     private lateinit var rvFacturas: RecyclerView
     private lateinit var layoutLoading: View
     private lateinit var layoutVacio: View
+    private lateinit var fabNuevaFactura: View
 
     private lateinit var sessionManager: SessionManager
     private lateinit var adapter: FacturasAdapter
     private var negocioId: Long = -1L
-    private lateinit var fabNuevaFactura: View
 
     private var clientesList: List<ClienteResponseDto> = emptyList()
     private var bodegasList: List<BodegaDto> = emptyList()
@@ -79,6 +85,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
     private var inventarioList: List<InventarioResponseDto> = emptyList()
     private var negocioActual: NegocioResponseDto? = null
 
+    // Estado de la factura en construcción
     private var facturaClienteId: Long? = null
     private var facturaEsConsumidorFinal: Boolean = false
     private var facturaMetodoPago: String = "EFECTIVO"
@@ -87,6 +94,12 @@ class HistorialFacturasActivity : AppCompatActivity() {
     private val carritoTemporal = mutableListOf<ItemCarritoFactura>()
     private var carritoAdapter: FacturaCarritoAdapter? = null
 
+    // Datos de Tarjeta
+    private var facturaTarjetaNumero: String = ""
+    private var facturaTarjetaVence: String = ""
+    private var facturaTarjetaCvc: String = ""
+
+    // Referencias al diálogo activo de nueva factura
     private var dialogFacturaActivo: AlertDialog? = null
     private var spClienteRef: AutoCompleteTextView? = null
     private var spMetodoPagoRef: AutoCompleteTextView? = null
@@ -104,22 +117,19 @@ class HistorialFacturasActivity : AppCompatActivity() {
     private var layoutEmptyCartRef: View? = null
     private var rvCarritoRef: RecyclerView? = null
 
-    private var speechRecognizer: SpeechRecognizer? = null
-    private var textToSpeech: TextToSpeech? = null
-    private var tvZoeTranscripcionRef: TextView? = null
-    private var btnZoeMicRef: FloatingActionButton? = null
-    private var voiceState: VoiceStep = VoiceStep.OFF
-    private var pendingBodegaId: Long? = null
-
     private var layoutSimuladorTarjetaRef: View? = null
     private var etNumeroTarjetaRef: TextInputEditText? = null
     private var etVencimientoTarjetaRef: TextInputEditText? = null
     private var etCvcTarjetaRef: TextInputEditText? = null
     private var tvInfoPagoTarjetaRef: TextView? = null
 
-    private var facturaTarjetaNumero: String = ""
-    private var facturaTarjetaVence: String = ""
-    private var facturaTarjetaCvc: String = ""
+    // Asistente de voz (Zoe)
+    private var speechRecognizer: SpeechRecognizer? = null
+    private var textToSpeech: TextToSpeech? = null
+    private var tvZoeTranscripcionRef: TextView? = null
+    private var btnZoeMicRef: FloatingActionButton? = null
+    private var voiceState: VoiceStep = VoiceStep.OFF
+    private var pendingBodegaId: Long? = null
     private val voiceHandler = Handler(Looper.getMainLooper())
 
     private val requestPermissionLauncher = registerForActivityResult(
@@ -233,7 +243,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                // Se utiliza la función correspondiente definida en ApiService
                 val response = RetrofitClient.apiService.getFacturas(authHeader, negocioId)
                 layoutLoading.visibility = View.GONE
 
@@ -398,67 +407,67 @@ class HistorialFacturasActivity : AppCompatActivity() {
         spMetodoPago.setOnItemClickListener { _, _, position, _ ->
             facturaMetodoPago = metodosPago[position]
             tilCuotas.visibility = if (facturaMetodoPago == "TARJETA_CREDITO") View.VISIBLE else View.GONE
-            layoutSimuladorTarjeta.visibility = if (facturaMetodoPago == "TARJETA_CREDITO") View.VISIBLE else View.GONE
+            layoutSimuladorTarjeta?.visibility = if (facturaMetodoPago == "TARJETA_CREDITO") View.VISIBLE else View.GONE
             if (facturaMetodoPago != "TARJETA_CREDITO") {
                 facturaCuotas = 0
                 etCuotas.setText("")
                 facturaTarjetaNumero = ""
                 facturaTarjetaVence = ""
                 facturaTarjetaCvc = ""
-                etNumeroTarjeta.setText("")
-                etVencimientoTarjeta.setText("")
-                etCvcTarjeta.setText("")
+                etNumeroTarjeta?.setText("")
+                etVencimientoTarjeta?.setText("")
+                etCvcTarjeta?.setText("")
             }
             actualizarUiCarrito()
         }
 
-        etNumeroTarjeta.addTextChangedListener(object : android.text.TextWatcher {
+        etNumeroTarjeta?.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: android.text.Editable?) {
+            override fun afterTextChanged(s: Editable?) {
                 facturaTarjetaNumero = s?.toString()?.trim().orEmpty()
                 actualizarUiCarrito()
             }
         })
 
-        etVencimientoTarjeta.addTextChangedListener(object : android.text.TextWatcher {
+        etVencimientoTarjeta?.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: android.text.Editable?) {
+            override fun afterTextChanged(s: Editable?) {
                 facturaTarjetaVence = s?.toString()?.trim().orEmpty()
             }
         })
 
-        etCvcTarjeta.addTextChangedListener(object : android.text.TextWatcher {
+        etCvcTarjeta?.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: android.text.Editable?) {
+            override fun afterTextChanged(s: Editable?) {
                 facturaTarjetaCvc = s?.toString()?.trim().orEmpty()
             }
         })
 
-        etCuotas.addTextChangedListener(object : android.text.TextWatcher {
+        etCuotas.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: android.text.Editable?) {
+            override fun afterTextChanged(s: Editable?) {
                 facturaCuotas = s?.toString()?.trim()?.toIntOrNull() ?: 0
             }
         })
 
-        etCantidad.addTextChangedListener(object : android.text.TextWatcher {
+        etCantidad.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: android.text.Editable?) { actualizarStockDisponibleUi() }
+            override fun afterTextChanged(s: Editable?) { actualizarStockDisponibleUi() }
         })
 
         btnAgregar.setOnClickListener {
             agregarDesdeFormularioManual()
         }
 
-        etDescuentoGlobal.addTextChangedListener(object : android.text.TextWatcher {
+        etDescuentoGlobal.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: android.text.Editable?) {
+            override fun afterTextChanged(s: Editable?) {
                 facturaDescuentoGlobalPorcentaje = s?.toString()?.toDoubleOrNull()?.coerceIn(0.0, 100.0) ?: 0.0
                 actualizarUiCarrito()
             }
@@ -477,7 +486,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
         btnCerrarModal?.setOnClickListener { dialog.dismiss() }
         btnCancelar.setOnClickListener { dialog.dismiss() }
-
         btnEmitir.setOnClickListener { emitirFactura() }
 
         btnZoeMic?.setOnClickListener {
@@ -585,13 +593,13 @@ class HistorialFacturasActivity : AppCompatActivity() {
 
         val etCantidad = EditText(this).apply {
             hint = "Cantidad (stock disponible: $stockMaximo)"
-            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            inputType = InputType.TYPE_CLASS_NUMBER
             setText(item.cantidad.toString())
         }
 
         val etDescuento = EditText(this).apply {
             hint = "Descuento % (0-100)"
-            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
             setText(if (item.descuentoPorcentaje > 0) item.descuentoPorcentaje.toString() else "")
         }
         val margenDescuento = (12 * resources.displayMetrics.density).toInt()
@@ -743,7 +751,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
 
     private fun iniciarFlujoVoz() {
         voiceState = VoiceStep.ESCUCHANDO
-        btnZoeMicRef?.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#EF4444"))
+        btnZoeMicRef?.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#DC2626"))
         tvZoeTranscripcionRef?.visibility = View.VISIBLE
         tvZoeTranscripcionRef?.text = "Escuchando... Di algo como 'Agregar 2 cocas a Consumidor Final'"
         escucharVoz()
@@ -904,7 +912,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
 
         actualizarUiCarrito()
 
-        // Respuesta hablada de Zoe
         if (resumenAcciones.isNotEmpty()) {
             val textoVoz = resumenAcciones.joinToString(". ")
             hablar(textoVoz)
@@ -916,16 +923,44 @@ class HistorialFacturasActivity : AppCompatActivity() {
         }
     }
 
-    private fun hablar(texto: String) {
-        textToSpeech?.speak(texto, TextToSpeech.QUEUE_FLUSH, null, "ZOE_SPEECH")
+    private fun hablar(texto: String, alTerminar: (() -> Unit)? = null) {
+        tvZoeTranscripcionRef?.text = texto
+        val utteranceId = "zoe_${System.currentTimeMillis()}"
+        var yaContinuo = false
+
+        fun continuarUnaVez() {
+            if (yaContinuo) return
+            yaContinuo = true
+            if (voiceState != VoiceStep.OFF) {
+                voiceHandler.postDelayed({ if (voiceState != VoiceStep.OFF) alTerminar?.invoke() }, 350)
+            }
+        }
+
+        textToSpeech?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) {}
+            override fun onDone(utteranceId: String?) { runOnUiThread { continuarUnaVez() } }
+            @Deprecated("Deprecated in Java")
+            override fun onError(utteranceId: String?) { runOnUiThread { continuarUnaVez() } }
+        })
+
+        val tts = textToSpeech
+        if (tts == null) {
+            continuarUnaVez()
+        } else {
+            tts.speak(texto, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
+            val tiempoEstimado = 1800L + (texto.length * 65L)
+            voiceHandler.postDelayed({ continuarUnaVez() }, tiempoEstimado)
+        }
     }
 
     private fun cancelarAsistenteVoz() {
+        voiceState = VoiceStep.OFF
+        voiceHandler.removeCallbacksAndMessages(null)
         speechRecognizer?.stopListening()
         speechRecognizer?.destroy()
         speechRecognizer = null
-        voiceState = VoiceStep.OFF
-        btnZoeMicRef?.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#2563EB"))
+        btnZoeMicRef?.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#7C3AED"))
+        tvZoeTranscripcionRef?.text = "Toca el micrófono para dar órdenes por voz."
     }
 
     // ==========================================
@@ -953,44 +988,58 @@ class HistorialFacturasActivity : AppCompatActivity() {
             return
         }
 
-        val detallesDto = carritoTemporal.map { item ->
-            DetalleFacturaRequestDto(
-                productoId = item.productoId,
-                bodegaId = item.bodegaId,
-                cantidad = item.cantidad,
-                descuento = item.descuentoMonto,
-                tarjeta = null
-            )
-        }
+        val loadingDialog = MaterialAlertDialogBuilder(this)
+            .setTitle("Emitiendo Factura...")
+            .setMessage("Un momento por favor.")
+            .setCancelable(false)
+            .show()
 
         val tarjetaInfoCompleta = if (facturaMetodoPago == "TARJETA_CREDITO") {
             "Tarjeta ****${facturaTarjetaNumero.takeLast(4)} | Vence: $facturaTarjetaVence"
         } else null
 
-        val facturaRequest = FacturaRequestDto(
+        val payload = FacturaRequestDto(
             clienteId = if (facturaEsConsumidorFinal) null else facturaClienteId,
             metodoPago = facturaMetodoPago,
             tarjeta = tarjetaInfoCompleta,
             numeroCuotas = if (facturaMetodoPago == "TARJETA_CREDITO") facturaCuotas else null,
             descuentoGlobal = montoDescuentoGlobal(),
-            detalles = detallesDto
+            detalles = carritoTemporal.map { item ->
+                DetalleFacturaRequestDto(
+                    productoId = item.productoId,
+                    bodegaId = item.bodegaId,
+                    cantidad = item.cantidad,
+                    descuento = item.descuentoMonto,
+                    tarjeta = null
+                )
+            }
         )
 
-        lifecycleScope.launch {
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val response = RetrofitClient.apiService.crearFactura(authHeader, negocioId, facturaRequest)
-                if (response.isSuccessful) {
-                    Toast.makeText(this@HistorialFacturasActivity, "¡Factura emitida exitosamente!", Toast.LENGTH_LONG).show()
-                    hablar("Factura emitida exitosamente.")
-                    dialogFacturaActivo?.dismiss()
-                    cargarFacturas()
-                } else {
-                    val errorMsg = response.errorBody()?.string() ?: "Error al emitir factura"
-                    Toast.makeText(this@HistorialFacturasActivity, errorMsg, Toast.LENGTH_LONG).show()
-                    hablar("Hubo un error al emitir la factura.")
+                val response = RetrofitClient.apiService.crearFactura(authHeader, negocioId, payload)
+                withContext(Dispatchers.Main) {
+                    loadingDialog.dismiss()
+                    if (response.isSuccessful) {
+                        val factura = response.body()
+                        Toast.makeText(this@HistorialFacturasActivity, "¡Factura emitida exitosamente!", Toast.LENGTH_SHORT).show()
+                        hablar("Factura emitida exitosamente.")
+                        dialogFacturaActivo?.dismiss()
+                        cargarFacturas()
+                        if (factura != null) {
+                            mostrarDetalleFacturaDialog(factura)
+                        }
+                    } else {
+                        val errorMsg = response.errorBody()?.string() ?: "Error al emitir la factura"
+                        Toast.makeText(this@HistorialFacturasActivity, errorMsg, Toast.LENGTH_LONG).show()
+                        hablar("Hubo un error al emitir la factura.")
+                    }
                 }
             } catch (e: Exception) {
-                Toast.makeText(this@HistorialFacturasActivity, "Error de red: ${e.message}", Toast.LENGTH_LONG).show()
+                withContext(Dispatchers.Main) {
+                    loadingDialog.dismiss()
+                    Toast.makeText(this@HistorialFacturasActivity, "Error de red: ${e.message}", Toast.LENGTH_LONG).show()
+                }
             }
         }
     }

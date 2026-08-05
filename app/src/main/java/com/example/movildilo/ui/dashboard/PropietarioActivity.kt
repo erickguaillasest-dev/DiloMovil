@@ -19,6 +19,7 @@ import com.example.movildilo.data.model.dto.CategoriaDto
 import com.example.movildilo.data.model.dto.ClienteResponseDto
 import com.example.movildilo.data.model.dto.FacturaResponseDto
 import com.example.movildilo.data.model.dto.InventarioResponseDto
+import com.example.movildilo.data.model.dto.KardexMovimientoDto
 import com.example.movildilo.data.model.dto.ProductoResponseDto
 import com.example.movildilo.ui.adapters.MiembrosAdapter
 import com.example.movildilo.ui.auth.LoginActivity
@@ -62,6 +63,8 @@ class PropietarioActivity : AppCompatActivity() {
     private lateinit var cardCategorias: LinearLayout
 
     private lateinit var cardCuentasPorCobrar: LinearLayout
+
+    private lateinit var cardMovimientos: LinearLayout
 
     private lateinit var btnAdminEquipo: LinearLayout
     private lateinit var btnAdminConfig: LinearLayout
@@ -121,6 +124,7 @@ class PropietarioActivity : AppCompatActivity() {
         cardProveedores = findViewById(R.id.cardProveedores)
         cardCategorias = findViewById(R.id.cardCategorias)
         cardCuentasPorCobrar = findViewById(R.id.cardCuentasPorCobrar)
+        cardMovimientos = findViewById(R.id.cardMovimientos)
 
         btnAdminEquipo = findViewById(R.id.btnAdminEquipo)
         btnAdminConfig = findViewById(R.id.btnAdminConfig)
@@ -182,6 +186,7 @@ class PropietarioActivity : AppCompatActivity() {
         cardProveedores.setOnClickListener { startActivity(Intent(this, ProveedoresActivity::class.java)) }
         cardCategorias.setOnClickListener { startActivity(Intent(this, CategoriasActivity::class.java)) }
         cardCuentasPorCobrar.setOnClickListener { startActivity(Intent(this,CuentasPorCobrarActivity::class.java)) }
+        cardMovimientos.setOnClickListener { startActivity(Intent(this, KardexActivity::class.java)) }
 
         btnAdminEquipo.setOnClickListener { startActivity(Intent(this, Mi_equipo::class.java)) }
         btnAdminConfig.setOnClickListener { startActivity(Intent(this, ConfiguracionNegocioActivity::class.java)) }
