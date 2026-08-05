@@ -1,0 +1,269 @@
+package com.example.movildilo.ui.dashboard
+
+
+import android.content.Intent
+import android.os.Bundle
+import android.view.View
+import android.widget.LinearLayout
+import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.lifecycleScope
+import com.bumptech.glide.Glide
+import com.example.movildilo.R
+import com.example.movildilo.data.api.RetrofitClient
+import com.example.movildilo.data.local.SessionManager
+import com.example.movildilo.data.model.dto.CuentaPorCobrarResponseDto
+import com.example.movildilo.ui.auth.LoginActivity
+import com.example.movildilo.ui.propietario.ClientesActivity
+import com.example.movildilo.ui.propietario.CuentasPorCobrarActivity
+import com.example.movildilo.ui.propietario.HistorialFacturasActivity
+import com.example.movildilo.ui.propietario.ZoeBottomSheetDialog
+import com.example.movildilo.utils.Constants
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
+import com.google.android.material.imageview.ShapeableImageView
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Locale
+import com.example.movildilo.ui.propietario.Perfil
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+
+class VendedorActivity : AppCompatActivity() {
+
+    private lateinit var btnLogout: MaterialButton
+    private lateinit var ivAvatar: ShapeableImageView
+    private lateinit var tvWelcome: TextView
+    private lateinit var tvBusinessName: TextView
+
+    private lateinit var cardAlert: MaterialCardView
+    private lateinit var btnVerCxC: MaterialButton
+
+    private lateinit var tvMensajeCxC: TextView
+    private lateinit var tvVentasContado: TextView
+    private lateinit var tvVentasCredito: TextView
+    private lateinit var tvTotalFacturas: TextView
+
+    private lateinit var cardFacturas: LinearLayout
+    private lateinit var cardClientes: LinearLayout
+    private lateinit var cardCuentasPorCobrar: LinearLayout
+
+    private lateinit var sessionManager: SessionManager
+    private lateinit var fabZoe: View
+
+    private val baseServerUrl = "https://dilo-backend-mxlu.onrender.com"
+
+
+    private var negocioId: Long = -1L
+    private var usuarioNombre: String = "Vendedor"
+    private var negocioNombreReal: String = "Mi Empresa"
+
+    private var contextoNegocioTexto: String = "Aún no se ha cargado la información del negocio."
+    private var alertasTexto: String = "No hay cuentas por cobrar pendientes por el momento."
+
+    private val ROLES_AUTORIZADOS = listOf("PROPIETARIO", "ADMINISTRADOR", "VENDEDOR")
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContentView(R.layout.activity_vendedor)
+
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(android.R.id.content)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            insets
+        }
+
+        sessionManager = SessionManager(this)
+        negocioId = sessionManager.getNegocioId()
+
+        initViews()
+        setupListeners()
+        cargarDatosHeader()
+
+        if (negocioId != -1L) {
+            cargarResumenVentas()
+        } else {
+            Toast.makeText(this, "Selecciona una empresa válida para continuar", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+
+    private fun initViews() {
+        btnLogout = findViewById(R.id.btnLogout)
+        ivAvatar = findViewById(R.id.ivAvatar)
+        tvWelcome = findViewById(R.id.tvWelcome)
+        tvBusinessName = findViewById(R.id.tvBusinessName)
+
+        cardAlert = findViewById(R.id.cardAlert)
+        btnVerCxC = findViewById(R.id.btnVerCxC)
+        tvMensajeCxC = findViewById(R.id.tvMensajeCxC)
+        tvVentasContado = findViewById(R.id.tvVentasContado)
+        tvVentasCredito = findViewById(R.id.tvVentasCredito)
+        tvTotalFacturas = findViewById(R.id.tvTotalFacturas)
+
+        cardFacturas = findViewById(R.id.cardFacturas)
+        cardClientes = findViewById(R.id.cardClientes)
+        cardCuentasPorCobrar = findViewById(R.id.cardCuentasPorCobrar)
+
+        fabZoe = findViewById(R.id.fabZoe)
+        fabZoe.bringToFront()
+    }
+
+    private fun construirUrlFoto(rutaFoto: String?): String? {
+        if (rutaFoto.isNullOrBlank()) return null
+        return if (rutaFoto.startsWith("http")) rutaFoto else "$baseServerUrl$rutaFoto"
+    }
+
+    private fun setupListeners() {
+        btnLogout.setOnClickListener {confirmarCerrarSesion()
+        }
+
+        findViewById<LinearLayout>(R.id.headerProfileClick).setOnClickListener {
+            startActivity(Intent(this, Perfil::class.java))
+        }
+
+        btnVerCxC.setOnClickListener {
+            abrirModulo(CuentasPorCobrarActivity::class.java)
+        }
+
+        cardFacturas.setOnClickListener { abrirModulo(HistorialFacturasActivity::class.java) }
+        cardClientes.setOnClickListener { abrirModulo(ClientesActivity::class.java) }
+        cardCuentasPorCobrar.setOnClickListener { abrirModulo(CuentasPorCobrarActivity::class.java) }
+
+        fabZoe.setOnClickListener { abrirChatZoe() }
+    }
+
+    private fun abrirChatZoe() {
+        val dialogZoe = ZoeBottomSheetDialog(
+            usuarioNombre = usuarioNombre,
+            negocioNombre = negocioNombreReal,
+            contextoNegocioTexto = contextoNegocioTexto,
+            alertasTexto = alertasTexto,
+            groqApiKey = Constants.GROQ_API_KEY,
+            rolUsuario = "VENDEDOR"
+        )
+        dialogZoe.show(supportFragmentManager, "ZoeChatBottomSheet")
+    }
+
+    private fun abrirModulo(actividadDestino: Class<*>) {
+        val idEmpresaActual = sessionManager.getNegocioId()
+        val rolUsuario = sessionManager.getUserRole()?.uppercase() ?: ""
+
+        if (idEmpresaActual == -1L || idEmpresaActual == 0L) {
+            Toast.makeText(this, "No hay una empresa/negocio seleccionado", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (ROLES_AUTORIZADOS.contains(rolUsuario)) {
+            startActivity(Intent(this, actividadDestino))
+        } else {
+            Toast.makeText(this, "No tienes permiso para acceder a este módulo", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun cargarDatosHeader() {
+        val authHeader = sessionManager.getAuthHeader() ?: return
+
+        lifecycleScope.launch {
+            try {
+                val responsePerfil = RetrofitClient.apiService.getMiPerfil(authHeader)
+                if (responsePerfil.isSuccessful && responsePerfil.body() != null) {
+                    val usuario = responsePerfil.body()!!
+                    usuarioNombre = usuario.primerNombre?.takeIf { it.isNotBlank() } ?: "Vendedor"
+                    tvWelcome.text = "Hola, $usuarioNombre 👋"
+
+                    val urlFoto = construirUrlFoto(usuario.fotoPerfil)
+                    if (urlFoto != null) {
+                        Glide.with(this@VendedorActivity)
+                            .load(urlFoto)
+                            .placeholder(R.drawable.bg_avatar_circulo)
+                            .error(R.drawable.ic_mic)
+                            .circleCrop()
+                            .into(ivAvatar)
+                    }
+                }
+            } catch (e: Exception) {
+            }
+        }
+    }
+
+    private fun cargarResumenVentas() {
+        val authHeader = sessionManager.getAuthHeader() ?: return
+
+        lifecycleScope.launch {
+            try {
+                val responseNegocio = RetrofitClient.apiService.getNegocio(authHeader, negocioId)
+                tvBusinessName.text = if (responseNegocio.isSuccessful) {
+                    val negocio = responseNegocio.body()
+                    negocio?.nombreComercial ?: negocio?.razonSocial ?: "Mi Negocio"
+                } else {
+                    "Mi Negocio"
+                }
+            } catch (e: Exception) {
+                tvBusinessName.text = "Mi Negocio"
+            }
+
+            try {
+                val responseFacturas = RetrofitClient.apiService.getFacturas(authHeader, negocioId)
+                if (responseFacturas.isSuccessful) {
+                    val facturas = responseFacturas.body() ?: emptyList()
+
+                    val ventasContado = facturas
+                        .filter { it.metodoPago != "TARJETA_CREDITO" }
+                        .sumOf { it.totalCalculado }
+
+                    val ventasCredito = facturas
+                        .filter { it.metodoPago == "TARJETA_CREDITO" }
+                        .sumOf { it.totalCalculado }
+
+                    tvVentasContado.text = String.format(java.util.Locale.US, "$%.2f", ventasContado)
+                    tvVentasCredito.text = String.format(java.util.Locale.US, "$%.2f", ventasCredito)
+                    tvTotalFacturas.text = "${facturas.size} facturas"
+                } else {
+                    tvVentasContado.text = "$0.00"
+                    tvVentasCredito.text = "$0.00"
+                    tvTotalFacturas.text = "0 facturas"
+                }
+
+                // 2. Cargar cuentas por cobrar para actualizar el banner de alerta superior
+                val responseCxC = RetrofitClient.apiService.getCuentasPorCobrar(authHeader, negocioId)
+                if (responseCxC.isSuccessful) {
+                    val cuentas = responseCxC.body() ?: emptyList()
+                    val totalPendiente = cuentas.sumOf { it.saldoPendiente ?: 0.0 }
+
+                    if (cuentas.isNotEmpty()) {
+                        tvMensajeCxC.text = "Tienes $${String.format(java.util.Locale.US, "%.2f", totalPendiente)} pendientes en ${cuentas.size} cuentas."
+                    } else {
+                        tvMensajeCxC.text = "No hay cuentas pendientes por cobrar."
+                    }
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@VendedorActivity, "Error de conexión: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun confirmarCerrarSesion() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Cerrar Sesión")
+            .setMessage("¿Estás seguro de que deseas cerrar sesión?")
+            .setPositiveButton("Cerrar Sesión") { d, _ ->
+                d.dismiss()
+                cerrarSesionEfectiva()
+            }
+            .setNegativeButton("Cancelar") { d, _ -> d.dismiss() }
+            .show()
+    }
+
+    private fun cerrarSesionEfectiva() {
+        sessionManager.logout()
+        val intent = Intent(this, LoginActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
+    }
+}

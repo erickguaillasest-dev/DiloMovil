@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <color name="primary">#0F172A</color>
+    <color name="primary_dark">#113b61</color>
+    <color name="accent">#10B981</color>
+    <color name="web_background">#f6eee3</color>
+    <color name="card_background">#FFFFFF</color>
+
+    <color name="text_main">#0F172A</color>
+    <color name="text_muted">#475569</color>
+    <color name="text_placeholder">#94A3B8</color>
+    <color name="input_stroke">#E2E8F0</color>
+    <color name="input_background">#F1F5F9</color>
+
+    <!-- NaranjaDilo: Botón de acción principal -->
+    <color name="button_orange">#FF5722</color>
+    <!-- NaranjaClaro: Gradiente y textos resaltados -->
+    <color name="orange_link">#FF8A65</color>
+
+    <!-- Colores faltantes para MainActivity y otros -->
+    <color name="color_primario">#0F172A</color>
+    <color name="color_fondo">#f6eee3</color>
+    <color name="color_superficie">#FFFFFF</color>
+    <color name="color_texto_principal">#0F172A</color>
+    <color name="color_texto_secundario">#475569</color>
+    <color name="gris_400">#94A3B8</color>
+    <color name="blanco">#FFFFFF</color>
+    <color name="naranja">#FF5722</color>
+    <color name="naranja_claro">#FF8A65</color>
+    <color name="azul_marino">#0F172A</color>
+    <color name="azul_medio">#1E293B</color>
+    <color name="morado">#6B46C1</color>
+    <color name="verde">#10B981</color>
+    <color name="naranja_oscuro">#E64A19</color>
+</resources>

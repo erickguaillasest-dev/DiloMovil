@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="margen_pantalla">16dp</dimen>
+    <dimen name="espacio_chico">8dp</dimen>
+    <dimen name="espacio_medio">12dp</dimen>
+    <dimen name="espacio_grande">20dp</dimen>
+    <dimen name="radio_tarjeta">16dp</dimen>
+    <dimen name="elevacion_tarjeta">2dp</dimen>
+    <dimen name="tamano_boton_mic">96dp</dimen>
+    <dimen name="tamano_avatar">44dp</dimen>
+    <dimen name="tamano_avatar_grande">52dp</dimen>
+
+</resources>

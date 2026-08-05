@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MovilDilo</string>
+
+    <string-array name="opciones_estado_factura">
+        <item>Todos los estados</item>
+        <item>Autorizada</item>
+        <item>Pendiente</item>
+        <item>Rechazada</item>
+    </string-array>
+
+    <string-array name="opciones_metodo_factura">
+        <item>Todos los métodos</item>
+        <item>Voz</item>
+        <item>Manual</item>
+    </string-array>
+
+    <string-array name="opciones_tipo_cliente">
+        <item>Todos los tipos</item>
+        <item>RUC</item>
+        <item>Cédula</item>
+        <item>Consumidor Final</item>
+    </string-array>
+
+    <string-array name="opciones_categoria_producto">
+        <item>Todas las categorías</item>
+        <item>Tecnología</item>
+        <item>Papelería</item>
+        <item>Insumos de oficina</item>
+        <item>Mobiliario</item>
+    </string-array>
+
+    <string-array name="opciones_bodega">
+        <item>Todas las bodegas</item>
+        <item>Bodega Central</item>
+        <item>Bodega Norte</item>
+        <item>Bodega Sur</item>
+    </string-array>
+
+    <string-array name="opciones_tipo_identificacion">
+        <item>RUC</item>
+        <item>Cédula</item>
+        <item>Pasaporte</item>
+        <item>Consumidor final</item>
+    </string-array>
+
+    <string-array name="opciones_forma_pago">
+        <item>Efectivo</item>
+        <item>Transferencia bancaria</item>
+        <item>Tarjeta de crédito</item>
+        <item>Tarjeta de débito</item>
+        <item>Cheque</item>
+    </string-array>
+
+    <string-array name="opciones_iva">
+        <item>15%</item>
+        <item>0%</item>
+    </string-array>
+
+    <!-- Textos generales y de Navegación -->
+    <string name="nav_inicio">Inicio</string>
+
+    <!-- Textos para Fragment Catálogo -->
+    <string name="ca_titulo">Catálogo de Productos</string>
+    <string name="ca_subtitulo">Gestiona tus artículos y existencias</string>
+    <string name="ca_buscar_hint">Buscar producto...</string>
+
+    <!-- Textos para Fragment Clientes -->
+    <string name="cl_titulo">Mis Clientes</string>
+    <string name="cl_subtitulo">Directorio y cuentas por cobrar</string>
+    <string name="cl_buscar_hint">Buscar cliente por nombre o DNI...</string>
+
+    <!-- Textos para Fragment Mi Desempeño -->
+    <string name="md_titulo">Mi Desempeño</string>
+    <string name="md_subtitulo">Resumen de ventas y objetivos analíticos</string>
+</resources>

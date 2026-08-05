@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Tema Principal -->
+    <style name="Theme.Dilo" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/naranja</item>
+        <item name="colorPrimaryVariant">@color/naranja_claro</item>
+        <item name="colorOnPrimary">@color/blanco</item>
+        <item name="colorSecondary">@color/azul_marino</item>
+        <item name="colorSecondaryVariant">@color/azul_medio</item>
+        <item name="colorOnSecondary">@color/blanco</item>
+        <item name="android:statusBarColor">@color/azul_marino</item>
+        <item name="android:windowBackground">@color/color_fondo</item>
+        <item name="android:navigationBarColor">@color/color_superficie</item>
+    </style>
+
+    <!-- Tema Login -->
+    <style name="Theme.Dilo.Login">
+        <item name="android:windowBackground">@color/azul_marino</item>
+        <item name="android:statusBarColor">@color/azul_marino</item>
+    </style>
+
+    <!-- Texto -->
+    <style name="TextoTitulo">
+        <item name="android:textColor">@color/color_texto_principal</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TextoSubtitulo">
+        <item name="android:textColor">@color/color_texto_secundario</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="TextoEtiqueta">
+        <item name="android:textColor">@color/color_texto_secundario</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <!-- Botones -->
+    <style name="BotonPrimario">
+        <item name="android:background">@drawable/bg_boton_primario</item>
+        <item name="android:textColor">@color/blanco</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:paddingTop">14dp</item>
+        <item name="android:paddingBottom">14dp</item>
+        <item name="android:gravity">center</item>
+    </style>
+
+    <style name="BotonOutline">
+        <item name="android:background">@drawable/bg_boton_outline</item>
+        <item name="android:textColor">@color/color_primario</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:paddingTop">14dp</item>
+        <item name="android:paddingBottom">14dp</item>
+        <item name="android:gravity">center</item>
+    </style>
+
+    <!-- Campos de texto -->
+    <style name="CampoTexto">
+        <item name="android:background">@drawable/bg_campo_entrada</item>
+        <item name="android:paddingStart">12dp</item>
+        <item name="android:paddingEnd">12dp</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/color_texto_principal</item>
+        <item name="android:textColorHint">@color/gris_400</item>
+    </style>
+
+    <!-- Estilo faltante que causaba el error en el Registro -->
+    <style name="RegisterLabelStyle">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/color_texto_principal</item>
+        <item name="android:layout_marginTop">12dp</item>
+    </style>
+
+        <style name="ShapeAppearance.BottomRoundedPanel" parent="ShapeAppearance.Material3.Corner.None">
+            <item name="cornerSizeTopLeft">0dp</item>
+            <item name="cornerSizeTopRight">0dp</item>
+            <item name="cornerSizeBottomLeft">32dp</item>
+            <item name="cornerSizeBottomRight">32dp</item>
+        </style>
+
+</resources>
