@@ -154,6 +154,7 @@ id btnIniciarGuia
 id btnInvocarZoeHeader
 id btnIrInventario
 id btnIrKardex
+id btnLimpiarFechas
 id btnLogin
 id btnLogout
 id btnMicChat
@@ -285,6 +286,8 @@ id etDni
 id etDocReferenciaAjuste
 id etEmail
 id etFechaCaducidad
+id etFechaDesde
+id etFechaHasta
 id etFechaNacimiento
 id etMarca
 id etMensajeChat

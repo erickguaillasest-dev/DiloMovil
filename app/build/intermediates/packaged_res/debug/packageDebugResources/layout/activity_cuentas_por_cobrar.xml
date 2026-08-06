@@ -210,7 +210,7 @@
                 </LinearLayout>
             </HorizontalScrollView>
 
-            <!-- BÚSQUEDA Y FILTRO DE ESTADO -->
+            <!-- BÚSQUEDA Y FILTROS -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -240,7 +240,7 @@
                         android:textSize="13sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- FILTRO DE ESTADO (OCUPA TODO EL ANCHO) -->
+                <!-- FILTRO DE ESTADO -->
                 <LinearLayout
                     android:id="@+id/chipGroupEstado"
                     android:layout_width="match_parent"
@@ -298,6 +298,76 @@
                         android:textSize="13sp"
                         android:textStyle="bold" />
                 </LinearLayout>
+
+                <!-- FILTRO POR RANGO DE FECHAS DE VENCIMIENTO -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <!-- FECHA DESDE -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="Vence Desde"
+                        app:boxCornerRadiusBottomEnd="10dp"
+                        app:boxCornerRadiusBottomStart="10dp"
+                        app:boxCornerRadiusTopEnd="10dp"
+                        app:boxCornerRadiusTopStart="10dp"
+                        app:startIconDrawable="@android:drawable/ic_menu_today">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etFechaDesde"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:clickable="true"
+                            android:focusable="false"
+                            android:inputType="none"
+                            android:paddingVertical="10dp"
+                            android:textSize="12sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- FECHA HASTA -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:hint="Vence Hasta"
+                        app:boxCornerRadiusBottomEnd="10dp"
+                        app:boxCornerRadiusBottomStart="10dp"
+                        app:boxCornerRadiusTopEnd="10dp"
+                        app:boxCornerRadiusTopStart="10dp"
+                        app:startIconDrawable="@android:drawable/ic_menu_today">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etFechaHasta"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:clickable="true"
+                            android:focusable="false"
+                            android:inputType="none"
+                            android:paddingVertical="10dp"
+                            android:textSize="12sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- BOTÓN LIMPIAR FECHAS -->
+                    <ImageButton
+                        android:id="@+id/btnLimpiarFechas"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_marginStart="6dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="Limpiar rango de fechas"
+                        android:src="@android:drawable/ic_menu_close_clear_cancel"
+                        app:tint="#64748B" />
+                </LinearLayout>
+
             </LinearLayout>
 
             <!-- LISTA DE CUENTAS POR COBRAR -->

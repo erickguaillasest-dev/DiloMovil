@@ -55,349 +55,350 @@
 31-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:16:9-54
 32        android:supportsRtl="true"
 32-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:17:9-35
-33        android:theme="@style/Theme.MaterialComponents.Light.NoActionBar"
-33-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:18:9-74
-34        android:usesCleartextTraffic="true" >
-34-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:19:9-44
-35
-36        <!-- PUNTO DE ENTRADA ÚNICO DE LA APP -->
-37        <activity
-37-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:22:9-31:20
-38            android:name="com.example.movildilo.ui.main.MainActivity"
-38-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:23:13-49
-39            android:exported="true"
-39-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:24:13-36
-40            android:windowSoftInputMode="adjustResize" >
-40-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:25:13-55
-41            <intent-filter>
-41-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:26:13-30:29
-42                <action android:name="android.intent.action.MAIN" />
-42-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:27:17-69
-42-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:27:25-66
-43
-44                <category android:name="android.intent.category.LAUNCHER" />
-44-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:29:17-77
-44-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:29:27-74
-45            </intent-filter>
-46        </activity>
-47
-48        <!-- AUTENTICACIÓN -->
-49        <activity
-49-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:34:9-37:58
-50            android:name="com.example.movildilo.ui.auth.LoginActivity"
-50-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:35:13-50
-51            android:exported="false"
-51-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:36:13-37
-52            android:windowSoftInputMode="adjustResize" />
-52-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:37:13-55
-53        <activity
-53-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:38:9-41:58
-54            android:name="com.example.movildilo.ui.auth.RegistroActivity"
-54-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:39:13-53
-55            android:exported="false"
-55-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:40:13-37
-56            android:windowSoftInputMode="adjustResize" />
-56-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:41:13-55
-57        <activity
-57-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:42:9-46:58
-58            android:name="com.example.movildilo.ui.auth.RegistroNegocioActivity"
-58-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:43:13-60
-59            android:exported="false"
-59-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:44:13-37
-60            android:windowSoftInputMode="adjustResize" />
-60-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:46:13-55
-61        <activity
-61-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:47:9-50:58
-62            android:name="com.example.movildilo.ui.auth.SelectRoleActivity"
-62-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:48:13-55
-63            android:exported="false"
-63-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:49:13-37
-64            android:windowSoftInputMode="adjustResize" />
-64-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:50:13-55
-65
-66        <!-- DASHBOARDS -->
-67        <activity
-67-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:53:9-56:58
-68            android:name="com.example.movildilo.ui.dashboard.BodegueroActivity"
-68-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:54:13-59
-69            android:exported="false"
-69-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:55:13-37
-70            android:windowSoftInputMode="adjustResize" />
-70-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:56:13-55
-71        <activity
-71-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:57:9-60:58
-72            android:name="com.example.movildilo.ui.dashboard.PropietarioActivity"
-72-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:58:13-61
-73            android:exported="false"
-73-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:59:13-37
-74            android:windowSoftInputMode="adjustResize" />
-74-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:60:13-55
-75        <activity
-75-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:61:9-64:58
-76            android:name="com.example.movildilo.ui.dashboard.VendedorActivity"
-76-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:62:13-58
-77            android:exported="false"
-77-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:63:13-37
-78            android:windowSoftInputMode="adjustResize" />
-78-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:64:13-55
-79
-80        <!-- OTROS MÓDULOS -->
-81        <activity
-81-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:67:9-70:58
-82            android:name="com.example.movildilo.ui.propietario.Mi_equipo"
-82-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:68:13-53
-83            android:exported="false"
-83-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:69:13-37
-84            android:windowSoftInputMode="adjustResize" />
-84-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:70:13-55
-85        <activity
-85-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:71:9-74:58
-86            android:name="com.example.movildilo.ui.propietario.Perfil"
-86-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:72:13-50
-87            android:exported="false"
-87-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:73:13-37
-88            android:windowSoftInputMode="adjustResize" />
-88-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:74:13-55
-89        <activity
-89-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:75:9-78:59
-90            android:name="com.example.movildilo.ui.propietario.ClientesActivity"
-90-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:76:13-60
-91            android:exported="false"
-91-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:77:13-37
-92            android:windowSoftInputMode="adjustNothing" />
-92-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:78:13-56
-93        <activity
-93-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:79:9-82:59
-94            android:name="com.example.movildilo.ui.propietario.ConfiguracionNegocioActivity"
-94-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:80:13-72
-95            android:exported="false"
-95-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:81:13-37
-96            android:windowSoftInputMode="adjustNothing" />
-96-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:82:13-56
-97        <activity
-97-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:83:9-86:59
-98            android:name="com.example.movildilo.ui.propietario.HistorialFacturasActivity"
-98-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:84:13-69
-99            android:exported="false"
-99-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:85:13-37
-100            android:windowSoftInputMode="adjustNothing" />
-100-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:86:13-56
-101        <activity
-101-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:87:9-90:57
-102            android:name="com.example.movildilo.ui.propietario.CatalogoProductosActivity"
-102-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:88:13-69
-103            android:exported="false"
-103-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:89:13-37
-104            android:windowSoftInputMode="adjustResize" />
-104-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:90:13-55
-105        <activity
-105-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:91:9-94:57
-106            android:name="com.example.movildilo.ui.propietario.KardexActivity"
-106-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:92:13-58
-107            android:exported="false"
-107-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:93:13-37
-108            android:windowSoftInputMode="adjustResize" />
-108-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:94:13-55
-109        <activity
-109-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:95:9-99:57
-110            android:name="com.example.movildilo.ui.propietario.InventarioBodegasActivity"
-110-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:96:13-69
-111            android:exported="false"
-111-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:97:13-37
-112            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar"
-112-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:98:13-81
-113            android:windowSoftInputMode="adjustResize" />
-113-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:99:13-55
-114        <activity
-114-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:100:9-103:57
-115            android:name="com.example.movildilo.ui.bodegas.BodegasActivity"
-115-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:101:13-55
-116            android:exported="false"
-116-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:102:13-37
-117            android:windowSoftInputMode="adjustResize" />
-117-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:103:13-55
-118        <activity
-118-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:104:9-107:57
-119            android:name="com.example.movildilo.ui.propietario.ProveedoresActivity"
-119-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:105:13-63
-120            android:exported="false"
-120-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:106:13-37
-121            android:windowSoftInputMode="adjustResize" />
-121-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:107:13-55
-122        <activity
-122-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:108:9-111:58
-123            android:name="com.example.movildilo.ui.propietario.ComprasActivity"
-123-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:109:13-59
-124            android:exported="false"
-124-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:110:13-37
-125            android:windowSoftInputMode="adjustResize" />
-125-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:111:13-55
-126        <activity
-126-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:113:9-116:57
-127            android:name="com.example.movildilo.ui.propietario.CategoriasActivity"
-127-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:114:13-62
-128            android:exported="false"
-128-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:115:13-37
-129            android:windowSoftInputMode="adjustResize" />
-129-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:116:13-55
-130        <activity
-130-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:118:9-121:57
-131            android:name="com.example.movildilo.ui.propietario.CuentasPorCobrarActivity"
-131-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:119:13-68
-132            android:exported="false"
-132-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:120:13-37
-133            android:windowSoftInputMode="adjustResize" />
-133-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:121:13-55
-134        <activity
-134-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:123:9-126:57
-135            android:name="com.example.movildilo.ui.propietario.RendimientoComercialActivity"
-135-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:124:13-72
-136            android:exported="false"
-136-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:125:13-37
-137            android:windowSoftInputMode="adjustResize" />
-137-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:126:13-55
-138        <activity
-138-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:128:9-131:57
-139            android:name="com.example.movildilo.ui.admin.AdminActivity"
-139-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:129:13-51
-140            android:exported="false"
-140-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:130:13-37
-141            android:windowSoftInputMode="adjustResize" />
-141-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:131:13-55
-142        <activity
-142-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:133:9-135:40
-143            android:name="com.example.movildilo.ui.admin.AdminIvaActivity"
-143-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:134:13-54
-144            android:exported="false" />
-144-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:135:13-37
-145        <activity
-145-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:137:9-140:57
-146            android:name="com.example.movildilo.ui.admin.AdminNegociosActivity"
-146-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:138:13-59
-147            android:exported="false"
-147-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:139:13-37
-148            android:windowSoftInputMode="adjustResize" />
-148-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:140:13-55
-149        <activity
-149-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:142:9-145:57
-150            android:name="com.example.movildilo.ui.admin.AdminUsuariosActivity"
-150-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:143:13-59
-151            android:exported="false"
-151-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:144:13-37
-152            android:windowSoftInputMode="adjustResize" />
-152-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:145:13-55
-153        <activity
-153-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:147:9-150:57
-154            android:name="com.example.movildilo.ui.auth.TerminosActivity"
-154-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:148:13-53
-155            android:exported="false"
-155-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:149:13-37
-156            android:windowSoftInputMode="adjustResize" />
-156-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:150:13-55
-157        <activity
-157-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:152:9-155:57
-158            android:name="com.example.movildilo.ui.admin.AdminParroquiasActivity"
-158-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:153:13-61
-159            android:exported="false"
-159-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:154:13-37
-160            android:windowSoftInputMode="adjustResize" />
-160-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:155:13-55
-161
-162        <provider
-162-->INJECTED
-163            android:name="androidx.core.content.FileProvider"
-163-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:158:13-62
-164            android:authorities="com.example.movildilo.fileprovider"
-164-->INJECTED
-165            android:exported="false"
-165-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:160:13-37
-166            android:grantUriPermissions="true" >
-166-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:161:13-47
-167            <meta-data
-167-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:162:13-164:59
-168                android:name="android.support.FILE_PROVIDER_PATHS"
-168-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:163:17-67
-169                android:resource="@drawable/file_paths" />
-169-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:164:17-56
-170        </provider>
-171        <provider
-171-->[androidx.emoji2:emoji2:1.3.0] C:\Users\USER\.gradle\caches\9.5.0\transforms\0f377477d95d938126fb09434d82a3b3\transformed\emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
-172            android:name="androidx.startup.InitializationProvider"
-172-->[androidx.emoji2:emoji2:1.3.0] C:\Users\USER\.gradle\caches\9.5.0\transforms\0f377477d95d938126fb09434d82a3b3\transformed\emoji2-1.3.0\AndroidManifest.xml:25:13-67
-173            android:authorities="com.example.movildilo.androidx-startup"
-173-->[androidx.emoji2:emoji2:1.3.0] C:\Users\USER\.gradle\caches\9.5.0\transforms\0f377477d95d938126fb09434d82a3b3\transformed\emoji2-1.3.0\AndroidManifest.xml:26:13-68
-174            android:exported="false" >
-174-->[androidx.emoji2:emoji2:1.3.0] C:\Users\USER\.gradle\caches\9.5.0\transforms\0f377477d95d938126fb09434d82a3b3\transformed\emoji2-1.3.0\AndroidManifest.xml:27:13-37
-175            <meta-data
-175-->[androidx.emoji2:emoji2:1.3.0] C:\Users\USER\.gradle\caches\9.5.0\transforms\0f377477d95d938126fb09434d82a3b3\transformed\emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
-176                android:name="androidx.emoji2.text.EmojiCompatInitializer"
-176-->[androidx.emoji2:emoji2:1.3.0] C:\Users\USER\.gradle\caches\9.5.0\transforms\0f377477d95d938126fb09434d82a3b3\transformed\emoji2-1.3.0\AndroidManifest.xml:30:17-75
-177                android:value="androidx.startup" />
-177-->[androidx.emoji2:emoji2:1.3.0] C:\Users\USER\.gradle\caches\9.5.0\transforms\0f377477d95d938126fb09434d82a3b3\transformed\emoji2-1.3.0\AndroidManifest.xml:31:17-49
-178            <meta-data
-178-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\USER\.gradle\caches\9.5.0\transforms\ee1fc40734aa57bbd1dab7f1578d21fc\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:29:13-31:52
-179                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
-179-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\USER\.gradle\caches\9.5.0\transforms\ee1fc40734aa57bbd1dab7f1578d21fc\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:30:17-78
-180                android:value="androidx.startup" />
-180-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\USER\.gradle\caches\9.5.0\transforms\ee1fc40734aa57bbd1dab7f1578d21fc\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:31:17-49
-181            <meta-data
-181-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
-182                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
-182-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
-183                android:value="androidx.startup" />
-183-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
-184        </provider>
-185
-186        <uses-library
-186-->[androidx.window:window:1.0.0] C:\Users\USER\.gradle\caches\9.5.0\transforms\aa16f96fd27aa54e6a9698f4afa6bcf7\transformed\window-1.0.0\AndroidManifest.xml:25:9-27:40
-187            android:name="androidx.window.extensions"
-187-->[androidx.window:window:1.0.0] C:\Users\USER\.gradle\caches\9.5.0\transforms\aa16f96fd27aa54e6a9698f4afa6bcf7\transformed\window-1.0.0\AndroidManifest.xml:26:13-54
-188            android:required="false" />
-188-->[androidx.window:window:1.0.0] C:\Users\USER\.gradle\caches\9.5.0\transforms\aa16f96fd27aa54e6a9698f4afa6bcf7\transformed\window-1.0.0\AndroidManifest.xml:27:13-37
-189        <uses-library
-189-->[androidx.window:window:1.0.0] C:\Users\USER\.gradle\caches\9.5.0\transforms\aa16f96fd27aa54e6a9698f4afa6bcf7\transformed\window-1.0.0\AndroidManifest.xml:28:9-30:40
-190            android:name="androidx.window.sidecar"
-190-->[androidx.window:window:1.0.0] C:\Users\USER\.gradle\caches\9.5.0\transforms\aa16f96fd27aa54e6a9698f4afa6bcf7\transformed\window-1.0.0\AndroidManifest.xml:29:13-51
-191            android:required="false" />
-191-->[androidx.window:window:1.0.0] C:\Users\USER\.gradle\caches\9.5.0\transforms\aa16f96fd27aa54e6a9698f4afa6bcf7\transformed\window-1.0.0\AndroidManifest.xml:30:13-37
-192
-193        <receiver
-193-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
-194            android:name="androidx.profileinstaller.ProfileInstallReceiver"
-194-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
-195            android:directBootAware="false"
-195-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
-196            android:enabled="true"
-196-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
-197            android:exported="true"
-197-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
-198            android:permission="android.permission.DUMP" >
-198-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
-199            <intent-filter>
-199-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
-200                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
-200-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
-200-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
-201            </intent-filter>
-202            <intent-filter>
-202-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
-203                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
-203-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
-203-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
-204            </intent-filter>
-205            <intent-filter>
-205-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
-206                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
-206-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
-206-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
-207            </intent-filter>
-208            <intent-filter>
-208-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
-209                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
-209-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
-209-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:25-92
-210            </intent-filter>
-211        </receiver>
-212    </application>
-213
-214</manifest>
+33        android:testOnly="true"
+34        android:theme="@style/Theme.MaterialComponents.Light.NoActionBar"
+34-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:18:9-74
+35        android:usesCleartextTraffic="true" >
+35-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:19:9-44
+36
+37        <!-- PUNTO DE ENTRADA ÚNICO DE LA APP -->
+38        <activity
+38-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:22:9-31:20
+39            android:name="com.example.movildilo.ui.main.MainActivity"
+39-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:23:13-49
+40            android:exported="true"
+40-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:24:13-36
+41            android:windowSoftInputMode="adjustResize" >
+41-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:25:13-55
+42            <intent-filter>
+42-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:26:13-30:29
+43                <action android:name="android.intent.action.MAIN" />
+43-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:27:17-69
+43-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:27:25-66
+44
+45                <category android:name="android.intent.category.LAUNCHER" />
+45-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:29:17-77
+45-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:29:27-74
+46            </intent-filter>
+47        </activity>
+48
+49        <!-- AUTENTICACIÓN -->
+50        <activity
+50-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:34:9-37:58
+51            android:name="com.example.movildilo.ui.auth.LoginActivity"
+51-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:35:13-50
+52            android:exported="false"
+52-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:36:13-37
+53            android:windowSoftInputMode="adjustResize" />
+53-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:37:13-55
+54        <activity
+54-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:38:9-41:58
+55            android:name="com.example.movildilo.ui.auth.RegistroActivity"
+55-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:39:13-53
+56            android:exported="false"
+56-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:40:13-37
+57            android:windowSoftInputMode="adjustResize" />
+57-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:41:13-55
+58        <activity
+58-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:42:9-46:58
+59            android:name="com.example.movildilo.ui.auth.RegistroNegocioActivity"
+59-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:43:13-60
+60            android:exported="false"
+60-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:44:13-37
+61            android:windowSoftInputMode="adjustResize" />
+61-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:46:13-55
+62        <activity
+62-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:47:9-50:58
+63            android:name="com.example.movildilo.ui.auth.SelectRoleActivity"
+63-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:48:13-55
+64            android:exported="false"
+64-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:49:13-37
+65            android:windowSoftInputMode="adjustResize" />
+65-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:50:13-55
+66
+67        <!-- DASHBOARDS -->
+68        <activity
+68-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:53:9-56:58
+69            android:name="com.example.movildilo.ui.dashboard.BodegueroActivity"
+69-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:54:13-59
+70            android:exported="false"
+70-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:55:13-37
+71            android:windowSoftInputMode="adjustResize" />
+71-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:56:13-55
+72        <activity
+72-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:57:9-60:58
+73            android:name="com.example.movildilo.ui.dashboard.PropietarioActivity"
+73-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:58:13-61
+74            android:exported="false"
+74-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:59:13-37
+75            android:windowSoftInputMode="adjustResize" />
+75-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:60:13-55
+76        <activity
+76-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:61:9-64:58
+77            android:name="com.example.movildilo.ui.dashboard.VendedorActivity"
+77-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:62:13-58
+78            android:exported="false"
+78-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:63:13-37
+79            android:windowSoftInputMode="adjustResize" />
+79-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:64:13-55
+80
+81        <!-- OTROS MÓDULOS -->
+82        <activity
+82-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:67:9-70:58
+83            android:name="com.example.movildilo.ui.propietario.Mi_equipo"
+83-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:68:13-53
+84            android:exported="false"
+84-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:69:13-37
+85            android:windowSoftInputMode="adjustResize" />
+85-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:70:13-55
+86        <activity
+86-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:71:9-74:58
+87            android:name="com.example.movildilo.ui.propietario.Perfil"
+87-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:72:13-50
+88            android:exported="false"
+88-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:73:13-37
+89            android:windowSoftInputMode="adjustResize" />
+89-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:74:13-55
+90        <activity
+90-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:75:9-78:59
+91            android:name="com.example.movildilo.ui.propietario.ClientesActivity"
+91-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:76:13-60
+92            android:exported="false"
+92-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:77:13-37
+93            android:windowSoftInputMode="adjustNothing" />
+93-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:78:13-56
+94        <activity
+94-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:79:9-82:59
+95            android:name="com.example.movildilo.ui.propietario.ConfiguracionNegocioActivity"
+95-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:80:13-72
+96            android:exported="false"
+96-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:81:13-37
+97            android:windowSoftInputMode="adjustNothing" />
+97-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:82:13-56
+98        <activity
+98-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:83:9-86:59
+99            android:name="com.example.movildilo.ui.propietario.HistorialFacturasActivity"
+99-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:84:13-69
+100            android:exported="false"
+100-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:85:13-37
+101            android:windowSoftInputMode="adjustNothing" />
+101-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:86:13-56
+102        <activity
+102-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:87:9-90:57
+103            android:name="com.example.movildilo.ui.propietario.CatalogoProductosActivity"
+103-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:88:13-69
+104            android:exported="false"
+104-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:89:13-37
+105            android:windowSoftInputMode="adjustResize" />
+105-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:90:13-55
+106        <activity
+106-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:91:9-94:57
+107            android:name="com.example.movildilo.ui.propietario.KardexActivity"
+107-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:92:13-58
+108            android:exported="false"
+108-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:93:13-37
+109            android:windowSoftInputMode="adjustResize" />
+109-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:94:13-55
+110        <activity
+110-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:95:9-99:57
+111            android:name="com.example.movildilo.ui.propietario.InventarioBodegasActivity"
+111-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:96:13-69
+112            android:exported="false"
+112-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:97:13-37
+113            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar"
+113-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:98:13-81
+114            android:windowSoftInputMode="adjustResize" />
+114-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:99:13-55
+115        <activity
+115-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:100:9-103:57
+116            android:name="com.example.movildilo.ui.bodegas.BodegasActivity"
+116-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:101:13-55
+117            android:exported="false"
+117-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:102:13-37
+118            android:windowSoftInputMode="adjustResize" />
+118-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:103:13-55
+119        <activity
+119-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:104:9-107:57
+120            android:name="com.example.movildilo.ui.propietario.ProveedoresActivity"
+120-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:105:13-63
+121            android:exported="false"
+121-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:106:13-37
+122            android:windowSoftInputMode="adjustResize" />
+122-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:107:13-55
+123        <activity
+123-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:108:9-111:58
+124            android:name="com.example.movildilo.ui.propietario.ComprasActivity"
+124-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:109:13-59
+125            android:exported="false"
+125-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:110:13-37
+126            android:windowSoftInputMode="adjustResize" />
+126-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:111:13-55
+127        <activity
+127-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:113:9-116:57
+128            android:name="com.example.movildilo.ui.propietario.CategoriasActivity"
+128-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:114:13-62
+129            android:exported="false"
+129-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:115:13-37
+130            android:windowSoftInputMode="adjustResize" />
+130-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:116:13-55
+131        <activity
+131-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:118:9-121:57
+132            android:name="com.example.movildilo.ui.propietario.CuentasPorCobrarActivity"
+132-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:119:13-68
+133            android:exported="false"
+133-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:120:13-37
+134            android:windowSoftInputMode="adjustResize" />
+134-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:121:13-55
+135        <activity
+135-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:123:9-126:57
+136            android:name="com.example.movildilo.ui.propietario.RendimientoComercialActivity"
+136-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:124:13-72
+137            android:exported="false"
+137-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:125:13-37
+138            android:windowSoftInputMode="adjustResize" />
+138-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:126:13-55
+139        <activity
+139-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:128:9-131:57
+140            android:name="com.example.movildilo.ui.admin.AdminActivity"
+140-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:129:13-51
+141            android:exported="false"
+141-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:130:13-37
+142            android:windowSoftInputMode="adjustResize" />
+142-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:131:13-55
+143        <activity
+143-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:133:9-135:40
+144            android:name="com.example.movildilo.ui.admin.AdminIvaActivity"
+144-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:134:13-54
+145            android:exported="false" />
+145-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:135:13-37
+146        <activity
+146-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:137:9-140:57
+147            android:name="com.example.movildilo.ui.admin.AdminNegociosActivity"
+147-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:138:13-59
+148            android:exported="false"
+148-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:139:13-37
+149            android:windowSoftInputMode="adjustResize" />
+149-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:140:13-55
+150        <activity
+150-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:142:9-145:57
+151            android:name="com.example.movildilo.ui.admin.AdminUsuariosActivity"
+151-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:143:13-59
+152            android:exported="false"
+152-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:144:13-37
+153            android:windowSoftInputMode="adjustResize" />
+153-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:145:13-55
+154        <activity
+154-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:147:9-150:57
+155            android:name="com.example.movildilo.ui.auth.TerminosActivity"
+155-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:148:13-53
+156            android:exported="false"
+156-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:149:13-37
+157            android:windowSoftInputMode="adjustResize" />
+157-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:150:13-55
+158        <activity
+158-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:152:9-155:57
+159            android:name="com.example.movildilo.ui.admin.AdminParroquiasActivity"
+159-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:153:13-61
+160            android:exported="false"
+160-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:154:13-37
+161            android:windowSoftInputMode="adjustResize" />
+161-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:155:13-55
+162
+163        <provider
+163-->INJECTED
+164            android:name="androidx.core.content.FileProvider"
+164-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:158:13-62
+165            android:authorities="com.example.movildilo.fileprovider"
+165-->INJECTED
+166            android:exported="false"
+166-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:160:13-37
+167            android:grantUriPermissions="true" >
+167-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:161:13-47
+168            <meta-data
+168-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:162:13-164:59
+169                android:name="android.support.FILE_PROVIDER_PATHS"
+169-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:163:17-67
+170                android:resource="@drawable/file_paths" />
+170-->C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:164:17-56
+171        </provider>
+172        <provider
+172-->[androidx.emoji2:emoji2:1.3.0] C:\Users\USER\.gradle\caches\9.5.0\transforms\0f377477d95d938126fb09434d82a3b3\transformed\emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
+173            android:name="androidx.startup.InitializationProvider"
+173-->[androidx.emoji2:emoji2:1.3.0] C:\Users\USER\.gradle\caches\9.5.0\transforms\0f377477d95d938126fb09434d82a3b3\transformed\emoji2-1.3.0\AndroidManifest.xml:25:13-67
+174            android:authorities="com.example.movildilo.androidx-startup"
+174-->[androidx.emoji2:emoji2:1.3.0] C:\Users\USER\.gradle\caches\9.5.0\transforms\0f377477d95d938126fb09434d82a3b3\transformed\emoji2-1.3.0\AndroidManifest.xml:26:13-68
+175            android:exported="false" >
+175-->[androidx.emoji2:emoji2:1.3.0] C:\Users\USER\.gradle\caches\9.5.0\transforms\0f377477d95d938126fb09434d82a3b3\transformed\emoji2-1.3.0\AndroidManifest.xml:27:13-37
+176            <meta-data
+176-->[androidx.emoji2:emoji2:1.3.0] C:\Users\USER\.gradle\caches\9.5.0\transforms\0f377477d95d938126fb09434d82a3b3\transformed\emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
+177                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+177-->[androidx.emoji2:emoji2:1.3.0] C:\Users\USER\.gradle\caches\9.5.0\transforms\0f377477d95d938126fb09434d82a3b3\transformed\emoji2-1.3.0\AndroidManifest.xml:30:17-75
+178                android:value="androidx.startup" />
+178-->[androidx.emoji2:emoji2:1.3.0] C:\Users\USER\.gradle\caches\9.5.0\transforms\0f377477d95d938126fb09434d82a3b3\transformed\emoji2-1.3.0\AndroidManifest.xml:31:17-49
+179            <meta-data
+179-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\USER\.gradle\caches\9.5.0\transforms\ee1fc40734aa57bbd1dab7f1578d21fc\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:29:13-31:52
+180                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+180-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\USER\.gradle\caches\9.5.0\transforms\ee1fc40734aa57bbd1dab7f1578d21fc\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:30:17-78
+181                android:value="androidx.startup" />
+181-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\USER\.gradle\caches\9.5.0\transforms\ee1fc40734aa57bbd1dab7f1578d21fc\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:31:17-49
+182            <meta-data
+182-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
+183                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+183-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
+184                android:value="androidx.startup" />
+184-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
+185        </provider>
+186
+187        <uses-library
+187-->[androidx.window:window:1.0.0] C:\Users\USER\.gradle\caches\9.5.0\transforms\aa16f96fd27aa54e6a9698f4afa6bcf7\transformed\window-1.0.0\AndroidManifest.xml:25:9-27:40
+188            android:name="androidx.window.extensions"
+188-->[androidx.window:window:1.0.0] C:\Users\USER\.gradle\caches\9.5.0\transforms\aa16f96fd27aa54e6a9698f4afa6bcf7\transformed\window-1.0.0\AndroidManifest.xml:26:13-54
+189            android:required="false" />
+189-->[androidx.window:window:1.0.0] C:\Users\USER\.gradle\caches\9.5.0\transforms\aa16f96fd27aa54e6a9698f4afa6bcf7\transformed\window-1.0.0\AndroidManifest.xml:27:13-37
+190        <uses-library
+190-->[androidx.window:window:1.0.0] C:\Users\USER\.gradle\caches\9.5.0\transforms\aa16f96fd27aa54e6a9698f4afa6bcf7\transformed\window-1.0.0\AndroidManifest.xml:28:9-30:40
+191            android:name="androidx.window.sidecar"
+191-->[androidx.window:window:1.0.0] C:\Users\USER\.gradle\caches\9.5.0\transforms\aa16f96fd27aa54e6a9698f4afa6bcf7\transformed\window-1.0.0\AndroidManifest.xml:29:13-51
+192            android:required="false" />
+192-->[androidx.window:window:1.0.0] C:\Users\USER\.gradle\caches\9.5.0\transforms\aa16f96fd27aa54e6a9698f4afa6bcf7\transformed\window-1.0.0\AndroidManifest.xml:30:13-37
+193
+194        <receiver
+194-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
+195            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+195-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
+196            android:directBootAware="false"
+196-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
+197            android:enabled="true"
+197-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
+198            android:exported="true"
+198-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
+199            android:permission="android.permission.DUMP" >
+199-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
+200            <intent-filter>
+200-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
+201                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+201-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
+201-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
+202            </intent-filter>
+203            <intent-filter>
+203-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
+204                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+204-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
+204-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
+205            </intent-filter>
+206            <intent-filter>
+206-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
+207                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+207-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
+207-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
+208            </intent-filter>
+209            <intent-filter>
+209-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
+210                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+210-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
+210-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\USER\.gradle\caches\9.5.0\transforms\6e4be6ece48d48052b910de80229fc0c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:25-92
+211            </intent-filter>
+212        </receiver>
+213    </application>
+214
+215</manifest>

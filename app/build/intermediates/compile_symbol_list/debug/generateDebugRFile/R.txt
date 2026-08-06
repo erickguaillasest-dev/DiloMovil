@@ -152,6 +152,7 @@ int id btnIniciarGuia 0x0
 int id btnInvocarZoeHeader 0x0
 int id btnIrInventario 0x0
 int id btnIrKardex 0x0
+int id btnLimpiarFechas 0x0
 int id btnLogin 0x0
 int id btnLogout 0x0
 int id btnMicChat 0x0
@@ -283,6 +284,8 @@ int id etDni 0x0
 int id etDocReferenciaAjuste 0x0
 int id etEmail 0x0
 int id etFechaCaducidad 0x0
+int id etFechaDesde 0x0
+int id etFechaHasta 0x0
 int id etFechaNacimiento 0x0
 int id etMarca 0x0
 int id etMensajeChat 0x0
