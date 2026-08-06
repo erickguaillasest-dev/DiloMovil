@@ -26,7 +26,8 @@ data class ResultadoVozFactura(
     val items: List<ItemVozIA> = emptyList(),
     val eliminarProducto: String? = null,
     val descuentoGlobalPorcentaje: Int? = null,
-    val emitirFactura: Boolean = false
+    val emitirFactura: Boolean = false,
+    val vaciarCarrito: Boolean = false
 )
 
 object ZoeVoiceAI {
@@ -94,7 +95,6 @@ object ZoeVoiceAI {
         productos: List<String>,
         bodegas: List<String>
     ): String {
-        // Limitamos por cantidad de elementos en lugar de caracteres para evitar nombres cortados a la mitad
         val listaClientes = clientes.take(40).joinToString(", ")
         val listaProductos = productos.take(60).joinToString(", ")
         val listaBodegas = bodegas.take(20).joinToString(", ")
@@ -113,14 +113,15 @@ object ZoeVoiceAI {
 
             Formato EXACTO de salida (JSON, nada más, sin comentarios ni bloques de código):
             {
-              "cliente": "nombre o cédula extraída, o 'CONSUMIDOR_FINAL', o null",
+             "cliente": "nombre o cédula extraída, o 'CONSUMIDOR_FINAL', o null",
               "metodoPago": "EFECTIVO" | "TRANSFERENCIA" | "TARJETA_CREDITO" | null,
               "cuotas": numero_entero_o_null,
               "bodega": "nombre de bodega extraído, o null",
               "items": [ { "producto": "nombre extraído", "cantidad": numero_entero_o_null, "descuentoPorcentaje": numero_entero_o_null } ],
               "eliminarProducto": "nombre del producto a quitar del carrito, o null",
               "descuentoGlobalPorcentaje": numero_entero_o_null,
-              "emitirFactura": true o false
+              "emitirFactura": true o false,
+              "vaciarCarrito": true o false
             }
 
             REGLAS:
@@ -134,6 +135,7 @@ object ZoeVoiceAI {
             8. PRODUCTOS: solo agrega un producto a "items" si el usuario lo nombró explícitamente pidiendo agregarlo (verbo de agregar + cantidad/nombre, ej. "ponme dos cocas", "agrégame una leche", "quiero tres panes"). NUNCA inventes ni supongas un producto que el usuario no mencionó. Cada frase se interpreta sola, solo con lo que esa frase dice. Si la frase solo da el cliente, la forma de pago, la bodega o una palabra de confirmación, "items" va vacío.
             9. DESCUENTOS: si el usuario pide un descuento para UN producto puntual (ej. "2 coca colas con 10% de descuento", "la leche con un 5 por ciento menos"), pon ese número entero (0-100, sin el símbolo %) en "descuentoPorcentaje" DENTRO de ese item. Si pide un descuento para TODA la factura o el ticket completo (ej. "aplícale un 15% de descuento a todo", "dale un 10 por ciento de descuento general"), pon ese número entero en "descuentoGlobalPorcentaje" (a nivel raíz, no dentro de items). Si no menciona ningún descuento, ambos van en null.
             10. NO devuelvas texto fuera del JSON. No expliques nada. No uses ```.
+            11. Si pide vaciar todo el ticket o borrar todos los productos (ej. "borra todo", "elimina los productos del ticket", "vaciar carrito", "limpiar ticket"), pon "vaciarCarrito": true.
         """.trimIndent()
     }
 
@@ -172,7 +174,8 @@ object ZoeVoiceAI {
                 eliminarProducto = campoTexto("eliminarProducto"),
                 descuentoGlobalPorcentaje = if (obj.isNull("descuentoGlobalPorcentaje")) null
                 else obj.optInt("descuentoGlobalPorcentaje", -1).takeIf { it in 0..100 },
-                emitirFactura = obj.optBoolean("emitirFactura", false)
+                emitirFactura = obj.optBoolean("emitirFactura", false),
+                vaciarCarrito = obj.optBoolean("vaciarCarrito", false)
             )
         } catch (_: Exception) {
             null

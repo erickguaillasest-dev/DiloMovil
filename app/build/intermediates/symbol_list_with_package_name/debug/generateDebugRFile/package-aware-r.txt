@@ -75,6 +75,7 @@ drawable ic_producto
 drawable ic_receivables
 drawable ic_suppliers
 drawable ic_supply_truck
+drawable ic_sync
 drawable ic_warehouse
 drawable logo_dilo_sf
 drawable zoe
@@ -119,7 +120,6 @@ id btnDialogCancelar
 id btnDialogConfirmar
 id btnDlgCambiarFoto
 id btnEditar
-id btnEditarFacturaTemp
 id btnEditarNegocio
 id btnEditarPerfil
 id btnEditarProducto
@@ -194,6 +194,7 @@ id cardFacturas
 id cardFotoPerfil
 id cardInventario
 id cardMiembro
+id cardMovimientos
 id cardNegocios
 id cardOpcionesMiembro
 id cardParroquias

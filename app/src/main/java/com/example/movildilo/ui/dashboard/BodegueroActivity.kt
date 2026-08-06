@@ -69,10 +69,9 @@ class BodegueroActivity : AppCompatActivity() {
     private val ROLES_AUTORIZADOS = listOf("PROPIETARIO", "ADMINISTRADOR", "BODEGUERO", "INVENTARIO")
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_bodeguero)
-
 
         sessionManager = SessionManager(this)
         negocioId = sessionManager.getNegocioId()

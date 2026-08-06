@@ -54,18 +54,6 @@
         android:textStyle="bold" />
 
     <ImageView
-        android:id="@+id/btnEditarFacturaTemp"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:clickable="true"
-        android:contentDescription="Editar cantidad o descuento"
-        android:focusable="true"
-        android:padding="6dp"
-        android:src="@android:drawable/ic_menu_edit"
-        app:tint="#2563EB" />
-
-    <ImageView
         android:id="@+id/btnQuitarFacturaTemp"
         android:layout_width="36dp"
         android:layout_height="36dp"

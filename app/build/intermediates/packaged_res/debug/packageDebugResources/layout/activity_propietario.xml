@@ -688,6 +688,43 @@
                                 android:textStyle="bold" />
                         </LinearLayout>
 
+                        <LinearLayout
+                            android:id="@+id/cardMovimientos"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_columnWeight="1"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="?attr/selectableItemBackground"
+                            android:gravity="center"
+                            android:orientation="vertical"
+                            android:padding="12dp">
+
+                            <com.google.android.material.card.MaterialCardView
+                                android:layout_width="52dp"
+                                android:layout_height="52dp"
+                                app:cardBackgroundColor="#FFF3E0"
+                                app:cardCornerRadius="16dp"
+                                app:cardElevation="0dp">
+
+                                <ImageView
+                                    android:layout_width="24dp"
+                                    android:layout_height="24dp"
+                                    android:layout_gravity="center"
+                                    android:src="@drawable/ic_sync"
+                                    app:tint="#F57C00" />
+                            </com.google.android.material.card.MaterialCardView>
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:text="Movimientos"
+                                android:textColor="#1E293B"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
 
                     </GridLayout>
                 </com.google.android.material.card.MaterialCardView>

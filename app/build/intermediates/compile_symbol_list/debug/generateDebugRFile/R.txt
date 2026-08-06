@@ -74,6 +74,7 @@ int drawable ic_producto 0x0
 int drawable ic_receivables 0x0
 int drawable ic_suppliers 0x0
 int drawable ic_supply_truck 0x0
+int drawable ic_sync 0x0
 int drawable ic_warehouse 0x0
 int drawable logo_dilo_sf 0x0
 int drawable zoe 0x0
@@ -118,7 +119,6 @@ int id btnDialogCancelar 0x0
 int id btnDialogConfirmar 0x0
 int id btnDlgCambiarFoto 0x0
 int id btnEditar 0x0
-int id btnEditarFacturaTemp 0x0
 int id btnEditarNegocio 0x0
 int id btnEditarPerfil 0x0
 int id btnEditarProducto 0x0
@@ -193,6 +193,7 @@ int id cardFacturas 0x0
 int id cardFotoPerfil 0x0
 int id cardInventario 0x0
 int id cardMiembro 0x0
+int id cardMovimientos 0x0
 int id cardNegocios 0x0
 int id cardOpcionesMiembro 0x0
 int id cardParroquias 0x0

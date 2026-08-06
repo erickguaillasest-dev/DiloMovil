@@ -10,10 +10,11 @@ import com.example.movildilo.R
 import com.example.movildilo.data.model.dto.ItemCarritoFactura
 import java.util.Locale
 
+
+
 class FacturaCarritoAdapter(
     private var lista: MutableList<ItemCarritoFactura>,
-    private val onQuitar: (Int) -> Unit,
-    private val onEditar: ((Int) -> Unit)? = null
+    private val onQuitar: (Int) -> Unit
 ) : RecyclerView.Adapter<FacturaCarritoAdapter.VH>() {
 
     class VH(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -45,18 +46,8 @@ class FacturaCarritoAdapter(
             holder.tvDescuento.visibility = View.GONE
         }
 
-        // Clic en la fila para editar
-        holder.itemView.setOnClickListener {
-            @Suppress("DEPRECATION")
-            val currentPos = holder.adapterPosition
-            if (currentPos != RecyclerView.NO_POSITION) {
-                onEditar?.invoke(currentPos)
-            }
-        }
-
-        // Clic en el botón eliminar
+        // Se usa holder.adapterPosition para máxima compatibilidad
         holder.btnQuitar.setOnClickListener {
-            @Suppress("DEPRECATION")
             val currentPos = holder.adapterPosition
             if (currentPos != RecyclerView.NO_POSITION) {
                 onQuitar(currentPos)
