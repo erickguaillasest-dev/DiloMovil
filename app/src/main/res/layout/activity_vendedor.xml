@@ -6,7 +6,6 @@
     android:background="#083344"
     android:fitsSystemWindows="false">
 
-    <!-- CÍRCULO DECORATIVO DE FONDO -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -30,7 +29,6 @@
             app:strokeWidth="1dp" />
     </RelativeLayout>
 
-    <!-- HEADER SUPERIOR -->
     <RelativeLayout
         android:id="@+id/headerLayout"
         android:layout_width="match_parent"
@@ -101,7 +99,6 @@
         </LinearLayout>
     </RelativeLayout>
 
-    <!-- BANNER ALERTA CUENTAS POR COBRAR -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardAlert"
         android:layout_width="match_parent"
@@ -167,7 +164,6 @@
         </RelativeLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- PANEL INFERIOR CONTENEDOR REDONDEADO -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="match_parent"

@@ -6,7 +6,6 @@
     android:background="#083344"
     android:fitsSystemWindows="false">
 
-    <!-- CÍRCULO DECORATIVO DE FONDO -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -30,7 +29,6 @@
             app:strokeWidth="1dp" />
     </RelativeLayout>
 
-    <!-- HEADER SUPERIOR -->
     <RelativeLayout
         android:id="@+id/headerLayout"
         android:layout_width="match_parent"
@@ -39,7 +37,6 @@
         android:paddingTop="44dp"
         android:paddingBottom="16dp">
 
-        <!-- BOTÓN CERRAR SESIÓN -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnLogout"
             style="@style/Widget.Material3.Button.IconButton"
@@ -53,7 +50,7 @@
             app:iconSize="22dp"
             app:iconTint="#EF4444" />
 
-        <!-- BOTÓN NOTIFICACIONES (CAMPANA) -->
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnNotifications"
             style="@style/Widget.Material3.Button.IconButton"
@@ -114,7 +111,6 @@
         </LinearLayout>
     </RelativeLayout>
 
-    <!-- BANNER ALERTA STOCK -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardAlert"
         android:layout_width="match_parent"
@@ -130,7 +126,6 @@
         app:strokeColor="#38BDF8"
         app:strokeWidth="1dp"/>
 
-    <!-- PANEL INFERIOR CONTENEDOR REDONDEADO -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -153,7 +148,6 @@
                 android:padding="20dp"
                 android:paddingBottom="60dp">
 
-                <!-- RESUMEN METRICAS INVENTARIO -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -174,7 +168,6 @@
                         android:layout_height="wrap_content"
                         android:orientation="horizontal">
 
-                        <!-- Total Productos -->
                         <com.google.android.material.card.MaterialCardView
                             android:layout_width="140dp"
                             android:layout_height="wrap_content"
@@ -210,7 +203,6 @@
                             </LinearLayout>
                         </com.google.android.material.card.MaterialCardView>
 
-                        <!-- Stock Crítico -->
                         <com.google.android.material.card.MaterialCardView
                             android:layout_width="140dp"
                             android:layout_height="wrap_content"
@@ -246,7 +238,6 @@
                             </LinearLayout>
                         </com.google.android.material.card.MaterialCardView>
 
-                        <!-- Bodegas Activas -->
                         <com.google.android.material.card.MaterialCardView
                             android:layout_width="140dp"
                             android:layout_height="wrap_content"
@@ -283,7 +274,6 @@
                     </LinearLayout>
                 </HorizontalScrollView>
 
-                <!-- MÓDULOS DE GESTIÓN AUTORIZADOS -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -310,7 +300,6 @@
                         android:columnCount="2"
                         android:padding="8dp">
 
-                        <!-- 1. Productos -->
                         <LinearLayout
                             android:id="@+id/cardProductos"
                             android:layout_width="0dp"
@@ -348,7 +337,6 @@
                                 android:textStyle="bold" />
                         </LinearLayout>
 
-                        <!-- 2. Inventario -->
                         <LinearLayout
                             android:id="@+id/cardInventario"
                             android:layout_width="0dp"
@@ -386,7 +374,6 @@
                                 android:textStyle="bold" />
                         </LinearLayout>
 
-                        <!-- 3. Bodegas -->
                         <LinearLayout
                             android:id="@+id/cardBodegas"
                             android:layout_width="0dp"
@@ -424,7 +411,6 @@
                                 android:textStyle="bold" />
                         </LinearLayout>
 
-                        <!-- 4. Proveedores -->
                         <LinearLayout
                             android:id="@+id/cardProveedores"
                             android:layout_width="0dp"
@@ -462,7 +448,6 @@
                                 android:textStyle="bold" />
                         </LinearLayout>
 
-                        <!-- 5. Abastecimiento -->
                         <LinearLayout
                             android:id="@+id/cardAbastecimiento"
                             android:layout_width="0dp"
@@ -500,7 +485,6 @@
                                 android:textStyle="bold" />
                         </LinearLayout>
 
-                        <!-- 6. Categorías -->
                         <LinearLayout
                             android:id="@+id/cardCategorias"
                             android:layout_width="0dp"
@@ -541,7 +525,6 @@
                     </GridLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- ADMINISTRACIÓN -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -567,7 +550,6 @@
                         android:orientation="vertical"
                         android:padding="6dp">
 
-                        <!-- Mi Perfil -->
                         <LinearLayout
                             android:id="@+id/btnAdminPerfil"
                             android:layout_width="match_parent"
@@ -582,7 +564,7 @@
                             <ImageView
                                 android:layout_width="20dp"
                                 android:layout_height="20dp"
-                                android:src="@android:drawable/ic_menu_myplaces"
+                                android:src="@drawable/ic_profile"
                                 app:tint="#0F172A" />
 
                             <TextView
@@ -603,7 +585,6 @@
 
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- BOTÓN FLOTANTE ZOE -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/fabZoe"
         android:layout_width="60dp"

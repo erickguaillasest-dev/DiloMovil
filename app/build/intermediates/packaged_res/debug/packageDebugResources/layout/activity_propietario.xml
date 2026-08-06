@@ -6,8 +6,6 @@
     android:background="#083344"
     android:fitsSystemWindows="false">
 
-    <!-- CÍRCULO DECORATIVO DE FONDO -->
-
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -17,7 +15,6 @@
         android:focusable="false"
         android:importantForAccessibility="no">
 
-        <!-- CÍRCULO ENTERO (Sin cortarse) -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="100dp"
             android:layout_height="100dp"
@@ -32,7 +29,6 @@
             app:strokeWidth="1dp" />
     </RelativeLayout>
 
-    <!-- HEADER SUPERIOR -->
     <RelativeLayout
         android:id="@+id/headerLayout"
         android:layout_width="match_parent"
@@ -100,7 +96,6 @@
         </LinearLayout>
     </RelativeLayout>
 
-    <!-- BANNER ALERTA STOCK -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardAlert"
         android:layout_width="match_parent"
@@ -165,7 +160,6 @@
         </RelativeLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- PANEL INFERIOR CONTENEDOR (REDONDEADO SOLO EN LA PARTE SUPERIOR) -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -188,7 +182,6 @@
                 android:padding="20dp"
                 android:paddingBottom="60dp">
 
-                <!-- RESUMEN METRICAS -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -209,7 +202,6 @@
                         android:layout_height="wrap_content"
                         android:orientation="horizontal">
 
-                        <!-- Ventas -->
                         <com.google.android.material.card.MaterialCardView
                             android:layout_width="150dp"
                             android:layout_height="wrap_content"
@@ -245,7 +237,6 @@
                             </LinearLayout>
                         </com.google.android.material.card.MaterialCardView>
 
-                        <!-- Facturas -->
                         <com.google.android.material.card.MaterialCardView
                             android:layout_width="140dp"
                             android:layout_height="wrap_content"
@@ -281,7 +272,6 @@
                             </LinearLayout>
                         </com.google.android.material.card.MaterialCardView>
 
-                        <!-- Clientes -->
                         <com.google.android.material.card.MaterialCardView
                             android:layout_width="140dp"
                             android:layout_height="wrap_content"
@@ -318,7 +308,6 @@
                     </LinearLayout>
                 </HorizontalScrollView>
 
-                <!-- MÓDULOS DE GESTIÓN (6 MÓDULOS) -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -345,7 +334,6 @@
                         android:columnCount="2"
                         android:padding="8dp">
 
-                        <!-- 1. Facturas -->
                         <LinearLayout
                             android:id="@+id/cardFacturas"
                             android:layout_width="0dp"
@@ -383,7 +371,6 @@
                                 android:textStyle="bold" />
                         </LinearLayout>
 
-                        <!-- 2. Productos -->
                         <LinearLayout
                             android:id="@+id/cardProductos"
                             android:layout_width="0dp"
@@ -421,7 +408,6 @@
                                 android:textStyle="bold" />
                         </LinearLayout>
 
-                        <!-- 3. Inventario -->
                         <LinearLayout
                             android:id="@+id/cardInventario"
                             android:layout_width="0dp"
@@ -459,7 +445,6 @@
                                 android:textStyle="bold" />
                         </LinearLayout>
 
-                        <!-- 4. Clientes -->
                         <LinearLayout
                             android:id="@+id/cardClientes"
                             android:layout_width="0dp"
@@ -497,7 +482,6 @@
                                 android:textStyle="bold" />
                         </LinearLayout>
 
-                        <!-- 5. Bodegas -->
                         <LinearLayout
                             android:id="@+id/cardBodegas"
                             android:layout_width="0dp"
@@ -535,7 +519,6 @@
                                 android:textStyle="bold" />
                         </LinearLayout>
 
-                        <!-- 6. Proveedores -->
                         <LinearLayout
                             android:id="@+id/cardProveedores"
                             android:layout_width="0dp"
@@ -573,7 +556,6 @@
                                 android:textStyle="bold" />
                         </LinearLayout>
 
-                        <!-- 7. Abastecimiento -->
                         <LinearLayout
                             android:id="@+id/cardAbastecimiento"
                             android:layout_width="0dp"
@@ -804,10 +786,11 @@
                             android:padding="12dp">
 
                             <ImageView
-                                android:layout_width="20dp"
-                                android:layout_height="20dp"
-                                android:src="@android:drawable/ic_menu_add"
-                                app:tint="#0F172A" />
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_clients"
+                                app:tint="#9333EA" />
 
                             <TextView
                                 android:layout_width="0dp"
@@ -860,7 +843,7 @@
                             <ImageView
                                 android:layout_width="20dp"
                                 android:layout_height="20dp"
-                                android:src="@android:drawable/ic_menu_myplaces"
+                                android:src="@drawable/ic_profile"
                                 app:tint="#0F172A" />
 
                             <TextView

@@ -5,7 +5,6 @@
     android:layout_height="match_parent"
     android:background="#083344">
 
-    <!-- HEADER SUPERIOR -->
     <RelativeLayout
         android:id="@+id/headerLayout"
         android:layout_width="match_parent"
@@ -14,7 +13,6 @@
         android:paddingTop="36dp"
         android:paddingBottom="20dp">
 
-        <!-- BOTÓN REGRESAR -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnRegresar"
             style="@style/Widget.Material3.Button.IconButton"
@@ -29,7 +27,6 @@
             app:iconSize="20dp"
             app:iconTint="@color/white" />
 
-        <!-- TÍTULOS -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -59,7 +56,6 @@
 
     </RelativeLayout>
 
-    <!-- PANEL BLANCO CONTENEDOR CURVADO -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -75,7 +71,6 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- BUSCADOR -->
             <EditText
                 android:id="@+id/etBuscar"
                 android:layout_width="match_parent"

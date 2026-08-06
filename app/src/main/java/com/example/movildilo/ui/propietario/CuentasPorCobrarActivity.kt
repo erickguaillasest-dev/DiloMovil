@@ -1,6 +1,11 @@
 package com.example.movildilo.ui.propietario
 
+import android.app.DatePickerDialog
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.ImageButton
@@ -23,6 +28,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Locale
 
 class CuentasPorCobrarActivity : AppCompatActivity() {
@@ -31,16 +37,32 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
     private lateinit var rvCuentas: RecyclerView
     private lateinit var layoutLoading: View
     private lateinit var layoutVacio: View
+    private lateinit var layoutSinResultados: View
 
     private lateinit var tvTotalPorCobrar: TextView
     private lateinit var tvTotalAbonado: TextView
     private lateinit var tvCuentasVencidas: TextView
 
+    private lateinit var etBuscar: TextInputEditText
+    private lateinit var chipTodas: TextView
+    private lateinit var chipPendiente: TextView
+    private lateinit var chipVencida: TextView
+    private lateinit var chipPagada: TextView
+
+    private lateinit var etFechaDesde: TextInputEditText
+    private lateinit var etFechaHasta: TextInputEditText
+    private lateinit var btnLimpiarFechas: ImageButton
+
     private lateinit var sessionManager: SessionManager
     private lateinit var adapter: CuentasPorCobrarAdapter
     private var negocioId: Long = -1L
 
-    private var cuentasList: List<CuentaPorCobrarResponseDto> = emptyList()
+    private var cuentasBase: List<CuentaPorCobrarResponseDto> = emptyList()
+
+    private var terminoBusqueda: String = ""
+    private var filtroEstado: String = "TODAS"
+    private var filtroFechaDesde: String = "" // "yyyy-MM-dd"
+    private var filtroFechaHasta: String = "" // "yyyy-MM-dd"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -52,6 +74,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
 
         initViews()
         setupRecyclerView()
+        setupFiltros()
 
         btnRegresar.setOnClickListener { onBackPressedDispatcher.onBackPressed() }
 
@@ -68,10 +91,21 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         rvCuentas = findViewById(R.id.rvCuentas)
         layoutLoading = findViewById(R.id.layoutLoading)
         layoutVacio = findViewById(R.id.layoutVacio)
+        layoutSinResultados = findViewById(R.id.layoutSinResultados)
 
         tvTotalPorCobrar = findViewById(R.id.tvTotalPorCobrar)
         tvTotalAbonado = findViewById(R.id.tvTotalAbonado)
         tvCuentasVencidas = findViewById(R.id.tvCuentasVencidas)
+
+        etBuscar = findViewById(R.id.etBuscar)
+        chipTodas = findViewById(R.id.chipTodas)
+        chipPendiente = findViewById(R.id.chipPendiente)
+        chipVencida = findViewById(R.id.chipVencida)
+        chipPagada = findViewById(R.id.chipPagada)
+
+        etFechaDesde = findViewById(R.id.etFechaDesde)
+        etFechaHasta = findViewById(R.id.etFechaHasta)
+        btnLimpiarFechas = findViewById(R.id.btnLimpiarFechas)
     }
 
     private fun setupRecyclerView() {
@@ -82,9 +116,166 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         rvCuentas.adapter = adapter
     }
 
+    private fun setupFiltros() {
+        etBuscar.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                terminoBusqueda = s?.toString() ?: ""
+                aplicarFiltros()
+            }
+        })
+
+        chipTodas.setOnClickListener { setFiltro("TODAS") }
+        chipPendiente.setOnClickListener { setFiltro("PENDIENTE") }
+        chipVencida.setOnClickListener { setFiltro("VENCIDA") }
+        chipPagada.setOnClickListener { setFiltro("PAGADA") }
+
+        etFechaDesde.setOnClickListener {
+            mostrarDatePicker { fecha ->
+                filtroFechaDesde = fecha
+                etFechaDesde.setText(fecha)
+                aplicarFiltros()
+            }
+        }
+
+        etFechaHasta.setOnClickListener {
+            mostrarDatePicker { fecha ->
+                filtroFechaHasta = fecha
+                etFechaHasta.setText(fecha)
+                aplicarFiltros()
+            }
+        }
+
+        btnLimpiarFechas.setOnClickListener {
+            filtroFechaDesde = ""
+            filtroFechaHasta = ""
+            etFechaDesde.setText("")
+            etFechaHasta.setText("")
+            aplicarFiltros()
+        }
+
+        actualizarChipsActivos()
+    }
+
+    private fun mostrarDatePicker(onDateSelected: (String) -> Unit) {
+        val calendar = Calendar.getInstance()
+        val datePickerDialog = DatePickerDialog(
+            this,
+            { _, year, month, dayOfMonth ->
+                val cal = Calendar.getInstance()
+                cal.set(year, month, dayOfMonth)
+                val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                onDateSelected(sdf.format(cal.time))
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        )
+        datePickerDialog.show()
+    }
+
+    private fun setFiltro(estado: String) {
+        filtroEstado = estado
+        actualizarChipsActivos()
+        aplicarFiltros()
+    }
+
+    private fun actualizarChipsActivos() {
+        val activo = Color.parseColor("#EA580C")
+        val inactivo = Color.parseColor("#64748B")
+        val cornerRadiusPx = 8f * resources.displayMetrics.density
+
+        val listaChips = listOf(
+            chipTodas to "TODAS",
+            chipPendiente to "PENDIENTE",
+            chipVencida to "VENCIDA",
+            chipPagada to "PAGADA"
+        )
+
+        listaChips.forEach { (chip, valor) ->
+            chip?.let { view ->
+                val esActivo = filtroEstado == valor
+                view.setTextColor(if (esActivo) activo else inactivo)
+                if (esActivo) {
+                    view.background = GradientDrawable().apply {
+                        cornerRadius = cornerRadiusPx
+                        setColor(Color.WHITE)
+                    }
+                } else {
+                    view.background = null
+                }
+            }
+        }
+    }
+
+    private fun aplicarFiltros() {
+        var filtradas = cuentasBase
+
+        // 1. Filtro por Estado
+        if (filtroEstado != "TODAS") {
+            filtradas = filtradas.filter { c ->
+                c.estado?.equals(filtroEstado, ignoreCase = true) == true
+            }
+        }
+
+        // 2. Búsqueda por texto (Factura o Cliente)
+        val term = terminoBusqueda.trim().lowercase(Locale.getDefault())
+        if (term.isNotEmpty()) {
+            filtradas = filtradas.filter { c ->
+                val numero = (c.numeroFactura ?: c.factura?.numeroFactura ?: "").lowercase(Locale.getDefault())
+                val cliente = (c.clienteNombre ?: run {
+                    val cl = c.factura?.cliente
+                    if (cl != null) "${cl.primerNombre ?: ""} ${cl.apellidoPaterno ?: ""}".trim() else ""
+                }).lowercase(Locale.getDefault())
+
+                numero.contains(term) || cliente.contains(term)
+            }
+        }
+
+        // 3. Filtro por Rango de Fechas de Vencimiento
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+
+        if (filtroFechaDesde.isNotEmpty()) {
+            try {
+                val dateDesde = sdf.parse(filtroFechaDesde)
+                if (dateDesde != null) {
+                    filtradas = filtradas.filter { c ->
+                        val fvStr = c.fechaVencimiento
+                        if (fvStr.isNullOrEmpty()) return@filter false
+                        val fv = sdf.parse(fvStr) ?: return@filter false
+                        !fv.before(dateDesde) // fv >= dateDesde
+                    }
+                }
+            } catch (ignored: Exception) {}
+        }
+
+        if (filtroFechaHasta.isNotEmpty()) {
+            try {
+                val dateHasta = sdf.parse(filtroFechaHasta)
+                if (dateHasta != null) {
+                    filtradas = filtradas.filter { c ->
+                        val fvStr = c.fechaVencimiento
+                        if (fvStr.isNullOrEmpty()) return@filter false
+                        val fv = sdf.parse(fvStr) ?: return@filter false
+                        !fv.after(dateHasta) // fv <= dateHasta
+                    }
+                }
+            } catch (ignored: Exception) {}
+        }
+
+        adapter.actualizarLista(filtradas)
+
+        val hayBase = cuentasBase.isNotEmpty()
+        rvCuentas.visibility = if (hayBase && filtradas.isNotEmpty()) View.VISIBLE else View.GONE
+        layoutSinResultados.visibility = if (hayBase && filtradas.isEmpty()) View.VISIBLE else View.GONE
+        layoutVacio.visibility = if (!hayBase) View.VISIBLE else View.GONE
+    }
+
     private fun mostrarEstadoVacio() {
         layoutLoading.visibility = View.GONE
         layoutVacio.visibility = View.VISIBLE
+        layoutSinResultados.visibility = View.GONE
         rvCuentas.visibility = View.GONE
         tvTotalPorCobrar.text = "$0.00"
         tvTotalAbonado.text = "$0.00"
@@ -101,37 +292,31 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     layoutLoading.visibility = View.GONE
                     if (response.isSuccessful) {
-                        cuentasList = response.body() ?: emptyList()
-                        if (cuentasList.isEmpty()) {
+                        cuentasBase = response.body() ?: emptyList()
+                        if (cuentasBase.isEmpty()) {
                             mostrarEstadoVacio()
                         } else {
-                            layoutVacio.visibility = View.GONE
-                            rvCuentas.visibility = View.VISIBLE
-                            adapter.actualizarLista(cuentasList)
-                            calcularEstadisticas(cuentasList)
+                            calcularEstadisticas(cuentasBase)
+                            aplicarFiltros()
                         }
                     } else {
                         val codigo = response.code()
-                        if (codigo == 403) {
-                            Toast.makeText(
-                                this@CuentasPorCobrarActivity,
-                                "",
-                                Toast.LENGTH_LONG
-                            ).show()
-                        } else {
-                            Toast.makeText(
-                                this@CuentasPorCobrarActivity,
-                                "No hay registros disponibles o error en servidor ($codigo)",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
+                        Toast.makeText(
+                            this@CuentasPorCobrarActivity,
+                            "Error al cargar registros ($codigo)",
+                            Toast.LENGTH_SHORT
+                        ).show()
                         mostrarEstadoVacio()
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     layoutLoading.visibility = View.GONE
-                    Toast.makeText(this@CuentasPorCobrarActivity, "Sin conexión o datos disponibles", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this@CuentasPorCobrarActivity,
+                        "Sin conexión o datos disponibles",
+                        Toast.LENGTH_SHORT
+                    ).show()
                     mostrarEstadoVacio()
                 }
             }
@@ -191,7 +376,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         btnCancelar.setOnClickListener { dialog.dismiss() }
 
         btnConfirmar.setOnClickListener {
-            val montoText = etMontosValid(etMonto)
+            val montoText = etMonto.text.toString().trim()
             val montoAbono = montoText.toDoubleOrNull()
 
             if (montoAbono == null || montoAbono <= 0) {
@@ -209,10 +394,6 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         }
 
         dialog.show()
-    }
-
-    private fun etMontosValid(etMonto: TextInputEditText): String {
-        return etMonto.text.toString().trim()
     }
 
     private fun ejecutarPagoApi(cuentaId: Long, montoAbono: Double) {

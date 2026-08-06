@@ -75,6 +75,7 @@ int drawable ic_location 0x0
 int drawable ic_mic 0x0
 int drawable ic_product_box 0x0
 int drawable ic_producto 0x0
+int drawable ic_profile 0x0
 int drawable ic_receivables 0x0
 int drawable ic_suppliers 0x0
 int drawable ic_supply_truck 0x0
@@ -224,7 +225,12 @@ int id chip7 0x0
 int id chip90 0x0
 int id chipGroupCategorias 0x0
 int id chipGroupCategoriasDialog 0x0
+int id chipGroupEstado 0x0
 int id chipMetodoCosteo 0x0
+int id chipPagada 0x0
+int id chipPendiente 0x0
+int id chipTodas 0x0
+int id chipVencida 0x0
 int id clientesContainer 0x0
 int id comparativasContainer 0x0
 int id containerBotonesEdicion 0x0
@@ -342,6 +348,7 @@ int id layoutListaCuotas 0x0
 int id layoutLoading 0x0
 int id layoutLoadingKardex 0x0
 int id layoutSimuladorTarjeta 0x0
+int id layoutSinResultados 0x0
 int id layoutVacio 0x0
 int id loadingContainer 0x0
 int id loginCard 0x0

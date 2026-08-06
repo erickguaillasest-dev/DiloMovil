@@ -16,7 +16,6 @@
         android:layout_height="wrap_content"
         android:padding="16dp">
 
-        <!-- ÍCONO BODEGA -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/iconContainer"
             android:layout_width="48dp"
@@ -31,11 +30,10 @@
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:layout_gravity="center"
-                android:src="@android:drawable/menu_frame"
-                app:tint="#2563EB" />
+                android:src="@drawable/ic_warehouse"
+                app:tint="#0891B2" />
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- INFORMACIÓN -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -78,7 +76,6 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- BOTONES EDITAR / ELIMINAR -->
         <LinearLayout
             android:id="@+id/layoutAcciones"
             android:layout_width="wrap_content"
@@ -87,7 +84,6 @@
             android:layout_centerVertical="true"
             android:orientation="vertical">
 
-            <!-- Botón Editar -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnEditar"
                 style="@style/Widget.Material3.Button.IconButton"
@@ -99,7 +95,6 @@
                 app:iconSize="18dp"
                 app:iconTint="#2563EB" />
 
-            <!-- Botón Eliminar -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnEliminar"
                 style="@style/Widget.Material3.Button.IconButton"

@@ -91,7 +91,6 @@ class AjusteManualDialog(
     }
 
     private fun setupDropdowns() {
-        // 1. Tipos de movimiento
         val tipos = listOf("INGRESO (Ajuste Positivo / Sobrante)", "EGRESO (Ajuste Negativo / Merma)")
         val adapterTipos = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, tipos)
         spinnerTipoMovimiento.setAdapter(adapterTipos)
@@ -101,7 +100,6 @@ class AjusteManualDialog(
             (spinnerTipoMovimiento.adapter as? ArrayAdapter<*>)?.filter?.filter(null)
         }
 
-        // 2. Productos dinámicos
         val nombresProductos = listaProductosBD.mapNotNull { it.nombre?.trim() }.filter { it.isNotBlank() }
         val adapterProductos = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, nombresProductos)
         spinnerProducto.setAdapter(adapterProductos)
@@ -116,7 +114,6 @@ class AjusteManualDialog(
             productoSeleccionadoId = productoEncontrado?.id
         }
 
-        // 3. Bodegas dinámicas
         val nombresBodegas = listaBodegasBD.mapNotNull { it.nombre?.trim() }.filter { it.isNotBlank() }
         val adapterBodegas = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, nombresBodegas)
         spinnerBodega.setAdapter(adapterBodegas)

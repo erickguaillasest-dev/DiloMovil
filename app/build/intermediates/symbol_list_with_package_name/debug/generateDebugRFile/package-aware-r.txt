@@ -76,6 +76,7 @@ drawable ic_location
 drawable ic_mic
 drawable ic_product_box
 drawable ic_producto
+drawable ic_profile
 drawable ic_receivables
 drawable ic_suppliers
 drawable ic_supply_truck
@@ -225,7 +226,12 @@ id chip7
 id chip90
 id chipGroupCategorias
 id chipGroupCategoriasDialog
+id chipGroupEstado
 id chipMetodoCosteo
+id chipPagada
+id chipPendiente
+id chipTodas
+id chipVencida
 id clientesContainer
 id comparativasContainer
 id containerBotonesEdicion
@@ -343,6 +349,7 @@ id layoutListaCuotas
 id layoutLoading
 id layoutLoadingKardex
 id layoutSimuladorTarjeta
+id layoutSinResultados
 id layoutVacio
 id loadingContainer
 id loginCard

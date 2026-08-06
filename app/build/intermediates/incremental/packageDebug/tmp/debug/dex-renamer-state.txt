@@ -1,4 +1,4 @@
-#Wed Aug 05 22:08:23 ECT 2026
+#Thu Aug 06 11:08:20 ECT 2026
 base.0=C\:\\Users\\USER\\AndroidStudioProjects\\MovilDilo\\MovilDilo\\app\\build\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes.dex
 base.1=C\:\\Users\\USER\\AndroidStudioProjects\\MovilDilo\\MovilDilo\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\0\\classes.dex
 base.10=C\:\\Users\\USER\\AndroidStudioProjects\\MovilDilo\\MovilDilo\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\9\\classes.dex

@@ -6,7 +6,6 @@
     android:background="#083344"
     android:fitsSystemWindows="true">
 
-    <!-- HEADER SUPERIOR -->
     <RelativeLayout
         android:id="@+id/headerLayout"
         android:layout_width="match_parent"
@@ -53,7 +52,6 @@
         </LinearLayout>
     </RelativeLayout>
 
-    <!-- PANEL CONTENEDOR CURVADO -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -75,7 +73,6 @@
                 android:orientation="vertical"
                 android:padding="20dp">
 
-                <!-- TARJETA SECCIÓN IVA -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -91,7 +88,6 @@
                         android:orientation="vertical"
                         android:padding="20dp">
 
-                        <!-- TÍTULO DE LA SECCIÓN CON ÍCONO -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -126,7 +122,6 @@
                                 android:textStyle="bold" />
                         </LinearLayout>
 
-                        <!-- CAJA IVA ACTUAL -->
                         <com.google.android.material.card.MaterialCardView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -163,7 +158,6 @@
                             </LinearLayout>
                         </com.google.android.material.card.MaterialCardView>
 
-                        <!-- CAMPO PARA NUEVO IVA (CORREGIDO) -->
                         <com.google.android.material.textfield.TextInputLayout
                             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                             android:layout_width="match_parent"
@@ -200,7 +194,6 @@
                             android:layout_marginTop="16dp"
                             android:visibility="gone" />
 
-                        <!-- BOTÓN DE ACTUALIZACIÓN -->
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnActualizarIva"
                             android:layout_width="match_parent"

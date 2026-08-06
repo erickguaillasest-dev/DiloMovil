@@ -6,7 +6,6 @@
     android:background="#083344"
     android:fitsSystemWindows="false">
 
-    <!-- CÍRCULO DECORATIVO DE FONDO -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -30,7 +29,6 @@
             app:strokeWidth="1dp" />
     </RelativeLayout>
 
-    <!-- HEADER SUPERIOR -->
     <RelativeLayout
         android:id="@+id/headerLayout"
         android:layout_width="match_parent"
@@ -101,7 +99,6 @@
         </LinearLayout>
     </RelativeLayout>
 
-    <!-- PANEL INFERIOR CONTENEDOR REDONDEADO -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -124,7 +121,6 @@
                 android:padding="20dp"
                 android:paddingBottom="60dp">
 
-                <!-- RESUMEN MÉTRICAS DEL SISTEMA -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -145,7 +141,6 @@
                         android:layout_height="wrap_content"
                         android:orientation="horizontal">
 
-                        <!-- Total Negocios -->
                         <com.google.android.material.card.MaterialCardView
                             android:layout_width="140dp"
                             android:layout_height="wrap_content"
@@ -181,7 +176,6 @@
                             </LinearLayout>
                         </com.google.android.material.card.MaterialCardView>
 
-                        <!-- Total Usuarios -->
                         <com.google.android.material.card.MaterialCardView
                             android:layout_width="140dp"
                             android:layout_height="wrap_content"
@@ -217,7 +211,6 @@
                             </LinearLayout>
                         </com.google.android.material.card.MaterialCardView>
 
-                        <!-- Configuración IVA -->
                         <com.google.android.material.card.MaterialCardView
                             android:layout_width="140dp"
                             android:layout_height="wrap_content"
@@ -254,7 +247,6 @@
                     </LinearLayout>
                 </HorizontalScrollView>
 
-                <!-- MÓDULOS CENTRAL DE CONTROL -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -281,7 +273,6 @@
                         android:columnCount="2"
                         android:padding="12dp">
 
-                        <!-- 1. NEGOCIOS -->
                         <LinearLayout
                             android:id="@+id/cardNegocios"
                             android:layout_width="0dp"
@@ -319,7 +310,6 @@
                                 android:textStyle="bold" />
                         </LinearLayout>
 
-                        <!-- 2. USUARIOS -->
                         <LinearLayout
                             android:id="@+id/cardUsuarios"
                             android:layout_width="0dp"
@@ -357,7 +347,6 @@
                                 android:textStyle="bold" />
                         </LinearLayout>
 
-                        <!-- 3. CONFIGURACIÓN (IVA) -->
                         <LinearLayout
                             android:id="@+id/cardConfiguracionIva"
                             android:layout_width="0dp"
@@ -395,7 +384,6 @@
                                 android:textStyle="bold" />
                         </LinearLayout>
 
-                        <!-- 4. PARROQUIAS / UBICACIONES -->
                         <LinearLayout
                             android:id="@+id/cardParroquias"
                             android:layout_width="0dp"

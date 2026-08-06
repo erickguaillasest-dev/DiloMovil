@@ -96,6 +96,10 @@
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\layout\\item_detalle_compra_modal.xml"
     },
     {
+        "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\drawable_ic_profile.xml.flat",
+        "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\drawable\\ic_profile.xml"
+    },
+    {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\mipmap-xxxhdpi_ic_launcher_round.webp.flat",
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\mipmap-xxxhdpi\\ic_launcher_round.webp"
     },
@@ -512,12 +516,20 @@
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\layout\\dialog_alertas_vencimiento.xml"
     },
     {
+        "merged": "com.example.movildilo.app-debug-47:/layout_activity_bodeguero.xml.flat",
+        "source": "com.example.movildilo.app-main-49:/layout/activity_bodeguero.xml"
+    },
+    {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\layout_dialog_nueva_factura.xml.flat",
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\layout\\dialog_nueva_factura.xml"
     },
     {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\mipmap-mdpi_ic_launcher_round.webp.flat",
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\mipmap-mdpi\\ic_launcher_round.webp"
+    },
+    {
+        "merged": "com.example.movildilo.app-debug-47:/layout_activity_propietario.xml.flat",
+        "source": "com.example.movildilo.app-main-49:/layout/activity_propietario.xml"
     },
     {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\drawable_bg_gradient_navy.xml.flat",

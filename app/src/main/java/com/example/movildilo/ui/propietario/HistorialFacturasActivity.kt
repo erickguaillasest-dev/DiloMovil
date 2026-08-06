@@ -83,7 +83,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
     private var inventarioList: List<InventarioResponseDto> = emptyList()
     private var negocioActual: NegocioResponseDto? = null
 
-    // ============ ESTADO DE LA FACTURA EN CONSTRUCCIÓN ============
     private var facturaClienteId: Long? = null
     private var facturaEsConsumidorFinal: Boolean = false
     private var facturaMetodoPago: String = "EFECTIVO"
@@ -91,8 +90,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
     private var facturaDescuentoGlobalPorcentaje: Double = 0.0
     private val carritoTemporal = mutableListOf<ItemCarritoFactura>()
     private var carritoAdapter: FacturaCarritoAdapter? = null
-
-    // ============ REFERENCIAS AL DIALOGO ACTIVO ============
     private var dialogFacturaActivo: androidx.appcompat.app.AlertDialog? = null
     private var dialogOpcionesAmbiguas: androidx.appcompat.app.AlertDialog? = null
     private var spClienteRef: AutoCompleteTextView? = null
@@ -115,7 +112,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
     private var layoutEmptyCartRef: View? = null
     private var rvCarritoRef: RecyclerView? = null
 
-    // ============ VOZ Y AMBIGÜEDAD (ZOE) ============
     private var speechRecognizer: SpeechRecognizer? = null
     private var textToSpeech: TextToSpeech? = null
     private var tvZoeTranscripcionRef: TextView? = null
@@ -126,7 +122,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
     private var intentosReconexion: Int = 0
     private val voiceHandler = Handler(Looper.getMainLooper())
 
-    // Estado para ambigüedad de productos
     private var productosOpcionesPendientes: List<ProductoResponseDto> = emptyList()
     private var cantidadPendienteOpcion: Int = 1
     private var descuentoPendienteOpcion: Double = 0.0
@@ -348,7 +343,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
         spMetodoPago.setText("EFECTIVO", false)
         spMetodoPago.setOnClickListener { spMetodoPago.showDropDown() }
         spMetodoPago.setOnItemClickListener { _, _, position, _ ->
-            actualizarMetodoPagoUi(metodosPago[position])
+            onMetodoPagoSeleccionado(metodosPago[position])
         }
 
         etCantidad.addTextChangedListener(object : android.text.TextWatcher {
@@ -407,6 +402,55 @@ class HistorialFacturasActivity : AppCompatActivity() {
         layoutSimuladorTarjetaRef?.visibility = if (esTarjeta) View.VISIBLE else View.GONE
     }
 
+    /** Tarjeta de crédito solo con cliente registrado (no Consumidor Final) */
+    private fun permiteTarjetaCredito(): Boolean {
+        return !facturaEsConsumidorFinal && facturaClienteId != null
+    }
+
+    /** Si es Consumidor Final y el método quedó en tarjeta de crédito → fuerza efectivo */
+    private fun bloquearTarjetaSiConsumidorFinal(avisar: Boolean = false): Boolean {
+        if (facturaEsConsumidorFinal && facturaMetodoPago == "TARJETA_CREDITO") {
+            actualizarMetodoPagoUi("EFECTIVO")
+            facturaCuotas = 0
+            etCuotasRef?.setText("")
+            etNumeroTarjetaRef?.setText("")
+            etVencimientoTarjetaRef?.setText("")
+            etCvcTarjetaRef?.setText("")
+            metodoPagoConfirmadoPorVoz = true
+            if (avisar) {
+                MaterialAlertDialogBuilder(this)
+                    .setTitle("Tarjeta no permitida")
+                    .setMessage("Con Consumidor Final solo se puede pagar en efectivo o transferencia. Elige un cliente registrado para pagar con tarjeta de crédito.")
+                    .setPositiveButton("Entendido", null)
+                    .show()
+            }
+            return true
+        }
+        return false
+    }
+
+    /** Cambio manual del selector de método de pago */
+    private fun onMetodoPagoSeleccionado(metodo: String) {
+        if (metodo == "TARJETA_CREDITO" && !permiteTarjetaCredito()) {
+            actualizarMetodoPagoUi("EFECTIVO")
+            facturaCuotas = 0
+            etCuotasRef?.setText("")
+            MaterialAlertDialogBuilder(this)
+                .setTitle("Tarjeta no permitida")
+                .setMessage(
+                    if (facturaEsConsumidorFinal)
+                        "Consumidor Final no puede pagar con tarjeta de crédito. Usa efectivo o transferencia, o selecciona un cliente registrado."
+                    else
+                        "Selecciona primero un cliente registrado para pagar con tarjeta."
+                )
+                .setPositiveButton("Entendido", null)
+                .show()
+            return
+        }
+        actualizarMetodoPagoUi(metodo)
+        metodoPagoConfirmadoPorVoz = true
+    }
+
     private fun nombreClienteDto(cliente: ClienteResponseDto): String {
         val baseNombre = when {
             !cliente.nombreCompleto.isNullOrBlank() -> cliente.nombreCompleto
@@ -424,6 +468,8 @@ class HistorialFacturasActivity : AppCompatActivity() {
         facturaEsConsumidorFinal = true
         facturaClienteId = null
         spClienteRef?.setText("Consumidor Final", false)
+        // Consumidor Final no puede facturar a crédito (tarjeta de crédito)
+        bloquearTarjetaSiConsumidorFinal(avisar = true)
     }
 
     private fun seleccionarClienteUi(cliente: ClienteResponseDto) {
@@ -551,6 +597,12 @@ class HistorialFacturasActivity : AppCompatActivity() {
             return
         }
 
+        // Doble chequeo: Consumidor Final nunca puede facturar a crédito (tarjeta de crédito)
+        if (facturaMetodoPago == "TARJETA_CREDITO" && !permiteTarjetaCredito()) {
+            bloquearTarjetaSiConsumidorFinal(avisar = true)
+            return
+        }
+
         if (facturaMetodoPago == "TARJETA_CREDITO") {
             val numTarjeta = etNumeroTarjetaRef?.text?.toString()?.trim().orEmpty()
             val vencimiento = etVencimientoTarjetaRef?.text?.toString()?.trim().orEmpty()
@@ -562,6 +614,22 @@ class HistorialFacturasActivity : AppCompatActivity() {
             }
         }
 
+        // Confirmación de seguridad antes de emitir: pedir un Sí o un No explícito
+        val nombreClienteConfirm = if (facturaEsConsumidorFinal) "Consumidor Final" else (spClienteRef?.text?.toString().orEmpty().ifBlank { "el cliente seleccionado" })
+        val totalConfirmFmt = String.format(Locale.US, "%.2f", totalCarritoFinal())
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Confirmar emisión de factura")
+            .setMessage("¿Deseas emitir la factura a $nombreClienteConfirm por $$totalConfirmFmt? Esta acción no se puede deshacer.")
+            .setPositiveButton("Sí, emitir") { dialogConfirm, _ ->
+                dialogConfirm.dismiss()
+                procesarEmisionFactura()
+            }
+            .setNegativeButton("No") { dialogConfirm, _ -> dialogConfirm.dismiss() }
+            .setCancelable(true)
+            .show()
+    }
+
+    private fun procesarEmisionFactura() {
         val loadingDialog = MaterialAlertDialogBuilder(this)
             .setTitle("Emitiendo Factura...")
             .setMessage("Un momento por favor.")
@@ -790,7 +858,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
     private fun procesarComandoVoz(transcriptOriginal: String) {
         val transcript = limpiarTexto(transcriptOriginal)
 
-        // 1. MANEJO DE CONFIRMACIÓN DE VACIAR CARRITO
         if (voiceState == VoiceStep.CONFIRMAR_VACIAR_CARRITO) {
             val afirmativas = listOf("si", "claro", "borra", "vaciar", "hazlo", "de acuerdo", "limpiar", "confirmar")
             if (afirmativas.any { transcript.contains(it) }) {
@@ -808,7 +875,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
             return
         }
 
-        // 2. SOLICITUD DE VACIAR CARRITO (Pide confirmación previa)
         val comandosLimpiar = listOf("borra todo", "borrar todo", "limpiar carrito", "reiniciar", "vaciar ticket", "cancela todo", "vaciar carrito", "limpiar ticket")
         if (comandosLimpiar.any { transcript.contains(it) }) {
             voiceState = VoiceStep.CONFIRMAR_VACIAR_CARRITO
@@ -816,13 +882,11 @@ class HistorialFacturasActivity : AppCompatActivity() {
             return
         }
 
-        // 3. SELECCIÓN DE OPCIÓN SI HUBO AMBIGÜEDAD PREVIA
         if (voiceState == VoiceStep.SELECCIONAR_OPCION && productosOpcionesPendientes.isNotEmpty()) {
             procesarSeleccionOpcionPorVoz(transcript)
             return
         }
 
-        // 4. EMITIR FACTURA
         val palabrasEmitir = listOf("emite", "emitir", "factura ya", "cobra ya", "guarda la factura", "guardar factura", "todo bien", "listo", "cobra", "cobrar", "ya esta", "ya está", "nada mas", "nada más")
         val quiereEmitirPalabra = palabrasEmitir.any { transcript.contains(it) }
 
@@ -840,8 +904,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
 
     private fun procesarSeleccionOpcionPorVoz(transcript: String) {
         var seleccion: ProductoResponseDto? = null
-
-        // Mapeo por número (Opción 1, la primera, uno, etc.)
         when {
             transcript.contains("1") || transcript.contains("uno") || transcript.contains("primera") || transcript.contains("primero") ->
                 seleccion = productosOpcionesPendientes.getOrNull(0)
@@ -926,24 +988,31 @@ class HistorialFacturasActivity : AppCompatActivity() {
             }
         }
 
-        // 1. CAMBIO Y CONFIGURACIÓN DE MÉTODO DE PAGO
         datos.metodoPago?.let { metodo ->
-            actualizarMetodoPagoUi(metodo)
-            metodoPagoConfirmadoPorVoz = true
-            alertas.add("cambié el pago a $metodo")
+            // Consumidor Final NUNCA puede facturar a crédito (tarjeta de crédito)
+            if (metodo == "TARJETA_CREDITO" && facturaEsConsumidorFinal) {
+                actualizarMetodoPagoUi("EFECTIVO")
+                metodoPagoConfirmadoPorVoz = true
+                alertas.add("tarjeta no permitida con Consumidor Final; usé efectivo")
+            } else {
+                actualizarMetodoPagoUi(metodo)
+                metodoPagoConfirmadoPorVoz = true
+                alertas.add("cambié el pago a $metodo")
+            }
         }
         datos.cuotas?.let { cuotas ->
-            if (cuotas > 0) {
+            if (cuotas > 0 && !facturaEsConsumidorFinal) {
                 facturaCuotas = cuotas
                 etCuotasRef?.setText(cuotas.toString())
                 if (facturaMetodoPago != "TARJETA_CREDITO") {
                     actualizarMetodoPagoUi("TARJETA_CREDITO")
                     metodoPagoConfirmadoPorVoz = true
                 }
+            } else if (cuotas > 0 && facturaEsConsumidorFinal) {
+                alertas.add("tarjeta no permitida con Consumidor Final")
             }
         }
 
-        // 2. Cliente
         var pedirCedula = false
         if (datos.cliente != null && (facturaClienteId == null || datos.cliente.isNotBlank())) {
             if (datos.cliente.equals("CONSUMIDOR_FINAL", ignoreCase = true) || datos.cliente.contains("consumidor", ignoreCase = true)) {
@@ -962,14 +1031,12 @@ class HistorialFacturasActivity : AppCompatActivity() {
             return
         }
 
-        // 2.5 Descuento global
         datos.descuentoGlobalPorcentaje?.let { pct ->
             facturaDescuentoGlobalPorcentaje = pct.toDouble().coerceIn(0.0, 100.0)
             etDescuentoGlobalRef?.setText(pct.toString())
             alertas.add("apliqué $pct% de descuento global")
         }
 
-        // 3. Bodega
         var bodegaIdActual = pendingBodegaId
         if (bodegaIdActual == null && datos.bodega != null && bodegasList.isNotEmpty()) {
             val nombreBuscado = limpiarTexto(datos.bodega)
@@ -989,7 +1056,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
             spBodegaRef?.setText(bodegasList[0].nombre, false)
         }
 
-        // 4. Productos
         var algoAgregado = false
 
         if (bodegaIdActual != null) {
@@ -1013,7 +1079,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
                         }
                     }
                     matches.size > 1 -> {
-                        // AMBIGÜEDAD DETECTADA: MOSTRAR OPCIONES MANUALES Y PEDIR VOZ
                         productosOpcionesPendientes = matches.take(4)
                         cantidadPendienteOpcion = item.cantidad?.takeIf { it > 0 } ?: 1
                         descuentoPendienteOpcion = item.descuentoPorcentaje?.toDouble()?.coerceIn(0.0, 100.0) ?: 0.0
@@ -1035,7 +1100,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
 
         if (quiereEmitir && !faltaCliente && !faltaItems) {
             voiceState = VoiceStep.OFF
-            hablar("${prefijo}¡Todo listo! Emitiendo la factura por $totalFmt dólares.")
+            hablar("${prefijo}¡Todo listo! Por seguridad, confirma en pantalla si deseas emitir la factura por $totalFmt dólares.")
             voiceHandler.postDelayed({ emitirFactura() }, 1000)
             return
         }
@@ -1142,10 +1207,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
         }
         return emptyList()
     }
-
-    // =======================================================================================
-    // DETALLE / IMPRESIÓN
-    // =======================================================================================
 
     private fun obtenerNombreProducto(item: DetalleFacturaResponseDto, posicion: Int): String {
         item.nombreProducto?.takeIf { it.isNotBlank() }?.let { return it }
