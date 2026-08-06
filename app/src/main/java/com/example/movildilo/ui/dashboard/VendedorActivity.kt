@@ -30,6 +30,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
 import com.example.movildilo.ui.propietario.Perfil
+import com.example.movildilo.ui.propietario.RendimientoComercialActivity
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class VendedorActivity : AppCompatActivity() {
@@ -50,6 +51,8 @@ class VendedorActivity : AppCompatActivity() {
     private lateinit var cardFacturas: LinearLayout
     private lateinit var cardClientes: LinearLayout
     private lateinit var cardCuentasPorCobrar: LinearLayout
+
+    private lateinit var cardRendimiento: LinearLayout
 
     private lateinit var sessionManager: SessionManager
     private lateinit var fabZoe: View
@@ -103,6 +106,7 @@ class VendedorActivity : AppCompatActivity() {
         cardFacturas = findViewById(R.id.cardFacturas)
         cardClientes = findViewById(R.id.cardClientes)
         cardCuentasPorCobrar = findViewById(R.id.cardCuentasPorCobrar)
+        cardRendimiento = findViewById(R.id.cardRendimiento)
 
         fabZoe = findViewById(R.id.fabZoe)
         fabZoe.bringToFront()
@@ -128,6 +132,7 @@ class VendedorActivity : AppCompatActivity() {
         cardFacturas.setOnClickListener { abrirModulo(HistorialFacturasActivity::class.java) }
         cardClientes.setOnClickListener { abrirModulo(ClientesActivity::class.java) }
         cardCuentasPorCobrar.setOnClickListener { abrirModulo(CuentasPorCobrarActivity::class.java) }
+        cardRendimiento.setOnClickListener { abrirModulo(RendimientoComercialActivity::class.java) }
 
         fabZoe.setOnClickListener { abrirChatZoe() }
     }

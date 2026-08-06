@@ -61,10 +61,14 @@ int drawable bg_input_field 0x0
 int drawable bg_pill_purple 0x0
 int drawable bg_rounded_field 0x0
 int drawable bg_search_input 0x0
+int drawable file_paths 0x0
 int drawable ic_categories 0x0
+int drawable ic_chart 0x0
 int drawable ic_clients 0x0
 int drawable ic_inventory 0x0
 int drawable ic_invoice 0x0
+int drawable ic_kpi_calendar 0x0
+int drawable ic_kpi_money 0x0
 int drawable ic_launcher_background 0x0
 int drawable ic_launcher_monochrome 0x0
 int drawable ic_location 0x0
@@ -81,6 +85,7 @@ int drawable zoe 0x0
 int id actvParroquia 0x0
 int id arrow1 0x0
 int id arrow2 0x0
+int id barChartContainer 0x0
 int id btnAbrirNuevoAjuste 0x0
 int id btnAccionAbonar 0x0
 int id btnActualizarIva 0x0
@@ -130,6 +135,7 @@ int id btnEliminarProducto 0x0
 int id btnEmitirFactura 0x0
 int id btnEntendido 0x0
 int id btnEnviarMensaje 0x0
+int id btnExportarPdf 0x0
 int id btnGuardar 0x0
 int id btnGuardarCambios 0x0
 int id btnGuardarCompra 0x0
@@ -199,6 +205,8 @@ int id cardOpcionesMiembro 0x0
 int id cardParroquias 0x0
 int id cardProductos 0x0
 int id cardProveedores 0x0
+int id cardRacha 0x0
+int id cardRendimiento 0x0
 int id cardSearch 0x0
 int id cardSoyDueno 0x0
 int id cardSoyEquipo 0x0
@@ -211,9 +219,14 @@ int id cbGrabaIva 0x0
 int id cbObligadoContabilidad 0x0
 int id cbTerminos 0x0
 int id cbTieneCaducidad 0x0
+int id chip30 0x0
+int id chip7 0x0
+int id chip90 0x0
 int id chipGroupCategorias 0x0
 int id chipGroupCategoriasDialog 0x0
 int id chipMetodoCosteo 0x0
+int id clientesContainer 0x0
+int id comparativasContainer 0x0
 int id containerBotonesEdicion 0x0
 int id containerCuotas 0x0
 int id containerFormularioPassword 0x0
@@ -221,6 +234,7 @@ int id containerInfoLote 0x0
 int id containerNombreEdicion 0x0
 int id containerNombreLectura 0x0
 int id containerProductosDetalle 0x0
+int id contentContainer 0x0
 int id dlgContrasena 0x0
 int id dlgCorreo 0x0
 int id dlgDireccion 0x0
@@ -296,6 +310,8 @@ int id headerContainer 0x0
 int id headerLayout 0x0
 int id headerProfileClick 0x0
 int id headerTitleContainer 0x0
+int id heatmapGrid 0x0
+int id hourGrid 0x0
 int id iconContainer 0x0
 int id iconRocket 0x0
 int id iconTeam 0x0
@@ -314,6 +330,7 @@ int id ivIconoMetrica 0x0
 int id ivLogoNegocio 0x0
 int id ivLogoPreview 0x0
 int id ivTogglePassword 0x0
+int id kpiContainer 0x0
 int id layoutAcciones 0x0
 int id layoutAccionesPendiente 0x0
 int id layoutBadgeActivo 0x0
@@ -326,6 +343,7 @@ int id layoutLoading 0x0
 int id layoutLoadingKardex 0x0
 int id layoutSimuladorTarjeta 0x0
 int id layoutVacio 0x0
+int id loadingContainer 0x0
 int id loginCard 0x0
 int id main 0x0
 int id menuClientes 0x0
@@ -334,8 +352,11 @@ int id menuDashboard 0x0
 int id menuEquipo 0x0
 int id menuFacturas 0x0
 int id menuProductos 0x0
+int id pagosContainer 0x0
+int id productosContainer 0x0
 int id progressBar 0x0
 int id progressLotes 0x0
+int id rachaFlameCard 0x0
 int id registerCard 0x0
 int id rowDescuentoDetalle 0x0
 int id rvBodegas 0x0
@@ -389,6 +410,7 @@ int id tilTelefono 0x0
 int id tvAvatarInicial 0x0
 int id tvBadgeAlertas 0x0
 int id tvBadgePendiente 0x0
+int id tvBarChartVacio 0x0
 int id tvBodegaNombre 0x0
 int id tvBreadcrumbNegocio 0x0
 int id tvBusinessName 0x0
@@ -403,6 +425,7 @@ int id tvClienteNombreDetalle 0x0
 int id tvClientesActivos 0x0
 int id tvCodigoAcceso 0x0
 int id tvCodigoLote 0x0
+int id tvComparativaSubtitulo 0x0
 int id tvContacto 0x0
 int id tvContadorParroquias 0x0
 int id tvCorreo 0x0
@@ -501,6 +524,8 @@ int id tvProductoCodigo 0x0
 int id tvProductoNombre 0x0
 int id tvProveedorNombre 0x0
 int id tvPvpVenta 0x0
+int id tvRachaDesc 0x0
+int id tvRachaTitulo 0x0
 int id tvRazonSocial 0x0
 int id tvRolMiembro 0x0
 int id tvRoleSubtitle 0x0
@@ -550,6 +575,7 @@ int id tvVentasMes 0x0
 int id tvWelcome 0x0
 int id tvZoeIndicaciones 0x0
 int id tvZoeTranscripcion 0x0
+int id weekdayContainer 0x0
 int layout activity_admin 0x0
 int layout activity_admin_iva 0x0
 int layout activity_admin_negocios 0x0
@@ -574,6 +600,7 @@ int layout activity_propietario 0x0
 int layout activity_proveedores 0x0
 int layout activity_registro 0x0
 int layout activity_registro_negocio 0x0
+int layout activity_rendimiento_comercial 0x0
 int layout activity_select_role 0x0
 int layout activity_terminos 0x0
 int layout activity_vendedor 0x0

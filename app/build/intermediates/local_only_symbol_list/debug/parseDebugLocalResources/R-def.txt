@@ -63,10 +63,14 @@ drawable bg_input_field
 drawable bg_pill_purple
 drawable bg_rounded_field
 drawable bg_search_input
+drawable file_paths
 drawable ic_categories
+drawable ic_chart
 drawable ic_clients
 drawable ic_inventory
 drawable ic_invoice
+drawable ic_kpi_calendar
+drawable ic_kpi_money
 drawable ic_launcher_background
 drawable ic_launcher_monochrome
 drawable ic_location
@@ -83,6 +87,7 @@ drawable zoe
 id actvParroquia
 id arrow1
 id arrow2
+id barChartContainer
 id btnAbrirNuevoAjuste
 id btnAccionAbonar
 id btnActualizarIva
@@ -132,6 +137,7 @@ id btnEliminarProducto
 id btnEmitirFactura
 id btnEntendido
 id btnEnviarMensaje
+id btnExportarPdf
 id btnGuardar
 id btnGuardarCambios
 id btnGuardarCompra
@@ -201,6 +207,8 @@ id cardOpcionesMiembro
 id cardParroquias
 id cardProductos
 id cardProveedores
+id cardRacha
+id cardRendimiento
 id cardSearch
 id cardSoyDueno
 id cardSoyEquipo
@@ -213,9 +221,14 @@ id cbGrabaIva
 id cbObligadoContabilidad
 id cbTerminos
 id cbTieneCaducidad
+id chip30
+id chip7
+id chip90
 id chipGroupCategorias
 id chipGroupCategoriasDialog
 id chipMetodoCosteo
+id clientesContainer
+id comparativasContainer
 id containerBotonesEdicion
 id containerCuotas
 id containerFormularioPassword
@@ -223,6 +236,7 @@ id containerInfoLote
 id containerNombreEdicion
 id containerNombreLectura
 id containerProductosDetalle
+id contentContainer
 id dlgContrasena
 id dlgCorreo
 id dlgDireccion
@@ -298,6 +312,8 @@ id headerContainer
 id headerLayout
 id headerProfileClick
 id headerTitleContainer
+id heatmapGrid
+id hourGrid
 id iconContainer
 id iconRocket
 id iconTeam
@@ -316,6 +332,7 @@ id ivIconoMetrica
 id ivLogoNegocio
 id ivLogoPreview
 id ivTogglePassword
+id kpiContainer
 id layoutAcciones
 id layoutAccionesPendiente
 id layoutBadgeActivo
@@ -328,6 +345,7 @@ id layoutLoading
 id layoutLoadingKardex
 id layoutSimuladorTarjeta
 id layoutVacio
+id loadingContainer
 id loginCard
 id main
 id menuClientes
@@ -336,8 +354,11 @@ id menuDashboard
 id menuEquipo
 id menuFacturas
 id menuProductos
+id pagosContainer
+id productosContainer
 id progressBar
 id progressLotes
+id rachaFlameCard
 id registerCard
 id rowDescuentoDetalle
 id rvBodegas
@@ -391,6 +412,7 @@ id tilTelefono
 id tvAvatarInicial
 id tvBadgeAlertas
 id tvBadgePendiente
+id tvBarChartVacio
 id tvBodegaNombre
 id tvBreadcrumbNegocio
 id tvBusinessName
@@ -405,6 +427,7 @@ id tvClienteNombreDetalle
 id tvClientesActivos
 id tvCodigoAcceso
 id tvCodigoLote
+id tvComparativaSubtitulo
 id tvContacto
 id tvContadorParroquias
 id tvCorreo
@@ -503,6 +526,8 @@ id tvProductoCodigo
 id tvProductoNombre
 id tvProveedorNombre
 id tvPvpVenta
+id tvRachaDesc
+id tvRachaTitulo
 id tvRazonSocial
 id tvRolMiembro
 id tvRoleSubtitle
@@ -552,6 +577,7 @@ id tvVentasMes
 id tvWelcome
 id tvZoeIndicaciones
 id tvZoeTranscripcion
+id weekdayContainer
 layout activity_admin
 layout activity_admin_iva
 layout activity_admin_negocios
@@ -576,6 +602,7 @@ layout activity_propietario
 layout activity_proveedores
 layout activity_registro
 layout activity_registro_negocio
+layout activity_rendimiento_comercial
 layout activity_select_role
 layout activity_terminos
 layout activity_vendedor

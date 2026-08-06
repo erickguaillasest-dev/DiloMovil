@@ -65,6 +65,7 @@ class PropietarioActivity : AppCompatActivity() {
     private lateinit var cardCuentasPorCobrar: LinearLayout
 
     private lateinit var cardMovimientos: LinearLayout
+    private lateinit var cardRendimiento: LinearLayout
 
     private lateinit var btnAdminEquipo: LinearLayout
     private lateinit var btnAdminConfig: LinearLayout
@@ -125,6 +126,7 @@ class PropietarioActivity : AppCompatActivity() {
         cardCategorias = findViewById(R.id.cardCategorias)
         cardCuentasPorCobrar = findViewById(R.id.cardCuentasPorCobrar)
         cardMovimientos = findViewById(R.id.cardMovimientos)
+        cardRendimiento = findViewById(R.id.cardRendimiento)
 
         btnAdminEquipo = findViewById(R.id.btnAdminEquipo)
         btnAdminConfig = findViewById(R.id.btnAdminConfig)
@@ -187,6 +189,7 @@ class PropietarioActivity : AppCompatActivity() {
         cardCategorias.setOnClickListener { startActivity(Intent(this, CategoriasActivity::class.java)) }
         cardCuentasPorCobrar.setOnClickListener { startActivity(Intent(this,CuentasPorCobrarActivity::class.java)) }
         cardMovimientos.setOnClickListener { startActivity(Intent(this, KardexActivity::class.java)) }
+        cardRendimiento.setOnClickListener { startActivity(Intent(this, RendimientoComercialActivity::class.java)) }
 
         btnAdminEquipo.setOnClickListener { startActivity(Intent(this, Mi_equipo::class.java)) }
         btnAdminConfig.setOnClickListener { startActivity(Intent(this, ConfiguracionNegocioActivity::class.java)) }
