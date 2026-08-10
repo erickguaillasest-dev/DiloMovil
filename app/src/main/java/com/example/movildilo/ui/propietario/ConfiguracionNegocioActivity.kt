@@ -32,9 +32,6 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import java.io.File
 import java.io.FileOutputStream
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-
 
 class ConfiguracionNegocioActivity : AppCompatActivity() {
 
@@ -87,7 +84,6 @@ class ConfiguracionNegocioActivity : AppCompatActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_configuracion_negocio)
-
 
         sessionManager = SessionManager(this)
         negocioId = sessionManager.getNegocioId()
@@ -150,7 +146,6 @@ class ConfiguracionNegocioActivity : AppCompatActivity() {
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                // Llama al ApiService retornando Response<NegocioResponseDto>
                 val response = RetrofitClient.apiService.getNegocio(authHeader, id)
                 withContext(Dispatchers.Main) {
                     layoutLoading.visibility = View.GONE
@@ -163,13 +158,10 @@ class ConfiguracionNegocioActivity : AppCompatActivity() {
                         etDireccion.setText(data.direccion.orEmpty())
                         cbObligadoContabilidad.isChecked = data.obligadoContabilidad ?: false
 
-                        // Mapeo del método de costeo traído del backend
                         val selectedPair = opcionesCosteo.find { it.first.equals(data.metodoCosteo, ignoreCase = true) }
                         val textoMostrar = selectedPair?.second ?: data.metodoCosteo ?: opcionesCosteo[0].second
                         spinnerMetodoCosteo.setText(textoMostrar, false)
 
-                        // Carga la imagen de la propiedad de NegocioResponseDto
-                        // Carga la imagen real del negocio; si no tiene, se queda el avatar por defecto
                         if (!data.rutaImagen.isNullOrEmpty()) {
                             Glide.with(this@ConfiguracionNegocioActivity)
                                 .load(data.rutaImagen)
@@ -192,6 +184,78 @@ class ConfiguracionNegocioActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Valida cada uno de los campos obligatorios del formulario antes de realizar el envío.
+     */
+    private fun validarFormulario(
+        ruc: String,
+        razonSocial: String,
+        nombreComercial: String,
+        direccion: String
+    ): Boolean {
+        var esValido = true
+        var primerCampoError: View? = null
+
+        // Validación RUC (Obligatorio, 13 dígitos numéricos)
+        if (ruc.isEmpty()) {
+            etRuc.error = "El RUC es obligatorio"
+            if (primerCampoError == null) primerCampoError = etRuc
+            esValido = false
+        } else if (!ruc.matches(Regex("^[0-9]{13}$"))) {
+            etRuc.error = "El RUC debe ser numérico y contener exactamente 13 dígitos"
+            if (primerCampoError == null) primerCampoError = etRuc
+            esValido = false
+        } else {
+            etRuc.error = null
+        }
+
+        // Validación Razón Social (Obligatoria, mínimo 3 caracteres)
+        if (razonSocial.isEmpty()) {
+            etRazonSocial.error = "La razón social es obligatoria"
+            if (primerCampoError == null) primerCampoError = etRazonSocial
+            esValido = false
+        } else if (razonSocial.length < 3) {
+            etRazonSocial.error = "La razón social debe tener al menos 3 caracteres"
+            if (primerCampoError == null) primerCampoError = etRazonSocial
+            esValido = false
+        } else {
+            etRazonSocial.error = null
+        }
+
+        // Validación Nombre Comercial (Obligatorio, mínimo 2 caracteres)
+        if (nombreComercial.isEmpty()) {
+            etNombreComercial.error = "El nombre comercial es obligatorio"
+            if (primerCampoError == null) primerCampoError = etNombreComercial
+            esValido = false
+        } else if (nombreComercial.length < 2) {
+            etNombreComercial.error = "El nombre comercial debe tener al menos 2 caracteres"
+            if (primerCampoError == null) primerCampoError = etNombreComercial
+            esValido = false
+        } else {
+            etNombreComercial.error = null
+        }
+
+        // Validación Dirección (Obligatoria, mínimo 5 caracteres)
+        if (direccion.isEmpty()) {
+            etDireccion.error = "La dirección es obligatoria"
+            if (primerCampoError == null) primerCampoError = etDireccion
+            esValido = false
+        } else if (direccion.length < 5) {
+            etDireccion.error = "La dirección debe tener al menos 5 caracteres"
+            if (primerCampoError == null) primerCampoError = etDireccion
+            esValido = false
+        } else {
+            etDireccion.error = null
+        }
+
+        if (!esValido) {
+            primerCampoError?.requestFocus()
+            Toast.makeText(this, "Por favor, corrige los errores señalados en el formulario.", Toast.LENGTH_SHORT).show()
+        }
+
+        return esValido
+    }
+
     private fun guardarCambios() {
         if (negocioId == -1L) {
             Toast.makeText(this, "No se encontró el ID del negocio.", Toast.LENGTH_SHORT).show()
@@ -203,12 +267,15 @@ class ConfiguracionNegocioActivity : AppCompatActivity() {
         val nombreComercial = etNombreComercial.text.toString().trim()
         val direccion = etDireccion.text.toString().trim()
 
-        if (ruc.isEmpty() || razonSocial.isEmpty() || nombreComercial.isEmpty() || direccion.isEmpty()) {
-            Toast.makeText(this, "Por favor, completa todos los campos obligatorios (*).", Toast.LENGTH_LONG).show()
+        // Ejecución de las validaciones del formulario
+        if (!validarFormulario(ruc, razonSocial, nombreComercial, direccion)) {
             return
         }
 
-        val authHeader = sessionManager.getAuthHeader() ?: return
+        val authHeader = sessionManager.getAuthHeader() ?: run {
+            Toast.makeText(this, "Sesión no válida.", Toast.LENGTH_SHORT).show()
+            return
+        }
 
         // Obtener la clave contable seleccionada
         val selectedText = spinnerMetodoCosteo.text.toString()
@@ -223,19 +290,17 @@ class ConfiguracionNegocioActivity : AppCompatActivity() {
             metodoCosteo = metodoCosteo
         )
 
-        // 1. Preparar JSON para @Part("datos") -> Compatible con SDK 24 y OkHttp 3
         val dtoJson = Gson().toJson(dto)
         val datosRequestBody = RequestBody.create(
             MediaType.parse("application/json; charset=utf-8"),
             dtoJson
         )
 
-        // 2. Preparar archivo de imagen para @Part imagen: MultipartBody.Part?
         var imagenPart: MultipartBody.Part? = null
         val file = obtenerArchivoImagen()
         if (file != null) {
             val requestFile = RequestBody.create(
-                MediaType.parse("image/jpeg"), // Content-Type real, no el comodín "image/*"
+                MediaType.parse("image/jpeg"),
                 file
             )
             imagenPart = MultipartBody.Part.createFormData("imagen", file.name, requestFile)
@@ -245,7 +310,6 @@ class ConfiguracionNegocioActivity : AppCompatActivity() {
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                // Consume el método actualizarNegocio que retorna Response<Void>
                 val response = RetrofitClient.apiService.actualizarNegocio(
                     authHeader,
                     negocioId,

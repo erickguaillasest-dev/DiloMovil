@@ -22,6 +22,7 @@ import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
 import com.example.movildilo.data.model.dto.UsuarioMeDto
+import com.example.movildilo.utils.FormValidator
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.imageview.ShapeableImageView
@@ -54,18 +55,41 @@ class UsuarioDialog : DialogFragment() {
     private lateinit var btnCerrar: View
     private lateinit var imgAvatarUsuario: ShapeableImageView
     private lateinit var btnCambiarFoto: MaterialCardView
+
+    // Layouts y Campos
+    private lateinit var tilDni: TextInputLayout
     private lateinit var etDni: TextInputEditText
+
+    private lateinit var tilPrimerNombre: TextInputLayout
     private lateinit var etPrimerNombre: TextInputEditText
+
+    private lateinit var tilSegundoNombre: TextInputLayout
     private lateinit var etSegundoNombre: TextInputEditText
+
+    private lateinit var tilApellidoPaterno: TextInputLayout
     private lateinit var etApellidoPaterno: TextInputEditText
+
+    private lateinit var tilApellidoMaterno: TextInputLayout
     private lateinit var etApellidoMaterno: TextInputEditText
+
+    private lateinit var tilEmail: TextInputLayout
     private lateinit var etEmail: TextInputEditText
+
     private lateinit var layoutContrasena: TextInputLayout
     private lateinit var etContrasena: TextInputEditText
+
+    private lateinit var tilParroquia: TextInputLayout
     private lateinit var actvParroquia: AutoCompleteTextView
+
+    private lateinit var tilTelefono: TextInputLayout
     private lateinit var etTelefono: TextInputEditText
+
+    private lateinit var tilFechaNacimiento: TextInputLayout
     private lateinit var etFechaNacimiento: TextInputEditText
+
+    private lateinit var tilDireccion: TextInputLayout
     private lateinit var etDireccion: TextInputEditText
+
     private lateinit var cbEsAdmin: CheckBox
     private lateinit var btnCancelarModal: MaterialButton
     private lateinit var btnGuardarModal: MaterialButton
@@ -147,18 +171,40 @@ class UsuarioDialog : DialogFragment() {
         btnCerrar = view.findViewById(R.id.btnCerrar)
         imgAvatarUsuario = view.findViewById(R.id.imgAvatarUsuario)
         btnCambiarFoto = view.findViewById(R.id.btnCambiarFoto)
+
+        tilDni = view.findViewById(R.id.tilDni)
         etDni = view.findViewById(R.id.etDni)
+
+        tilPrimerNombre = view.findViewById(R.id.tilPrimerNombre)
         etPrimerNombre = view.findViewById(R.id.etPrimerNombre)
+
+        tilSegundoNombre = view.findViewById(R.id.tilSegundoNombre)
         etSegundoNombre = view.findViewById(R.id.etSegundoNombre)
+
+        tilApellidoPaterno = view.findViewById(R.id.tilApellidoPaterno)
         etApellidoPaterno = view.findViewById(R.id.etApellidoPaterno)
+
+        tilApellidoMaterno = view.findViewById(R.id.tilApellidoMaterno)
         etApellidoMaterno = view.findViewById(R.id.etApellidoMaterno)
+
+        tilEmail = view.findViewById(R.id.tilEmail)
         etEmail = view.findViewById(R.id.etEmail)
+
         layoutContrasena = view.findViewById(R.id.layoutContrasena)
         etContrasena = view.findViewById(R.id.etContrasena)
+
+        tilParroquia = view.findViewById(R.id.tilParroquia)
         actvParroquia = view.findViewById(R.id.actvParroquia)
+
+        tilTelefono = view.findViewById(R.id.tilTelefono)
         etTelefono = view.findViewById(R.id.etTelefono)
+
+        tilFechaNacimiento = view.findViewById(R.id.tilFechaNacimiento)
         etFechaNacimiento = view.findViewById(R.id.etFechaNacimiento)
+
+        tilDireccion = view.findViewById(R.id.tilDireccion)
         etDireccion = view.findViewById(R.id.etDireccion)
+
         cbEsAdmin = view.findViewById(R.id.cbEsAdmin)
         btnCancelarModal = view.findViewById(R.id.btnCancelarModal)
         btnGuardarModal = view.findViewById(R.id.btnGuardarModal)
@@ -171,6 +217,7 @@ class UsuarioDialog : DialogFragment() {
         actvParroquia.setAdapter(adapter)
         actvParroquia.setOnItemClickListener { _, _, position, _ ->
             parroquiaSeleccionadaId = parroquias[position].id
+            FormValidator.marcarError(tilParroquia, null)
         }
     }
 
@@ -216,57 +263,78 @@ class UsuarioDialog : DialogFragment() {
             val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
             val fecha = Calendar.getInstance().apply { set(y, m, d) }
             etFechaNacimiento.setText(sdf.format(fecha.time))
+            FormValidator.marcarError(tilFechaNacimiento, null)
         }, year, month, day).show()
     }
 
     private fun validarYGuardar() {
         val dni = etDni.text.toString().trim()
         val primerNombre = etPrimerNombre.text.toString().trim()
+        val segundoNombre = etSegundoNombre.text.toString().trim()
         val apellidoPaterno = etApellidoPaterno.text.toString().trim()
+        val apellidoMaterno = etApellidoMaterno.text.toString().trim()
         val email = etEmail.text.toString().trim()
         val password = etContrasena.text.toString()
         val fechaNacimiento = etFechaNacimiento.text.toString().trim()
 
-        if (dni.isEmpty() || primerNombre.isEmpty() || apellidoPaterno.isEmpty() || email.isEmpty() || fechaNacimiento.isEmpty()) {
-            Toast.makeText(requireContext(), "DNI, Nombres, Apellidos, Email y Fecha de Nacimiento son obligatorios.", Toast.LENGTH_LONG).show()
-            return
-        }
+        // 1. Cédula Ecuatoriana (dígito verificador)
+        val errorDni = FormValidator.cedulaEcuatoriana(dni)
+        FormValidator.marcarError(tilDni, errorDni)
 
-        if (modo == MODO_CREAR && (password.isEmpty() || parroquiaSeleccionadaId == null)) {
-            Toast.makeText(requireContext(), "Contraseña y Parroquia son obligatorias para crear un usuario.", Toast.LENGTH_LONG).show()
-            return
-        }
+        // 2. Primer Nombre
+        val errorPrimerNombre = FormValidator.requerido(primerNombre, "El primer nombre")
+            ?: FormValidator.longitudMinima(primerNombre, 2, "El primer nombre")
+        FormValidator.marcarError(tilPrimerNombre, errorPrimerNombre)
 
-        if (!dni.matches(Regex("^[0-9]{10}$"))) {
-            Toast.makeText(requireContext(), "El número de cédula debe tener exactamente 10 dígitos numéricos.", Toast.LENGTH_LONG).show()
-            return
-        }
+        // 3. Apellido Paterno
+        val errorApellidoPaterno = FormValidator.requerido(apellidoPaterno, "El apellido paterno")
+            ?: FormValidator.longitudMinima(apellidoPaterno, 2, "El apellido paterno")
+        FormValidator.marcarError(tilApellidoPaterno, errorApellidoPaterno)
 
-        val edad = calcularEdad(fechaNacimiento)
-        if (edad == null) {
-            Toast.makeText(requireContext(), "La fecha de nacimiento no es válida.", Toast.LENGTH_LONG).show()
-            return
-        }
-        if (edad < 18) {
-            Toast.makeText(requireContext(), "El usuario debe tener al menos 18 años.", Toast.LENGTH_LONG).show()
-            return
-        }
-        if (edad >= 99) {
-            Toast.makeText(requireContext(), "La edad del usuario debe ser menor a 99 años.", Toast.LENGTH_LONG).show()
-            return
-        }
+        // 4. Correo electrónico
+        val errorEmail = FormValidator.correo(email)
+        FormValidator.marcarError(tilEmail, errorEmail)
 
-        if (password.isNotEmpty() && password.length < 8) {
-            Toast.makeText(requireContext(), "La contraseña debe tener un mínimo de 8 caracteres.", Toast.LENGTH_LONG).show()
+        // 5. Contraseña (Obligatoria al crear; opcional al editar salvo si se ingresan caracteres)
+        val errorPassword = if (modo == MODO_CREAR) {
+            FormValidator.requerido(password, "La contraseña")
+                ?: FormValidator.longitudMinima(password, 8, "La contraseña")
+        } else if (password.isNotEmpty()) {
+            FormValidator.longitudMinima(password, 8, "La contraseña")
+        } else null
+        FormValidator.marcarError(layoutContrasena, errorPassword)
+
+        // 6. Selección de Parroquia
+        val errorParroquia = if (modo == MODO_CREAR && parroquiaSeleccionadaId == null) {
+            "Debe seleccionar una parroquia obligatoria."
+        } else null
+        FormValidator.marcarError(tilParroquia, errorParroquia)
+
+        // 7. Fecha de Nacimiento / Edad (>= 18 y < 99)
+        val errorFecha = FormValidator.requerido(fechaNacimiento, "La fecha de nacimiento")
+            ?: run {
+                val edad = calcularEdad(fechaNacimiento)
+                when {
+                    edad == null -> "La fecha de nacimiento no es válida."
+                    edad < 18 -> "El usuario debe tener al menos 18 años."
+                    edad >= 99 -> "La edad debe ser menor a 99 años."
+                    else -> null
+                }
+            }
+        FormValidator.marcarError(tilFechaNacimiento, errorFecha)
+
+        // Detener ejecución si existe algún error activo
+        if (errorDni != null || errorPrimerNombre != null || errorApellidoPaterno != null ||
+            errorEmail != null || errorPassword != null || errorParroquia != null || errorFecha != null) {
             return
         }
 
         val dto = JSONObject().apply {
             put("dni", dni)
             put("primerNombre", primerNombre)
-            put("segundoNombre", etSegundoNombre.text.toString().trim())
+            put("segundoNombre", segundoNombre)
             put("apellidoPaterno", apellidoPaterno)
-            put("apellidoMaterno", etApellidoMaterno.text.toString().trim())
+            put("apellidoMaterno", apellidoMaterno)
             put("email", email)
             put("telefono", etTelefono.text.toString().trim())
             put("direccion", etDireccion.text.toString().trim())
@@ -372,7 +440,7 @@ class UsuarioDialog : DialogFragment() {
                     (activity as? OnUsuarioActualizadoListener)?.onUsuarioActualizado()
                     dismiss()
                 } else {
-                    Toast.makeText(requireContext(), "No se pudo guardar la información (${response.code()}).", Toast.LENGTH_LONG).show()
+                    Toast.makeText(requireContext(), "No se pudo guardar la información (${response.code()}).", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 btnGuardarModal.isEnabled = true

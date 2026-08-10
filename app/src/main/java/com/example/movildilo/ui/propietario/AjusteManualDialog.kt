@@ -19,6 +19,7 @@ import com.example.movildilo.R
 import com.example.movildilo.data.model.dto.BodegaDto
 import com.example.movildilo.data.model.dto.NuevoAjusteRequestDto
 import com.example.movildilo.data.model.dto.ProductoDto
+import com.example.movildilo.utils.FormValidator
 import com.google.android.material.button.MaterialButton
 
 class AjusteManualDialog(
@@ -133,28 +134,45 @@ class AjusteManualDialog(
         val tipoTexto = spinnerTipoMovimiento.text.toString()
         val tipoClave = if (tipoTexto.startsWith("INGRESO")) "INGRESO" else "EGRESO"
 
-        val cantidad = etCantidadAjuste.text.toString().trim().toIntOrNull()
-        val costo = etCostoUnitarioAjuste.text.toString().trim().toDoubleOrNull()
+        val cantidadTexto = etCantidadAjuste.text.toString().trim()
+        val costoTexto = etCostoUnitarioAjuste.text.toString().trim()
         val motivo = etMotivoAjuste.text.toString().trim()
         val doc = etDocReferenciaAjuste.text.toString().trim()
 
         if (productoSeleccionadoId == null) {
-            Toast.makeText(requireContext(), "Selecciona un producto de la lista", Toast.LENGTH_SHORT).show()
+            FormValidator.marcarErrorEditText(spinnerProducto, "Selecciona un producto válido de la lista sugerida.")
+            spinnerProducto.requestFocus()
             return
         }
 
         if (bodegaSeleccionadaId == null) {
-            Toast.makeText(requireContext(), "Selecciona una bodega de la lista", Toast.LENGTH_SHORT).show()
+            FormValidator.marcarErrorEditText(spinnerBodega, "Selecciona una bodega válida de la lista sugerida.")
+            spinnerBodega.requestFocus()
             return
         }
 
-        if (cantidad == null || cantidad <= 0) {
-            etCantidadAjuste.error = "Ingresa una cantidad válida mayor a cero"
+        val errorCantidad = FormValidator.numeroEntero(cantidadTexto, "La cantidad del ajuste", minimo = 1)
+        if (errorCantidad != null) {
+            FormValidator.marcarErrorEditText(etCantidadAjuste, errorCantidad)
+            etCantidadAjuste.requestFocus()
             return
         }
+        val cantidad = cantidadTexto.toInt()
 
-        if (motivo.isEmpty()) {
-            etMotivoAjuste.error = "Ingresa el motivo del ajuste"
+        val errorCosto = FormValidator.numeroDecimal(costoTexto, "El costo unitario", minimo = 0.0, obligatorio = false)
+        if (errorCosto != null) {
+            FormValidator.marcarErrorEditText(etCostoUnitarioAjuste, errorCosto)
+            etCostoUnitarioAjuste.requestFocus()
+            return
+        }
+        val costo = costoTexto.toDoubleOrNull()
+
+        val errorMotivo = FormValidator.requerido(motivo, "El motivo del ajuste")
+            ?: FormValidator.longitudMinima(motivo, 4, "El motivo del ajuste")
+            ?: FormValidator.longitudMaxima(motivo, 200, "El motivo del ajuste")
+        if (errorMotivo != null) {
+            FormValidator.marcarErrorEditText(etMotivoAjuste, errorMotivo)
+            etMotivoAjuste.requestFocus()
             return
         }
 

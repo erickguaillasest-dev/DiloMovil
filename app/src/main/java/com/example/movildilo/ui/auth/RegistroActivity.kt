@@ -16,6 +16,7 @@ import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.model.dto.RegistroDto
 import com.example.movildilo.data.model.dto.ParroquiaResponseDto
+import com.example.movildilo.utils.FormValidator
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.launch
@@ -208,42 +209,63 @@ class RegistroActivity : AppCompatActivity() {
         val password = etPassword.text.toString()
         val confirmPassword = etConfirmPassword.text.toString()
 
-        // 1. Validar campos obligatorios básicos
-        if (cedula.isEmpty() || primerNombre.isEmpty() || apellidoPaterno.isEmpty() ||
-            correo.isEmpty() || fechaNac.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, "Completa todos los campos obligatorios (*)", Toast.LENGTH_SHORT).show()
+        // Limpia errores previos de una corrida anterior
+        listOf(etCedula, etPrimerNombre, etApellidoPaterno, etEmail, etTelefono, etFechaNacimiento, etPassword, etConfirmPassword)
+            .forEach { FormValidator.marcarErrorEditText(it, null) }
+
+        var campoConError: EditText? = null
+        fun marcar(campo: EditText, mensaje: String?) {
+            if (mensaje != null) {
+                FormValidator.marcarErrorEditText(campo, mensaje)
+                if (campoConError == null) campoConError = campo
+            }
+        }
+
+        marcar(etCedula, FormValidator.cedulaEcuatoriana(cedula, "La cédula"))
+        marcar(etPrimerNombre, FormValidator.soloTexto(primerNombre, "El primer nombre"))
+        marcar(etApellidoPaterno, FormValidator.soloTexto(apellidoPaterno, "El apellido paterno"))
+        if (apellidoMaterno.isNotBlank()) marcar(etApellidoMaterno, FormValidator.soloTexto(apellidoMaterno, "El apellido materno", obligatorio = false))
+        marcar(etEmail, FormValidator.correo(correo))
+        if (telefono.isNotBlank()) marcar(etTelefono, FormValidator.telefono(telefono, obligatorio = false))
+        marcar(etFechaNacimiento, FormValidator.requerido(fechaNac, "La fecha de nacimiento"))
+        marcar(etPassword, FormValidator.password(password, minimo = 8))
+        marcar(etConfirmPassword, FormValidator.confirmarPassword(password, confirmPassword))
+
+        if (campoConError != null) {
+            campoConError?.requestFocus()
             return
         }
 
-        // 2. Validar formato de correo
-        if (!Patterns.EMAIL_ADDRESS.matcher(correo).matches()) {
-            Toast.makeText(this, "Ingresa un correo válido", Toast.LENGTH_SHORT).show()
-            return
+        // Validar edad mínima (18 años) a partir de la fecha seleccionada
+        if (fechaNac.isNotBlank()) {
+            try {
+                val partes = fechaNac.split("-")
+                val fecha = Calendar.getInstance().apply {
+                    set(partes[0].toInt(), partes[1].toInt() - 1, partes[2].toInt())
+                }
+                val hoy = Calendar.getInstance()
+                var edad = hoy.get(Calendar.YEAR) - fecha.get(Calendar.YEAR)
+                if (hoy.get(Calendar.DAY_OF_YEAR) < fecha.get(Calendar.DAY_OF_YEAR)) edad--
+                if (edad < 18) {
+                    Toast.makeText(this, "Debes ser mayor de 18 años para registrarte (tienes $edad años según la fecha ingresada).", Toast.LENGTH_LONG).show()
+                    return
+                }
+            } catch (_: Exception) {
+                // Si la fecha no se pudo interpretar, se deja pasar (el backend la validará de todas formas)
+            }
         }
 
-        // 3. Validar longitud de contraseña
-        if (password.length < 8) {
-            Toast.makeText(this, "La contraseña debe tener al menos 8 caracteres", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        // 4. Confirmar contraseñas coincidentes
-        if (password != confirmPassword) {
-            Toast.makeText(this, "Las contraseñas no coinciden", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        // 5. Validar selección de parroquia
+        // Validar selección de parroquia
         if (spinnerParroquia.selectedItemPosition <= 0) {
-            Toast.makeText(this, "Por favor, seleccione una parroquia", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Selecciona tu parroquia de la lista antes de continuar.", Toast.LENGTH_SHORT).show()
             return
         }
 
-        // 6. Validar Términos y Condiciones
+        // Validar Términos y Condiciones
         if (!cbTerminos.isChecked) {
             Toast.makeText(
                 this,
-                "Es obligatorio aceptar los Términos y Condiciones para continuar",
+                "Debes aceptar los Términos y Condiciones para poder crear tu cuenta.",
                 Toast.LENGTH_LONG
             ).show()
             return
@@ -255,7 +277,7 @@ class RegistroActivity : AppCompatActivity() {
         } else null
 
         if (idParroquia == null) {
-            Toast.makeText(this, "Por favor, selecciona una parroquia válida", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "La parroquia seleccionada no es válida, elige otra de la lista.", Toast.LENGTH_SHORT).show()
             return
         }
 

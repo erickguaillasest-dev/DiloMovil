@@ -48,7 +48,6 @@ class ComprasActivity : AppCompatActivity() {
     private var listaCompras = mutableListOf<CompraResponseDto>()
     private var listaFiltrada = mutableListOf<CompraResponseDto>()
 
-    // Catálogos para el diálogo
     private var proveedores = listOf<ProveedorResponseDto>()
     private var bodegas = listOf<BodegaDto>()
     private var productos = listOf<ProductoResponseDto>()

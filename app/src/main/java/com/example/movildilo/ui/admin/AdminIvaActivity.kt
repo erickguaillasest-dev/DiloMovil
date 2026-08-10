@@ -12,9 +12,11 @@ import com.example.movildilo.R
 import com.example.movildilo.data.api.IvaRequestDto
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
+import com.example.movildilo.utils.FormValidator
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.launch
 
 class AdminIvaActivity : AppCompatActivity() {
@@ -22,6 +24,7 @@ class AdminIvaActivity : AppCompatActivity() {
     private lateinit var btnRegresar: MaterialButton
     private lateinit var tvIvaActual: TextView
     private lateinit var etNuevoIva: TextInputEditText
+    private lateinit var tilNuevoIva: TextInputLayout
     private lateinit var btnActualizarIva: MaterialButton
     private lateinit var progressBar: ProgressBar
 
@@ -46,6 +49,7 @@ class AdminIvaActivity : AppCompatActivity() {
         btnRegresar = findViewById(R.id.btnRegresar)
         tvIvaActual = findViewById(R.id.tvIvaActual)
         etNuevoIva = findViewById(R.id.etNuevoIva)
+        tilNuevoIva = findViewById(R.id.tilNuevoIva)
         btnActualizarIva = findViewById(R.id.btnActualizarIva)
         progressBar = findViewById(R.id.progressBar)
     }
@@ -82,12 +86,14 @@ class AdminIvaActivity : AppCompatActivity() {
 
     private fun confirmarActualizarIva() {
         val textoIngresado = etNuevoIva.text.toString().trim()
-        val nuevoIvaDecimal = textoIngresado.toDoubleOrNull()
 
-        if (textoIngresado.isEmpty() || nuevoIvaDecimal == null) {
-            Toast.makeText(this, "Ingresa un valor numérico válido (ej: 0.15)", Toast.LENGTH_SHORT).show()
+        val errorIva = FormValidator.numeroDecimal(textoIngresado, "El nuevo IVA", minimo = 0.0, maximo = 1.0)
+        FormValidator.marcarError(tilNuevoIva, errorIva)
+        if (errorIva != null) {
+            tilNuevoIva.requestFocus()
             return
         }
+        val nuevoIvaDecimal = textoIngresado.toDouble()
 
         val nuevoPorcentaje = nuevoIvaDecimal * 100
 

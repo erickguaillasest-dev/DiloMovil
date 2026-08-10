@@ -61,8 +61,8 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
 
     private var terminoBusqueda: String = ""
     private var filtroEstado: String = "TODAS"
-    private var filtroFechaDesde: String = "" // "yyyy-MM-dd"
-    private var filtroFechaHasta: String = "" // "yyyy-MM-dd"
+    private var filtroFechaDesde: String = ""
+    private var filtroFechaHasta: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()

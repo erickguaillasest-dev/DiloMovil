@@ -39,7 +39,6 @@ class SelectRoleActivity : AppCompatActivity() {
 
         sessionManager = SessionManager(this)
 
-        // 🔥 ESCUDO PARA ADMINS: Si es Admin/SuperAdmin nunca debe ver esta pantalla
         if (sessionManager.isAdmin()) {
             val intent = Intent(this, AdminActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -56,17 +55,14 @@ class SelectRoleActivity : AppCompatActivity() {
         cardSoyEquipo = findViewById(R.id.cardSoyEquipo)
         btnCerrarSesion = findViewById(R.id.btnCerrarSesion)
 
-        // 1. Soy el dueño -> Ir a Registro de Negocio
         cardSoyDueno.setOnClickListener {
             startActivity(Intent(this, RegistroNegocioActivity::class.java))
         }
 
-        // 2. Soy del equipo -> Abrir Modal flotante para ingresar código
         cardSoyEquipo.setOnClickListener {
             mostrarModalIngresarCodigo()
         }
 
-        // 3. Cerrar Sesión
         btnCerrarSesion.setOnClickListener {
             cerrarSesionEIrAlLogin()
         }
@@ -126,7 +122,6 @@ class SelectRoleActivity : AppCompatActivity() {
                 if (response.isSuccessful) {
                     sessionManager.removeNegocioId()
 
-                    // Mostrar modal de Solicitud Pendiente tras unirse
                     mostrarModalExitoYSalir()
 
                 } else {

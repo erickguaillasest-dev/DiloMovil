@@ -21,6 +21,7 @@ import com.example.movildilo.ui.dashboard.BodegueroActivity
 import com.example.movildilo.ui.dashboard.PropietarioActivity
 import com.example.movildilo.ui.dashboard.VendedorActivity
 import com.example.movildilo.ui.main.MainActivity
+import com.example.movildilo.utils.FormValidator
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -35,6 +36,8 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var btnCreateAccount: MaterialButton
     private lateinit var tvForgotPassword: TextView
     private var btnTogglePassword: TextView? = null
+    private var tvEmailError: TextView? = null
+    private var tvPasswordError: TextView? = null
 
     private lateinit var sessionManager: SessionManager
 
@@ -57,6 +60,13 @@ class LoginActivity : AppCompatActivity() {
         btnCreateAccount = findViewById(R.id.btnCreateAccount)
         tvForgotPassword = findViewById(R.id.tvForgotPassword)
         btnTogglePassword = findViewById(R.id.btnTogglePassword)
+        tvEmailError = findViewById(R.id.tvEmailError)
+        tvPasswordError = findViewById(R.id.tvPasswordError)
+
+        // Limpia el error de cada campo apenas el usuario empieza a corregirlo, para que
+        // el mensaje no se quede pegado en pantalla aunque ya haya escrito algo válido.
+        etEmail.setOnFocusChangeListener { _, tieneFoco -> if (tieneFoco) FormValidator.marcarErrorSimple(etEmail, tvEmailError, null) }
+        etPassword.setOnFocusChangeListener { _, tieneFoco -> if (tieneFoco) FormValidator.marcarErrorSimple(etPassword, tvPasswordError, null) }
 
         btnTogglePassword?.setOnClickListener { togglePasswordVisibility() }
         btnLogin.setOnClickListener { onLoginClicked() }
@@ -86,13 +96,28 @@ class LoginActivity : AppCompatActivity() {
         val correo = etEmail.text.toString().trim()
         val password = etPassword.text.toString()
 
-        if (correo.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, "Por favor ingresa tu correo electrónico y tu contraseña.", Toast.LENGTH_SHORT).show()
-            return
-        }
+        FormValidator.marcarErrorSimple(etEmail, tvEmailError, null)
+        FormValidator.marcarErrorSimple(etPassword, tvPasswordError, null)
 
-        if (!Patterns.EMAIL_ADDRESS.matcher(correo).matches()) {
-            Toast.makeText(this, "Ingresa un correo válido", Toast.LENGTH_SHORT).show()
+        val errorCorreo = if (correo.isEmpty()) {
+            "El correo electrónico es obligatorio."
+        } else if (!Patterns.EMAIL_ADDRESS.matcher(correo).matches()) {
+            "Ingresa un correo con formato válido (ej: nombre@correo.com)."
+        } else null
+
+        val errorPassword = if (password.isEmpty()) "La contraseña es obligatoria." else null
+
+        var valido = true
+        if (errorCorreo != null) {
+            FormValidator.marcarErrorSimple(etEmail, tvEmailError, errorCorreo)
+            valido = false
+        }
+        if (errorPassword != null) {
+            FormValidator.marcarErrorSimple(etPassword, tvPasswordError, errorPassword)
+            valido = false
+        }
+        if (!valido) {
+            if (errorCorreo != null) etEmail.requestFocus() else etPassword.requestFocus()
             return
         }
 

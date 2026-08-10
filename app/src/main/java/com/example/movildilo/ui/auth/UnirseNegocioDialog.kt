@@ -14,6 +14,7 @@ import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
 import com.example.movildilo.data.model.dto.UnirseNegocioRequestDto
+import com.example.movildilo.utils.FormValidator
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
@@ -48,14 +49,11 @@ class UnirseNegocioDialog(
             val codigo = etBusinessCode.text.toString().trim()
 
             // Validaciones
-            if (codigo.isEmpty()) {
-                etBusinessCode.error = "Ingresa el código de invitación"
-                etBusinessCode.requestFocus()
-                return@setOnClickListener
-            }
-
-            if (codigo.length < 6) {
-                etBusinessCode.error = "El código debe tener al menos 6 caracteres"
+            val errorCodigo = FormValidator.requerido(codigo, "El código de invitación")
+                ?: FormValidator.longitudMinima(codigo, 6, "El código de invitación")
+                ?: FormValidator.longitudMaxima(codigo, 30, "El código de invitación")
+            if (errorCodigo != null) {
+                FormValidator.marcarErrorEditText(etBusinessCode, errorCodigo)
                 etBusinessCode.requestFocus()
                 return@setOnClickListener
             }

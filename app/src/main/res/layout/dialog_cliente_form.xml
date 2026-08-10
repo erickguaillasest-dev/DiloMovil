@@ -111,6 +111,7 @@
 
                     <!-- DNI / RUC -->
                     <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilDni"
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -145,6 +146,7 @@
                         android:weightSum="2">
 
                         <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/tilPrimerNombre"
                             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
@@ -171,6 +173,7 @@
                         </com.google.android.material.textfield.TextInputLayout>
 
                         <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/tilSegundoNombre"
                             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
@@ -206,6 +209,7 @@
                         android:weightSum="2">
 
                         <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/tilApellidoPaterno"
                             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
@@ -232,6 +236,7 @@
                         </com.google.android.material.textfield.TextInputLayout>
 
                         <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/tilApellidoMaterno"
                             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
@@ -260,6 +265,7 @@
 
                     <!-- CORREO ELECTRÓNICO -->
                     <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilEmail"
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -322,6 +328,7 @@
                         android:weightSum="2">
 
                         <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/tilTelefono"
                             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
@@ -348,6 +355,7 @@
                         </com.google.android.material.textfield.TextInputLayout>
 
                         <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/tilFechaNacimiento"
                             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
@@ -378,6 +386,7 @@
 
                     <!-- DIRECCIÓN -->
                     <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilDireccion"
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"

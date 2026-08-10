@@ -17,6 +17,7 @@ import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
 import com.example.movildilo.data.model.dto.ParroquiaResponseDto
+import com.example.movildilo.utils.FormValidator
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -129,10 +130,23 @@ class AdminParroquiasActivity : AppCompatActivity() {
 
         view.findViewById<MaterialButton>(R.id.btnGuardarDialog).setOnClickListener {
             val nombreInput = etNombre.text.toString().trim()
-            if (nombreInput.isEmpty()) {
-                etNombre.error = "El nombre de la parroquia es obligatorio"
+
+            val errorNombre = FormValidator.requerido(nombreInput, "El nombre de la parroquia")
+                ?: FormValidator.longitudMinima(nombreInput, 3, "El nombre de la parroquia")
+                ?: FormValidator.longitudMaxima(nombreInput, 80, "El nombre de la parroquia")
+                ?: run {
+                    val yaExiste = parroquiasList.any {
+                        FormValidator.normalizar(it.nombre) == FormValidator.normalizar(nombreInput) && it.id != parroquia?.id
+                    }
+                    if (yaExiste) "Ya existe una parroquia registrada con ese nombre." else null
+                }
+
+            if (errorNombre != null) {
+                FormValidator.marcarErrorEditText(etNombre, errorNombre)
+                etNombre.requestFocus()
                 return@setOnClickListener
             }
+
             dialog.dismiss()
             guardarParroquia(parroquia?.id, nombreInput)
         }

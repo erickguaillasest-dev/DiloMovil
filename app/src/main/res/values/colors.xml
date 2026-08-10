@@ -15,12 +15,12 @@
     <color name="input_stroke">#E2E8F0</color>
     <color name="input_background">#F1F5F9</color>
 
-    <!-- NaranjaDilo: Botón de acción principal -->
+    <color name="error_red">#DC2626</color>
+    <color name="error_red_bg">#FEF2F2</color>
+
     <color name="button_orange">#FF5722</color>
-    <!-- NaranjaClaro: Gradiente y textos resaltados -->
     <color name="orange_link">#FF8A65</color>
 
-    <!-- Colores faltantes para MainActivity y otros -->
     <color name="color_primario">#0F172A</color>
     <color name="color_fondo">#f6eee3</color>
     <color name="color_superficie">#FFFFFF</color>

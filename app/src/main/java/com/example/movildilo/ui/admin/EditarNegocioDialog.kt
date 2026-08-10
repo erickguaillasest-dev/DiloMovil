@@ -20,11 +20,13 @@ import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
 import com.example.movildilo.data.model.dto.NegocioResponseDto
+import com.example.movildilo.utils.FormValidator
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.checkbox.MaterialCheckBox
 import com.google.android.material.imageview.ShapeableImageView
 import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
 import okhttp3.MediaType
@@ -72,6 +74,9 @@ class EditarNegocioDialog : DialogFragment() {
     private lateinit var etRazonSocial: TextInputEditText
     private lateinit var etNombreComercial: TextInputEditText
     private lateinit var etDireccion: TextInputEditText
+    private lateinit var tilRuc: TextInputLayout
+    private lateinit var tilRazonSocial: TextInputLayout
+    private lateinit var tilNombreComercial: TextInputLayout
     private lateinit var spinnerMetodoCosteo: AutoCompleteTextView
     private lateinit var cbObligadoContabilidad: MaterialCheckBox
     private lateinit var btnCancelarModal: MaterialButton
@@ -122,6 +127,9 @@ class EditarNegocioDialog : DialogFragment() {
         etRazonSocial = view.findViewById(R.id.etRazonSocial)
         etNombreComercial = view.findViewById(R.id.etNombreComercial)
         etDireccion = view.findViewById(R.id.etDireccion)
+        tilRuc = view.findViewById(R.id.tilRuc)
+        tilRazonSocial = view.findViewById(R.id.tilRazonSocial)
+        tilNombreComercial = view.findViewById(R.id.tilNombreComercial)
         spinnerMetodoCosteo = view.findViewById(R.id.spinnerMetodoCosteo)
         cbObligadoContabilidad = view.findViewById(R.id.cbObligadoContabilidad)
         btnCancelarModal = view.findViewById(R.id.btnCancelarModal)
@@ -171,10 +179,18 @@ class EditarNegocioDialog : DialogFragment() {
         val direccion = etDireccion.text.toString().trim()
         val metodoCosteo = spinnerMetodoCosteo.text.toString().trim().ifBlank { "PROMEDIO" }
 
-        if (ruc.isEmpty() || razonSocial.isEmpty()) {
-            Toast.makeText(requireContext(), "El RUC y la Razón Social son obligatorios.", Toast.LENGTH_SHORT).show()
-            return
-        }
+        val ok = FormValidator.validar(
+            FormValidator.Campo(tilRuc) { FormValidator.rucEcuatoriano(ruc) },
+            FormValidator.Campo(tilRazonSocial) {
+                FormValidator.requerido(razonSocial, "La razón social")
+                    ?: FormValidator.longitudMinima(razonSocial, 3, "La razón social")
+                    ?: FormValidator.longitudMaxima(razonSocial, 150, "La razón social")
+            },
+            FormValidator.Campo(tilNombreComercial) {
+                FormValidator.longitudMaxima(nombreComercial, 150, "El nombre comercial")
+            }
+        )
+        if (!ok) return
 
         val authHeader = sessionManager.getAuthHeader() ?: return
 

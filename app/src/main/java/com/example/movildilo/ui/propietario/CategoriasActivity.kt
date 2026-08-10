@@ -183,8 +183,21 @@ class CategoriasActivity : AppCompatActivity() {
             val nombre = etNombre.text.toString().trim()
             val descripcion = etDescripcion.text.toString().trim()
 
-            if (nombre.isEmpty()) {
-                etNombre.error = "El nombre es obligatorio"
+            val errorNombre = com.example.movildilo.utils.FormValidator.requerido(nombre, "El nombre de la categoría")
+                ?: com.example.movildilo.utils.FormValidator.longitudMinima(nombre, 2, "El nombre de la categoría")
+                ?: com.example.movildilo.utils.FormValidator.longitudMaxima(nombre, 60, "El nombre de la categoría")
+                ?: run {
+                    val yaExiste = listaOriginal.any {
+                        com.example.movildilo.utils.FormValidator.normalizar(it.nombre) == com.example.movildilo.utils.FormValidator.normalizar(nombre) &&
+                                it.id != categoriaExistente?.id
+                    }
+                    if (yaExiste) "Ya existe una categoría con ese nombre." else null
+                }
+                ?: com.example.movildilo.utils.FormValidator.longitudMaxima(descripcion, 250, "La descripción")
+
+            if (errorNombre != null) {
+                etNombre.error = errorNombre
+                etNombre.requestFocus()
                 return@setOnClickListener
             }
 

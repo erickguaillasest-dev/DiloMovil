@@ -102,6 +102,17 @@
                         android:textSize="15sp" />
                 </RelativeLayout>
 
+                <TextView
+                    android:id="@+id/tvEmailError"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:drawablePadding="4dp"
+                    android:text="⚠️ Ingresa un correo válido."
+                    android:textColor="@color/error_red"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
+
                 <Space
                     android:layout_width="match_parent"
                     android:layout_height="18dp" />
@@ -152,6 +163,16 @@
                         android:focusable="true"
                         android:background="?attr/selectableItemBackgroundBorderless" />
                 </RelativeLayout>
+
+                <TextView
+                    android:id="@+id/tvPasswordError"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="⚠️ La contraseña es obligatoria."
+                    android:textColor="@color/error_red"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
 
                 <Space
                     android:layout_width="match_parent"

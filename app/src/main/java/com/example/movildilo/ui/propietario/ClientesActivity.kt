@@ -7,6 +7,7 @@ import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Patterns
 import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
@@ -18,8 +19,6 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -45,7 +44,6 @@ class ClientesActivity : AppCompatActivity() {
     private lateinit var layoutEmptyState: View
     private lateinit var etSearch: EditText
     private lateinit var btnNuevoCliente: MaterialButton
-
     private lateinit var btnRegresar: ImageButton
 
     private lateinit var clientesAdapter: ClientesAdapter
@@ -77,7 +75,6 @@ class ClientesActivity : AppCompatActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_clientes)
-
 
         sessionManager = SessionManager(this)
         negocioId = sessionManager.getNegocioId()
@@ -223,16 +220,26 @@ class ClientesActivity : AppCompatActivity() {
         imgAvatarModal = view.findViewById(R.id.imgAvatarCliente)
         val btnCambiarFoto = view.findViewById<View>(R.id.btnCambiarFoto)
 
+        // Contenedores TextInputLayout
+        val tilDni = view.findViewById<TextInputLayout>(R.id.tilDni)
+        val tilPrimerNombre = view.findViewById<TextInputLayout>(R.id.tilPrimerNombre)
+        val tilSegundoNombre = view.findViewById<TextInputLayout>(R.id.tilSegundoNombre)
+        val tilApellidoPaterno = view.findViewById<TextInputLayout>(R.id.tilApellidoPaterno)
+        val tilApellidoMaterno = view.findViewById<TextInputLayout>(R.id.tilApellidoMaterno)
+        val tilEmail = view.findViewById<TextInputLayout>(R.id.tilEmail)
+        val layoutContrasena = view.findViewById<TextInputLayout>(R.id.layoutContrasena)
+        val tilTelefono = view.findViewById<TextInputLayout>(R.id.tilTelefono)
+        val tilFechaNacimiento = view.findViewById<TextInputLayout>(R.id.tilFechaNacimiento)
+        val tilDireccion = view.findViewById<TextInputLayout>(R.id.tilDireccion)
+
+        // Inputs de texto
         val etDni = view.findViewById<TextInputEditText>(R.id.etDni)
         val etPrimerNombre = view.findViewById<TextInputEditText>(R.id.etPrimerNombre)
         val etSegundoNombre = view.findViewById<TextInputEditText>(R.id.etSegundoNombre)
         val etApellidoPaterno = view.findViewById<TextInputEditText>(R.id.etApellidoPaterno)
         val etApellidoMaterno = view.findViewById<TextInputEditText>(R.id.etApellidoMaterno)
         val etEmail = view.findViewById<TextInputEditText>(R.id.etEmail)
-
-        val layoutContrasena = view.findViewById<TextInputLayout>(R.id.layoutContrasena)
         val etContrasena = view.findViewById<TextInputEditText>(R.id.etContrasena)
-
         val etTelefono = view.findViewById<TextInputEditText>(R.id.etTelefono)
         val etFechaNacimiento = view.findViewById<TextInputEditText>(R.id.etFechaNacimiento)
         val etDireccion = view.findViewById<TextInputEditText>(R.id.etDireccion)
@@ -247,6 +254,7 @@ class ClientesActivity : AppCompatActivity() {
             mostrarOpcionesImagen()
         }
 
+        // Carga de datos si es edición
         if (isEditing && cliente != null) {
             etDni.setText(cliente.dni)
             etPrimerNombre.setText(cliente.primerNombre)
@@ -268,8 +276,20 @@ class ClientesActivity : AppCompatActivity() {
             DatePickerDialog(this, { _, year, month, dayOfMonth ->
                 val fecha = String.format(Locale.getDefault(), "%04d-%02d-%02d", year, month + 1, dayOfMonth)
                 etFechaNacimiento.setText(fecha)
+                tilFechaNacimiento.error = null
             }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
         }
+
+        // TextWatchers para limpiar errores al escribir
+        setupErrorClearing(etDni, tilDni)
+        setupErrorClearing(etPrimerNombre, tilPrimerNombre)
+        setupErrorClearing(etSegundoNombre, tilSegundoNombre)
+        setupErrorClearing(etApellidoPaterno, tilApellidoPaterno)
+        setupErrorClearing(etApellidoMaterno, tilApellidoMaterno)
+        setupErrorClearing(etEmail, tilEmail)
+        setupErrorClearing(etContrasena, layoutContrasena)
+        setupErrorClearing(etTelefono, tilTelefono)
+        setupErrorClearing(etDireccion, tilDireccion)
 
         val dialog = MaterialAlertDialogBuilder(this)
             .setView(view)
@@ -282,33 +302,83 @@ class ClientesActivity : AppCompatActivity() {
         btnCancelar.setOnClickListener { dialog.dismiss() }
 
         btnGuardar.setOnClickListener {
+            // Limpiar errores previos
+            tilDni.error = null
+            tilPrimerNombre.error = null
+            tilApellidoPaterno.error = null
+            tilEmail.error = null
+            layoutContrasena.error = null
+            tilTelefono.error = null
+
             val dni = etDni.text.toString().trim()
             val primerNombre = etPrimerNombre.text.toString().trim()
+            val segundoNombre = etSegundoNombre.text.toString().trim()
             val apellidoPaterno = etApellidoPaterno.text.toString().trim()
+            val apellidoMaterno = etApellidoMaterno.text.toString().trim()
+            val email = etEmail.text.toString().trim()
             val contrasena = etContrasena.text.toString().trim()
+            val telefono = etTelefono.text.toString().trim()
+            val fechaNacimiento = etFechaNacimiento.text.toString().trim()
+            val direccion = etDireccion.text.toString().trim()
 
-            if (dni.isEmpty() || primerNombre.isEmpty() || apellidoPaterno.isEmpty()) {
-                Toast.makeText(this, "El DNI, Primer Nombre y Apellido Paterno son obligatorios", Toast.LENGTH_LONG).show()
-                return@setOnClickListener
+            var isValid = true
+
+            // Validar Cédula / DNI
+            if (dni.isEmpty()) {
+                tilDni.error = "Ingresa la cédula / DNI"
+                isValid = false
+            } else if (!validarCedulaEcuatoriana(dni)) {
+                tilDni.error = "Número de cédula ecuatoriana inválido"
+                isValid = false
             }
 
+            // Validar Primer Nombre
+            if (primerNombre.isEmpty()) {
+                tilPrimerNombre.error = "El primer nombre es obligatorio"
+                isValid = false
+            }
+
+            // Validar Apellido Paterno
+            if (apellidoPaterno.isEmpty()) {
+                tilApellidoPaterno.error = "El primer apellido es obligatorio"
+                isValid = false
+            }
+
+            // Validar Correo Electrónico (si se ingresa)
+            if (email.isNotEmpty() && !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                tilEmail.error = "Ingresa un correo electrónico válido"
+                isValid = false
+            }
+
+            // Validar Contraseña
             if (!isEditing && contrasena.isEmpty()) {
-                Toast.makeText(this, "La contraseña es obligatoria para nuevos clientes", Toast.LENGTH_LONG).show()
-                return@setOnClickListener
+                layoutContrasena.error = "La contraseña es obligatoria"
+                isValid = false
+            } else if (contrasena.isNotEmpty() && contrasena.length < 8) {
+                layoutContrasena.error = "La contraseña debe tener al menos 8 caracteres"
+                isValid = false
             }
+
+            // Validar Teléfono (si se ingresa)
+            if (telefono.isNotEmpty() && (telefono.length < 9 || !telefono.all { it.isDigit() })) {
+                tilTelefono.error = "Ingresa un número de teléfono válido (9-10 dígitos)"
+                isValid = false
+            }
+
+            if (!isValid) return@setOnClickListener
 
             val requestDto = ClienteResponseDto(
                 id = cliente?.id,
                 dni = dni,
                 primerNombre = primerNombre,
-                segundoNombre = etSegundoNombre.text.toString().trim().takeIf { it.isNotEmpty() },
+                segundoNombre = segundoNombre.takeIf { it.isNotEmpty() },
                 apellidoPaterno = apellidoPaterno,
-                apellidoMaterno = etApellidoMaterno.text.toString().trim().takeIf { it.isNotEmpty() },
-                email = etEmail.text.toString().trim().takeIf { it.isNotEmpty() },
+                apellidoMaterno = apellidoMaterno.takeIf { it.isNotEmpty() },
+                email = email.takeIf { it.isNotEmpty() },
                 contrasena = contrasena.takeIf { it.isNotEmpty() },
-                fechaNacimiento = etFechaNacimiento.text.toString().trim().takeIf { it.isNotEmpty() },
-                telefono = etTelefono.text.toString().trim().takeIf { it.isNotEmpty() },
-                direccion = etDireccion.text.toString().trim().takeIf { it.isNotEmpty() }
+                fechaNacimiento = fechaNacimiento.takeIf { it.isNotEmpty() },
+                telefono = telefono.takeIf { it.isNotEmpty() },
+                direccion = direccion.takeIf { it.isNotEmpty() }
             )
 
             dialog.dismiss()
@@ -321,6 +391,37 @@ class ClientesActivity : AppCompatActivity() {
             setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         }
+    }
+
+    private fun setupErrorClearing(editText: TextInputEditText, layout: TextInputLayout) {
+        editText.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                layout.error = null
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
+    }
+
+    private fun validarCedulaEcuatoriana(cedula: String): Boolean {
+        if (cedula.length != 10 || !cedula.all { it.isDigit() }) return false
+
+        val provincia = cedula.substring(0, 2).toIntOrNull() ?: return false
+        if (provincia !in 1..24 && provincia != 30) return false
+
+        val tercerDigito = cedula[2].digitToInt()
+        if (tercerDigito >= 6) return false
+
+        val coeficientes = intArrayOf(2, 1, 2, 1, 2, 1, 2, 1, 2)
+        var suma = 0
+        for (i in 0 until 9) {
+            var valor = cedula[i].digitToInt() * coeficientes[i]
+            if (valor >= 10) valor -= 9
+            suma += valor
+        }
+
+        val digitoVerificadorEsperado = if (suma % 10 == 0) 0 else 10 - (suma % 10)
+        return digitoVerificadorEsperado == cedula[9].digitToInt()
     }
 
     private fun guardarClienteApi(clienteDto: ClienteResponseDto, isEditing: Boolean) {

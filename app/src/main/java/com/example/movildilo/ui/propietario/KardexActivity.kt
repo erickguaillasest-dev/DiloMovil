@@ -31,7 +31,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
 
-
 class KardexActivity : AppCompatActivity() {
 
     private lateinit var btnRegresarKardex: View
@@ -56,7 +55,6 @@ class KardexActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_kardex_movimientos)
 
-
         sessionManager = SessionManager(this)
         negocioId = sessionManager.getNegocioId()
 
@@ -67,6 +65,18 @@ class KardexActivity : AppCompatActivity() {
         btnRegresarKardex.setOnClickListener { finish() }
 
         btnAbrirNuevoAjuste.setOnClickListener {
+            if (negocioId <= 0L) {
+                Toast.makeText(this, "No se puede realizar un ajuste sin un negocio activo.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            if (listaBodegasBD.isEmpty()) {
+                Toast.makeText(this, "No hay bodegas registradas para realizar ajustes.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            if (listaProductosBD.isEmpty()) {
+                Toast.makeText(this, "No hay productos registrados para realizar ajustes.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             abrirModalAjusteManual()
         }
 
@@ -77,7 +87,6 @@ class KardexActivity : AppCompatActivity() {
             Toast.makeText(this, "No se encontró un negocio activo.", Toast.LENGTH_SHORT).show()
         }
     }
-
 
     private fun initViews() {
         btnRegresarKardex = findViewById(R.id.btnRegresarKardex)
@@ -338,7 +347,48 @@ class KardexActivity : AppCompatActivity() {
         dialog.show(supportFragmentManager, "AjusteManualDialog")
     }
 
+    /**
+     * Valida los campos del DTO de Ajuste Manual antes de enviarlo a la API.
+     */
+    private fun validarAjusteManual(dto: NuevoAjusteRequestDto): Boolean {
+        if (negocioId <= 0L) {
+            Toast.makeText(this, "No se detectó un negocio válido para registrar el ajuste.", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        if (dto.productoId == null || dto.productoId <= 0L) {
+            Toast.makeText(this, "Debes seleccionar un producto válido.", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        if (dto.bodegaOrigenId == null || dto.bodegaDestinoId!! <= 0L) {
+            Toast.makeText(this, "Debes seleccionar una bodega válida.", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        if (dto.cantidad == null || dto.cantidad == 0) {
+            Toast.makeText(this, "La cantidad del ajuste no puede ser cero.", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        if (dto.motivo.isNullOrBlank()) {
+            Toast.makeText(this, "Debes ingresar un motivo para el ajuste.", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        if (dto.motivo.trim().length < 3) {
+            Toast.makeText(this, "El motivo debe tener al menos 3 caracteres.", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        return true
+    }
+
     private fun registrarAjusteEnBackend(dto: NuevoAjusteRequestDto) {
+        if (!validarAjusteManual(dto)) {
+            return
+        }
+
         val authHeader = sessionManager.getAuthHeader()
         val emailUsuario = sessionManager.getUserEmail() ?: ""
 

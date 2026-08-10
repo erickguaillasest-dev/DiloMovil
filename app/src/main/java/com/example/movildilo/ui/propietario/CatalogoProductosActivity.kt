@@ -54,7 +54,6 @@ class CatalogoProductosActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_catalogo_productos)
 
-
         sessionManager = SessionManager(this)
         negocioId = sessionManager.getNegocioId()
 
@@ -65,6 +64,10 @@ class CatalogoProductosActivity : AppCompatActivity() {
         btnRegresar.setOnClickListener { finish() }
 
         fabNuevoProducto.setOnClickListener {
+            if (negocioId == -1L) {
+                Toast.makeText(this, "No se puede agregar un producto sin un negocio activo.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             abrirModalProducto(null)
         }
 
@@ -78,12 +81,13 @@ class CatalogoProductosActivity : AppCompatActivity() {
         manejarAccionDeZoe()
     }
 
-    /** Si Zoe nos trajo aquí para crear un producto, abrimos el modal apenas termine de cargar la pantalla. */
     private fun manejarAccionDeZoe() {
         if (intent.getStringExtra(com.example.movildilo.ia.ZoeActionRouter.EXTRA_ACCION) ==
             com.example.movildilo.ia.ZoeActionRouter.Accion.CREAR_PRODUCTO
         ) {
-            fabNuevoProducto.postDelayed({ abrirModalProducto(null) }, 700)
+            fabNuevoProducto.postDelayed({
+                if (negocioId != -1L) abrirModalProducto(null)
+            }, 700)
         }
     }
 
@@ -175,7 +179,10 @@ class CatalogoProductosActivity : AppCompatActivity() {
     }
 
     private fun cargarCategoriasDesdeApi() {
-        val authHeader = sessionManager.getAuthHeader() ?: return
+        val authHeader = sessionManager.getAuthHeader() ?: run {
+            mostrarAlertaSesionExpirada()
+            return
+        }
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
@@ -187,6 +194,8 @@ class CatalogoProductosActivity : AppCompatActivity() {
                         listaCategoriasBD.addAll(categorias)
                         actualizarSpinnerFiltroCategorias()
                         aplicarFiltros()
+                    } else if (response.code() == 401) {
+                        mostrarAlertaSesionExpirada()
                     }
                 }
             } catch (e: Exception) {
@@ -196,7 +205,10 @@ class CatalogoProductosActivity : AppCompatActivity() {
     }
 
     private fun cargarProductosDesdeApi() {
-        val authHeader = sessionManager.getAuthHeader() ?: return
+        val authHeader = sessionManager.getAuthHeader() ?: run {
+            mostrarAlertaSesionExpirada()
+            return
+        }
         mostrarCargando(true)
 
         lifecycleScope.launch(Dispatchers.IO) {
@@ -232,8 +244,40 @@ class CatalogoProductosActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Valida los datos del producto antes de proceder con el guardado en el servidor
+     */
+    private fun validarProducto(producto: ProductoDto): Boolean {
+        if (negocioId == -1L) {
+            Toast.makeText(this, "No hay un negocio seleccionado.", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        val nombre = producto.nombre?.trim().orEmpty()
+        if (nombre.isEmpty()) {
+            Toast.makeText(this, "El nombre del producto es obligatorio.", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        if (nombre.length < 2) {
+            Toast.makeText(this, "El nombre del producto debe tener al menos 2 caracteres.", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        return true
+    }
+
     private fun guardarProductoEnBackend(producto: ProductoDto, categoriaId: Long?) {
-        val authHeader = sessionManager.getAuthHeader() ?: return
+        // Validar datos antes de realizar petición
+        if (!validarProducto(producto)) {
+            return
+        }
+
+        val authHeader = sessionManager.getAuthHeader() ?: run {
+            mostrarAlertaSesionExpirada()
+            return
+        }
+
         mostrarCargando(true)
 
         val productoAjustado = producto.copy(
@@ -243,7 +287,6 @@ class CatalogoProductosActivity : AppCompatActivity() {
 
         val jsonProducto = Gson().toJson(productoAjustado)
 
-        // Conversión compatible con OkHttp 3 y 4 en API 24+
         val mediaType = MediaType.parse("application/json")
         val datosPart = RequestBody.create(mediaType, jsonProducto)
 
@@ -302,8 +345,16 @@ class CatalogoProductosActivity : AppCompatActivity() {
     }
 
     private fun eliminarProductoEnBackend(producto: ProductoDto) {
-        val prodId = producto.id ?: return
-        val authHeader = sessionManager.getAuthHeader() ?: return
+        val prodId = producto.id ?: run {
+            Toast.makeText(this, "No se puede eliminar un producto sin ID.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val authHeader = sessionManager.getAuthHeader() ?: run {
+            mostrarAlertaSesionExpirada()
+            return
+        }
+
         mostrarCargando(true)
 
         lifecycleScope.launch(Dispatchers.IO) {
@@ -314,6 +365,8 @@ class CatalogoProductosActivity : AppCompatActivity() {
                     if (response.isSuccessful) {
                         Toast.makeText(this@CatalogoProductosActivity, "Producto eliminado", Toast.LENGTH_SHORT).show()
                         cargarProductosDesdeApi()
+                    } else if (response.code() == 401) {
+                        mostrarAlertaSesionExpirada()
                     } else {
                         Toast.makeText(this@CatalogoProductosActivity, "No se pudo eliminar el producto", Toast.LENGTH_SHORT).show()
                     }

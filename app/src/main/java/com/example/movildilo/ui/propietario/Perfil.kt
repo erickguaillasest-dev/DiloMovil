@@ -105,7 +105,6 @@ class Perfil : AppCompatActivity() {
 
         scrollView = findViewById(R.id.main)
 
-
         sessionManager = SessionManager(this)
 
         initViews()
@@ -185,6 +184,8 @@ class Perfil : AppCompatActivity() {
             btnTogglePassword.text = "Cambiar"
             etNuevaContrasena.setText("")
             etConfirmarContrasena.setText("")
+            etNuevaContrasena.error = null
+            etConfirmarContrasena.error = null
         }
     }
 
@@ -199,6 +200,7 @@ class Perfil : AppCompatActivity() {
             { _, selectedYear, selectedMonth, selectedDay ->
                 val fechaFormateada = String.format(Locale.US, "%04d-%02d-%02d", selectedYear, selectedMonth + 1, selectedDay)
                 etFechaNacimiento.setText(fechaFormateada)
+                tilFechaNacimiento.error = null
             },
             year,
             month,
@@ -327,6 +329,12 @@ class Perfil : AppCompatActivity() {
         tvDireccion.visibility = View.VISIBLE
         tilDireccion.visibility = View.GONE
 
+        etPrimerNombre.error = null
+        etApellidoPaterno.error = null
+        tilTelefono.error = null
+        tilFechaNacimiento.error = null
+        tilDireccion.error = null
+
         usuarioActual?.let {
             val urlFoto = construirUrlFoto(it.fotoPerfil)
             if (!urlFoto.isNullOrBlank()) cargarFotoPerfilUsuario(urlFoto)
@@ -334,16 +342,53 @@ class Perfil : AppCompatActivity() {
     }
 
     private fun guardarCambios() {
+        val primerNombre = etPrimerNombre.text?.toString()?.trim().orEmpty()
+        val segundoNombre = etSegundoNombre.text?.toString()?.trim().orEmpty()
+        val apellidoPaterno = etApellidoPaterno.text?.toString()?.trim().orEmpty()
+        val apellidoMaterno = etApellidoMaterno.text?.toString()?.trim().orEmpty()
+        val telefono = etTelefono.text?.toString()?.trim().orEmpty()
+        val direccion = etDireccion.text?.toString()?.trim().orEmpty()
+        val fechaNacimiento = etFechaNacimiento.text?.toString()?.trim().orEmpty()
+
+        // Validaciones
+        var esValido = true
+
+        if (primerNombre.isEmpty()) {
+            etPrimerNombre.error = "El primer nombre es requerido"
+            esValido = false
+        } else {
+            etPrimerNombre.error = null
+        }
+
+        if (apellidoPaterno.isEmpty()) {
+            etApellidoPaterno.error = "El apellido paterno es requerido"
+            esValido = false
+        } else {
+            etApellidoPaterno.error = null
+        }
+
+        if (telefono.isNotEmpty() && !telefono.matches(Regex("^[0-9]{9,10}$"))) {
+            tilTelefono.error = "Ingresa un número de 9 o 10 dígitos"
+            esValido = false
+        } else {
+            tilTelefono.error = null
+        }
+
+        if (!esValido) {
+            Toast.makeText(this, "Por favor corrige los campos indicados.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val authHeader = sessionManager.getAuthHeader() ?: return
 
         val datos = EditarPerfilRequestDto(
-            primerNombre = etPrimerNombre.text?.toString()?.trim(),
-            segundoNombre = etSegundoNombre.text?.toString()?.trim(),
-            apellidoPaterno = etApellidoPaterno.text?.toString()?.trim(),
-            apellidoMaterno = etApellidoMaterno.text?.toString()?.trim(),
-            telefono = etTelefono.text?.toString()?.trim(),
-            direccion = etDireccion.text?.toString()?.trim(),
-            fechaNacimiento = etFechaNacimiento.text?.toString()?.trim()
+            primerNombre = primerNombre,
+            segundoNombre = segundoNombre,
+            apellidoPaterno = apellidoPaterno,
+            apellidoMaterno = apellidoMaterno,
+            telefono = telefono,
+            direccion = direccion,
+            fechaNacimiento = fechaNacimiento
         )
 
         val jsonBody = gson.toJson(datos)
@@ -382,15 +427,30 @@ class Perfil : AppCompatActivity() {
         val nuevaContrasena = etNuevaContrasena.text?.toString()?.trim().orEmpty()
         val confirmarContrasena = etConfirmarContrasena.text?.toString()?.trim().orEmpty()
 
-        if (nuevaContrasena.isEmpty() || confirmarContrasena.isEmpty()) {
-            Toast.makeText(this, "Ambos campos son obligatorios.", Toast.LENGTH_SHORT).show()
-            return
+        // Validaciones
+        var esValido = true
+
+        if (nuevaContrasena.isEmpty()) {
+            etNuevaContrasena.error = "Ingresa la nueva contraseña"
+            esValido = false
+        } else if (nuevaContrasena.length < 6) {
+            etNuevaContrasena.error = "La contraseña debe tener al menos 6 caracteres"
+            esValido = false
+        } else {
+            etNuevaContrasena.error = null
         }
 
-        if (nuevaContrasena != confirmarContrasena) {
-            Toast.makeText(this, "Las contraseñas no coinciden.", Toast.LENGTH_SHORT).show()
-            return
+        if (confirmarContrasena.isEmpty()) {
+            etConfirmarContrasena.error = "Confirma la nueva contraseña"
+            esValido = false
+        } else if (nuevaContrasena != confirmarContrasena) {
+            etConfirmarContrasena.error = "Las contraseñas no coinciden"
+            esValido = false
+        } else {
+            etConfirmarContrasena.error = null
         }
+
+        if (!esValido) return
 
         val authHeader = sessionManager.getAuthHeader() ?: return
         val requestDto = CambiarPasswordRequestDto(

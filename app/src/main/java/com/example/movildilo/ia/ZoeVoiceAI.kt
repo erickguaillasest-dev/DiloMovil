@@ -25,6 +25,9 @@ data class ResultadoVozFactura(
     val bodega: String? = null,
     val items: List<ItemVozIA> = emptyList(),
     val eliminarProducto: String? = null,
+    /** Cantidad puntual a quitar de ese producto (ej. "elimina 2 panes" -> 2).
+     *  Si es null, significa eliminar el producto por completo del ticket. */
+    val eliminarCantidad: Int? = null,
     val descuentoGlobalPorcentaje: Int? = null,
     val emitirFactura: Boolean = false,
     val vaciarCarrito: Boolean = false
@@ -35,6 +38,12 @@ object ZoeVoiceAI {
     private const val GROQ_API_KEY = "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"
     private const val GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
     private const val MODELO = "llama-3.1-8b-instant"
+
+    /** Motivo del último fallo al llamar a la IA, para poder mostrarlo/depurarlo
+     *  (por ejemplo "SIN_INTERNET", "HTTP_401", "HTTP_429", "JSON_INVALIDO"). Null si el
+     *  último intento fue exitoso. */
+    @Volatile var ultimoError: String? = null
+        private set
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
@@ -50,6 +59,7 @@ object ZoeVoiceAI {
         nombresProductos: List<String>,
         nombresBodegas: List<String>
     ): ResultadoVozFactura? = withContext(Dispatchers.IO) {
+        ultimoError = null
         val promptSistema = construirPrompt(nombresClientes, nombresProductos, nombresBodegas)
 
         val mensajes = JSONArray().apply {
@@ -76,16 +86,32 @@ object ZoeVoiceAI {
 
         try {
             client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return@withContext null
-                val cuerpoTexto = response.body()?.string() ?: return@withContext null
+                if (!response.isSuccessful) {
+                    ultimoError = "HTTP_${response.code()}"
+                    return@withContext null
+                }
+                val cuerpoTexto = response.body()?.string()
+                if (cuerpoTexto == null) {
+                    ultimoError = "RESPUESTA_VACIA"
+                    return@withContext null
+                }
                 val contenido = JSONObject(cuerpoTexto)
                     .getJSONArray("choices")
                     .getJSONObject(0)
                     .getJSONObject("message")
                     .getString("content")
-                parsearRespuesta(contenido)
+                val resultado = parsearRespuesta(contenido)
+                if (resultado == null) ultimoError = "JSON_INVALIDO"
+                resultado
             }
-        } catch (_: Exception) {
+        } catch (e: java.net.UnknownHostException) {
+            ultimoError = "SIN_INTERNET"
+            null
+        } catch (e: java.net.SocketTimeoutException) {
+            ultimoError = "TIEMPO_AGOTADO"
+            null
+        } catch (e: Exception) {
+            ultimoError = "EXCEPCION_${e.javaClass.simpleName}"
             null
         }
     }
@@ -119,6 +145,7 @@ object ZoeVoiceAI {
               "bodega": "nombre de bodega extraído, o null",
               "items": [ { "producto": "nombre extraído", "cantidad": numero_entero_o_null, "descuentoPorcentaje": numero_entero_o_null } ],
               "eliminarProducto": "nombre del producto a quitar del carrito, o null",
+              "eliminarCantidad": numero_entero_o_null,
               "descuentoGlobalPorcentaje": numero_entero_o_null,
               "emitirFactura": true o false,
               "vaciarCarrito": true o false
@@ -128,15 +155,168 @@ object ZoeVoiceAI {
             1. Si dice "consumidor final" o "sin datos", cliente es "CONSUMIDOR_FINAL".
             2. Si solo dicta números para identificar al cliente, es su cédula: ponla en "cliente".
             3. "emitirFactura": true SOLO si el usuario pide EXPLÍCITAMENTE y sin ambigüedad terminar/cerrar/emitir la factura completa como acción final (ej. "emite la factura", "ya está, emítela", "guarda la factura", "eso es todo, cóbrala"). NO actives "emitirFactura" solo porque la frase contenga palabras sueltas como "listo", "ok", "dale", "cobra" o "cobrar" si esas palabras están describiendo otra cosa (por ejemplo "cóbrale a Juan" es solo el nombre del cliente, no una orden de emitir). Ante la duda, deja "emitirFactura" en false: es preferible preguntar antes de cerrar la factura.
-            4. Si dice "borra", "quita" o "elimina" un producto puntual, pon su nombre en "eliminarProducto" (y no lo repitas en "items").
+            4. "eliminarProducto" SOLO se activa si el usuario usa literalmente la palabra "elimina" o "eliminar" (ej. "elimina el pan", "elimina 2 panes", "eliminar la coca cola"). Palabras como "quita", "borra", "saca" o un descuento NO activan "eliminarProducto"; en esos casos déjalo en null. Cuando sí aplica, pon el nombre del producto en "eliminarProducto" y NO lo repitas en "items".
+               - "eliminarCantidad": si el usuario dio un número puntual a eliminar (ej. "elimina 2 panes" -> eliminarCantidad: 2, "elimina una coca cola" -> eliminarCantidad: 1), ponlo aquí.
+               - Si el usuario NO dio cantidad, o pidió eliminar "todo el producto" / "todos los panes" / el producto sin número (ej. "elimina el pan", "elimina la coca cola"), deja "eliminarCantidad": null (esto significa eliminar el producto completo del ticket).
             5. CUOTAS: si menciona "tarjeta" o "crédito" el método es TARJETA_CREDITO. Si dice "cuotas" o "meses", extrae el número entero en "cuotas".
+            5b. REGLA DE NEGOCIO OBLIGATORIA: Consumidor Final NUNCA puede pagar con TARJETA_CREDITO (es una regla del negocio, no una preferencia). Si la frase pide "consumidor final" (o "cliente" ya es Consumidor Final) Y AL MISMO TIEMPO pide tarjeta/crédito, pon "metodoPago": "EFECTIVO" (nunca TARJETA_CREDITO) y "cuotas": null. No expliques la regla en el JSON, solo aplícala.
             6. El usuario puede mencionar VARIOS campos en la misma frase (por ejemplo: cliente, método de pago y bodega juntos, y luego cantidad y producto). Extrae absolutamente todos los que encuentres, no solo el primero.
             7. Si no menciona algún campo, ese campo va en null (o "items": [] si no menciona ningún producto).
-            8. PRODUCTOS: solo agrega un producto a "items" si el usuario lo nombró explícitamente pidiendo agregarlo (verbo de agregar + cantidad/nombre, ej. "ponme dos cocas", "agrégame una leche", "quiero tres panes"). NUNCA inventes ni supongas un producto que el usuario no mencionó. Cada frase se interpreta sola, solo con lo que esa frase dice. Si la frase solo da el cliente, la forma de pago, la bodega o una palabra de confirmación, "items" va vacío.
+            8. PRODUCTOS: solo agrega un producto a "items" si el usuario lo nombró explícitamente pidiendo agregarlo. Reconoce CUALQUIER verbo o frase que signifique "agregar al ticket/factura/carrito", entre otros: "agrégame", "agrega", "ponme", "pon en el ticket", "mete", "métele", "incluye", "carga", "anota", "manda", "quiero", "dame", "necesito", "sube" (ej. "ponme dos cocas", "agrégame una leche", "mete tres panes al ticket", "incluye una máscara", "quiero tres panes", "cambia a la bodega norte y agrégame dos panes"). NUNCA inventes ni supongas un producto que el usuario no mencionó. Cada frase se interpreta sola, solo con lo que esa frase dice. Si la frase solo da el cliente, la forma de pago, la bodega o una palabra de confirmación, "items" va vacío.
+            8b. NOMBRE DEL PRODUCTO: en "producto" pon el nombre o palabra clave del producto tal como lo dijo el usuario, SIN el verbo ni palabras sueltas como "el", "la", "producto", "al ticket", "por favor" (ej. si dice "agrégame el producto máscara" pon "producto": "mascara", no "el producto mascara"). El usuario puede decir solo una PARTE del nombre real del producto (ej. dice "máscara" y el catálogo tiene "Zen Máscara Facial 50ml"): eso es válido y esperado, no hace falta que coincida exacto ni completo con la lista de Productos — el sistema se encarga de buscar la coincidencia más parecida.
             9. DESCUENTOS: si el usuario pide un descuento para UN producto puntual (ej. "2 coca colas con 10% de descuento", "la leche con un 5 por ciento menos"), pon ese número entero (0-100, sin el símbolo %) en "descuentoPorcentaje" DENTRO de ese item. Si pide un descuento para TODA la factura o el ticket completo (ej. "aplícale un 15% de descuento a todo", "dale un 10 por ciento de descuento general"), pon ese número entero en "descuentoGlobalPorcentaje" (a nivel raíz, no dentro de items). Si no menciona ningún descuento, ambos van en null.
             10. NO devuelvas texto fuera del JSON. No expliques nada. No uses ```.
             11. Si pide vaciar todo el ticket o borrar todos los productos (ej. "borra todo", "elimina los productos del ticket", "vaciar carrito", "limpiar ticket"), pon "vaciarCarrito": true.
+            12. BODEGA: si el usuario pide cambiar de bodega/almacén (ej. "cambia a la bodega norte", "usa la bodega centro", "de la bodega dos"), extrae el nombre en "bodega" aunque no agregue ningún producto en esa misma frase.
         """.trimIndent()
+    }
+
+    private val numeroPalabras = mapOf(
+        "un" to 1, "uno" to 1, "una" to 1, "dos" to 2, "tres" to 3, "cuatro" to 4, "cinco" to 5,
+        "seis" to 6, "siete" to 7, "ocho" to 8, "nueve" to 9, "diez" to 10, "once" to 11,
+        "doce" to 12, "docena" to 12, "media docena" to 6
+    )
+
+    private fun normalizar(t: String): String {
+        val nfd = java.text.Normalizer.normalize(t, java.text.Normalizer.Form.NFD)
+        return nfd.replace(Regex("\\p{Mn}+"), "").lowercase().trim()
+    }
+
+    /**
+     * Interpretación local, sin red y sin IA, por coincidencia de palabras clave contra los
+     * catálogos reales del negocio. Se usa como respaldo cuando falla la llamada a Groq (sin
+     * internet, clave inválida, límite de la API, etc.) para que la app SIGA funcionando y
+     * llenando campos básicos en vez de quedarse "muda".
+     */
+    fun interpretarLocal(
+        fraseUsuario: String,
+        nombresClientes: List<String>,
+        nombresProductos: List<String>,
+        nombresBodegas: List<String>
+    ): ResultadoVozFactura {
+        val f = normalizar(fraseUsuario)
+
+        val dijoElimina = Regex("\\belimin\\w*\\b").containsMatchIn(f)
+
+        fun extraerCantidadCerca(nombreEncontrado: String): Int? {
+            val idx = f.indexOf(nombreEncontrado)
+            if (idx <= 0) return null
+            val antes = f.substring(0, idx).trim().split(Regex("\\s+")).takeLast(3)
+            for (palabra in antes.asReversed()) {
+                palabra.toIntOrNull()?.let { return it }
+                numeroPalabras[palabra]?.let { return it }
+            }
+            return null
+        }
+
+        var cliente: String? = null
+        if (f.contains("consumidor final") || f.contains("sin datos")) {
+            cliente = "CONSUMIDOR_FINAL"
+        } else {
+            cliente = nombresClientes.filter { it.isNotBlank() }
+                .map { normalizar(it) to it }
+                .filter { (n, _) -> n.length >= 3 && f.contains(n) }
+                .maxByOrNull { (n, _) -> n.length }?.second
+        }
+
+        val metodoPago = when {
+            f.contains("tarjeta") || f.contains("credito") -> "TARJETA_CREDITO"
+            f.contains("transferencia") -> "TRANSFERENCIA"
+            f.contains("efectivo") -> "EFECTIVO"
+            else -> null
+        }.let { metodo ->
+            // Regla de negocio: Consumidor Final nunca puede pagar con tarjeta de crédito.
+            val pideConsumidorFinal = cliente == "CONSUMIDOR_FINAL"
+            if (metodo == "TARJETA_CREDITO" && pideConsumidorFinal) "EFECTIVO" else metodo
+        }
+
+        val cuotas = Regex("(\\d+)\\s*(cuotas|meses)").find(f)?.groupValues?.get(1)?.toIntOrNull()
+
+        val bodega = nombresBodegas.filter { it.isNotBlank() }
+            .map { normalizar(it) to it }
+            .filter { (n, _) -> f.contains(n) }
+            .maxByOrNull { (n, _) -> n.length }?.second
+
+        var eliminarProducto: String? = null
+        var eliminarCantidad: Int? = null
+        val items = mutableListOf<ItemVozIA>()
+
+        // Palabras sin valor para identificar un producto (verbos, artículos, conectores, etc).
+        val stopWordsProducto = setOf(
+            "agrega", "agregue", "agregar", "agregame", "anade", "anadir",
+            "pon", "ponme", "poner", "mete", "meteme", "meter", "incluye", "incluyeme", "incluir",
+            "carga", "cargame", "cargar", "anota", "anotame", "anotar", "manda", "mandame",
+            "quiero", "dame", "necesito", "sube", "subeme",
+            "un", "una", "unos", "unas", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete",
+            "ocho", "nueve", "diez", "del", "de", "la", "el", "los", "las", "al", "con",
+            "por", "para", "y", "o", "que", "me", "te", "le", "se", "producto", "productos",
+            "factura", "ticket", "favor", "porfa", "descuento", "porcentaje", "dolares", "dolar",
+            "centavos", "tambien"
+        )
+
+        // Caso normal: el nombre completo del producto aparece dentro de la frase
+        // (ej. usuario dice "quiero pan", producto "Pan").
+        val nombresOrdenados = nombresProductos.filter { it.isNotBlank() }
+            .map { normalizar(it) to it }
+            .filter { (n, _) -> n.length >= 3 && f.contains(n) }
+            .toMutableList()
+
+        // Caso inverso: el usuario solo dijo UNA PARTE del nombre real del producto
+        // (ej. dice "máscara" y el catálogo tiene "Zen Máscara Facial 50ml"). Se busca por
+        // cada palabra significativa que dijo el usuario (sin verbos/artículos) contra cada
+        // palabra del nombre del producto, para no depender de que diga el nombre completo.
+        val tokensFrase = f.split(Regex("\\s+"))
+            .filter { it.length >= 3 && it !in stopWordsProducto && it.toIntOrNull() == null }
+        for (tok in tokensFrase) {
+            nombresProductos.filter { it.isNotBlank() }
+                .map { normalizar(it) to it }
+                .filter { (n, _) -> n.split(Regex("\\s+")).any { palabra -> palabra.length >= 3 && (palabra == tok || palabra.contains(tok) || tok.contains(palabra)) } }
+                .forEach { par -> if (nombresOrdenados.none { it.second == par.second }) nombresOrdenados.add(par) }
+        }
+
+        val nombresOrdenadosFinal = nombresOrdenados.sortedByDescending { (n, _) -> n.length }
+
+        val yaUsados = mutableSetOf<String>()
+        for ((n, original) in nombresOrdenadosFinal) {
+            if (yaUsados.any { it.contains(n) || n.contains(it) }) continue
+            yaUsados.add(n)
+            val cantidad = extraerCantidadCerca(n)
+            if (dijoElimina && eliminarProducto == null) {
+                eliminarProducto = original
+                eliminarCantidad = cantidad
+            } else if (!dijoElimina) {
+                items.add(ItemVozIA(original, cantidad))
+            }
+        }
+
+        val descuentoGlobal = if (f.contains("descuento") && (f.contains("todo") || f.contains("general") || f.contains("factura") || f.contains("ticket"))) {
+            Regex("(\\d+)\\s*(%|por ciento)").find(f)?.groupValues?.get(1)?.toIntOrNull()
+        } else null
+
+        val palabrasEmitir = listOf("emite", "emitir", "guarda la factura", "guardar factura", "cobra ya", "factura ya")
+        val emitirFactura = palabrasEmitir.any { f.contains(it) }
+
+        val vaciarCarrito = listOf("borra todo", "vaciar carrito", "vacia el carrito", "limpiar ticket", "limpia el ticket").any { f.contains(it) }
+
+        return ResultadoVozFactura(
+            cliente = cliente,
+            metodoPago = metodoPago,
+            cuotas = cuotas,
+            bodega = bodega,
+            items = items,
+            eliminarProducto = eliminarProducto,
+            eliminarCantidad = eliminarCantidad,
+            descuentoGlobalPorcentaje = descuentoGlobal,
+            emitirFactura = emitirFactura,
+            vaciarCarrito = vaciarCarrito
+        )
+    }
+
+    /** True si el resultado no tiene absolutamente ninguna información útil (ni de la IA ni local). */
+    fun estaVacio(r: ResultadoVozFactura): Boolean {
+        return r.cliente == null && r.metodoPago == null && r.cuotas == null && r.bodega == null &&
+                r.items.isEmpty() && r.eliminarProducto == null && r.descuentoGlobalPorcentaje == null &&
+                !r.emitirFactura && !r.vaciarCarrito
     }
 
     private fun parsearRespuesta(contenidoCrudo: String): ResultadoVozFactura? {
@@ -172,6 +352,7 @@ object ZoeVoiceAI {
                 bodega = campoTexto("bodega"),
                 items = items,
                 eliminarProducto = campoTexto("eliminarProducto"),
+                eliminarCantidad = if (obj.isNull("eliminarCantidad")) null else obj.optInt("eliminarCantidad", -1).takeIf { it > 0 },
                 descuentoGlobalPorcentaje = if (obj.isNull("descuentoGlobalPorcentaje")) null
                 else obj.optInt("descuentoGlobalPorcentaje", -1).takeIf { it in 0..100 },
                 emitirFactura = obj.optBoolean("emitirFactura", false),

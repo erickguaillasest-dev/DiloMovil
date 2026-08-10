@@ -47,19 +47,17 @@ class ProveedoresActivity : AppCompatActivity() {
     private lateinit var btnNuevoProveedor: MaterialButton
     private lateinit var btnRegresar: ImageButton
 
-    // Vistas KPI
     private lateinit var tvKpiTotalProveedores: TextView
     private lateinit var tvKpiProveedoresActivos: TextView
 
     private var listaProveedoresOriginal: List<ProveedorResponseDto> = emptyList()
     private var listaCategoriasDisponibles: List<CategoriaDto> = emptyList()
-    private var estadoFiltroSeleccionado: Int = 0 // 0: Todos, 1: Activos, 2: Inactivos
+    private var estadoFiltroSeleccionado: Int = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_proveedores)
-
 
         sessionManager = SessionManager(this)
         negocioId = sessionManager.getNegocioId()
@@ -253,13 +251,14 @@ class ProveedoresActivity : AppCompatActivity() {
             val ruc = etRuc.text.toString().trim()
             val nombreComercial = etRazonSocial.text.toString().trim()
             val telefonoRaw = etTelefono.text.toString().trim()
-            val telefono = if (telefonoRaw.isBlank()) null else telefonoRaw
             val activo = cbActivo.isChecked
 
-            if (ruc.isBlank() || nombreComercial.isBlank()) {
-                Toast.makeText(this, "Completa el RUC/DNI y el Nombre Comercial", Toast.LENGTH_SHORT).show()
+            // Validación detallada de los campos del diálogo
+            if (!validarCamposProveedor(etRuc, ruc, etRazonSocial, nombreComercial, etTelefono, telefonoRaw)) {
                 return@setOnClickListener
             }
+
+            val telefono = if (telefonoRaw.isBlank()) null else telefonoRaw
 
             val requestDto = ProveedorRequestDto(
                 id = proveedorParaEditar?.id,
@@ -275,6 +274,66 @@ class ProveedoresActivity : AppCompatActivity() {
         }
 
         alertDialog.show()
+    }
+
+    /**
+     * Valida los datos ingresados en el formulario emergente para crear o editar un proveedor.
+     */
+    private fun validarCamposProveedor(
+        etRuc: TextInputEditText,
+        ruc: String,
+        etRazonSocial: TextInputEditText,
+        nombreComercial: String,
+        etTelefono: TextInputEditText,
+        telefonoRaw: String
+    ): Boolean {
+        var esValido = true
+        var primerCampoError: View? = null
+
+        // Validación RUC / DNI (Obligatorio, numérico de 10 a 13 dígitos)
+        if (ruc.isBlank()) {
+            etRuc.error = "El RUC o DNI es obligatorio"
+            if (primerCampoError == null) primerCampoError = etRuc
+            esValido = false
+        } else if (!ruc.matches(Regex("^[0-9]{10,13}$"))) {
+            etRuc.error = "Ingresa un RUC o DNI válido (10 o 13 dígitos numéricos)"
+            if (primerCampoError == null) primerCampoError = etRuc
+            esValido = false
+        } else {
+            etRuc.error = null
+        }
+
+        // Validación Nombre Comercial / Razón Social (Obligatorio, mínimo 3 caracteres)
+        if (nombreComercial.isBlank()) {
+            etRazonSocial.error = "El Nombre Comercial es obligatorio"
+            if (primerCampoError == null) primerCampoError = etRazonSocial
+            esValido = false
+        } else if (nombreComercial.length < 3) {
+            etRazonSocial.error = "El Nombre Comercial debe tener al menos 3 caracteres"
+            if (primerCampoError == null) primerCampoError = etRazonSocial
+            esValido = false
+        } else {
+            etRazonSocial.error = null
+        }
+
+        // Validación Teléfono (Opcional, si se ingresa debe tener entre 7 y 10 dígitos numéricos)
+        if (telefonoRaw.isNotBlank()) {
+            if (!telefonoRaw.matches(Regex("^[0-9]{7,10}$"))) {
+                etTelefono.error = "El teléfono debe contener entre 7 y 10 dígitos"
+                if (primerCampoError == null) primerCampoError = etTelefono
+                esValido = false
+            } else {
+                etTelefono.error = null
+            }
+        } else {
+            etTelefono.error = null
+        }
+
+        if (!esValido) {
+            primerCampoError?.requestFocus()
+        }
+
+        return esValido
     }
 
     private fun guardarEnBackend(esEdicion: Boolean, id: Long?, dto: ProveedorRequestDto) {

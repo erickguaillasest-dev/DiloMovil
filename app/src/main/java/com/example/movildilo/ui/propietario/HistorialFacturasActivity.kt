@@ -21,6 +21,7 @@ import android.view.View
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.ArrayAdapter
+import android.widget.Filter
 import android.widget.AutoCompleteTextView
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -30,6 +31,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -120,6 +122,9 @@ class HistorialFacturasActivity : AppCompatActivity() {
     private var metodoPagoConfirmadoPorVoz: Boolean = false
     private var pendingBodegaId: Long? = null
     private var intentosReconexion: Int = 0
+    private var intentosSinReconocer: Int = 0
+    private val idiomasVoz = listOf("es-EC", "es-419", "es-ES", "es-US")
+    private var idiomaVozIndex: Int = 0
     private val voiceHandler = Handler(Looper.getMainLooper())
 
     private var productosOpcionesPendientes: List<ProductoResponseDto> = emptyList()
@@ -132,7 +137,26 @@ class HistorialFacturasActivity : AppCompatActivity() {
         if (isGranted) {
             iniciarFlujoVoz()
         } else {
-            Toast.makeText(this, "Se requiere permiso de micrófono para usar a Zoe.", Toast.LENGTH_SHORT).show()
+            // Si el sistema ya no puede volver a preguntar (el usuario marcó "no volver a
+            // preguntar" o lo denegó desde Ajustes), un Toast no sirve de nada porque el
+            // usuario nunca verá el diálogo de permiso otra vez: hay que mandarlo a Ajustes.
+            val puedeVolverAPreguntar = ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.RECORD_AUDIO)
+            if (puedeVolverAPreguntar) {
+                Toast.makeText(this, "Se requiere permiso de micrófono para usar a Zoe.", Toast.LENGTH_SHORT).show()
+            } else {
+                MaterialAlertDialogBuilder(this)
+                    .setTitle("Falta el permiso de micrófono")
+                    .setMessage("Para usar a Zoe por voz, activa el permiso de Micrófono en Ajustes > Apps > MovilDilo > Permisos.")
+                    .setPositiveButton("Abrir Ajustes") { d, _ ->
+                        d.dismiss()
+                        val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = android.net.Uri.fromParts("package", packageName, null)
+                        }
+                        startActivity(intent)
+                    }
+                    .setNegativeButton("Cancelar") { d, _ -> d.dismiss() }
+                    .show()
+            }
         }
     }
 
@@ -313,25 +337,29 @@ class HistorialFacturasActivity : AppCompatActivity() {
 
         val opcionesCliente = mutableListOf("Consumidor Final")
         opcionesCliente.addAll(clientesList.map { nombreClienteDto(it) })
-        spCliente.setAdapter(ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, opcionesCliente))
+        spCliente.setAdapter(crearAdapterBusquedaParcial(opcionesCliente))
         spCliente.threshold = 0
         spCliente.setOnClickListener { spCliente.showDropDown() }
-        spCliente.setOnItemClickListener { _, _, position, _ ->
-            if (position == 0) {
+        spCliente.setOnItemClickListener { _, _, _, _ ->
+            // 🔎 Se resuelve por el TEXTO exacto que quedó en el campo (no por la posición del
+            // ítem tocado): con el filtro "contiene" la lista mostrada está recortada, así que
+            // la posición del dropdown ya NO corresponde 1 a 1 con el índice en clientesList.
+            val textoElegido = spCliente.text?.toString()?.trim().orEmpty()
+            if (textoElegido.equals("Consumidor Final", ignoreCase = true)) {
                 setConsumidorFinalUi()
             } else {
-                val cliente = clientesList.getOrNull(position - 1)
+                val cliente = clientesList.find { nombreClienteDto(it) == textoElegido }
                 if (cliente != null) seleccionarClienteUi(cliente)
             }
         }
 
         val prodNombres = productosList.map { it.nombre ?: "" }
-        spProducto.setAdapter(ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, prodNombres))
+        spProducto.setAdapter(crearAdapterBusquedaParcial(prodNombres))
         spProducto.threshold = 1
         spProducto.setOnItemClickListener { _, _, _, _ -> actualizarStockDisponibleUi() }
 
         val bodegNombres = bodegasList.map { it.nombre }
-        spBodega.setAdapter(ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, bodegNombres))
+        spBodega.setAdapter(crearAdapterBusquedaParcial(bodegNombres))
         spBodega.threshold = 0
         spBodega.setOnClickListener { spBodega.showDropDown() }
         spBodega.setOnItemClickListener { _, _, _, _ -> actualizarStockDisponibleUi() }
@@ -591,30 +619,52 @@ class HistorialFacturasActivity : AppCompatActivity() {
         return inv?.cantidadActual ?: 0
     }
 
-    private fun emitirFactura() {
+    /**
+     * Emite la factura.
+     * - [confirmadaPorVoz] = false (por defecto, botón táctil "Emitir"): pide confirmación
+     *   con un diálogo en pantalla, igual que antes.
+     * - [confirmadaPorVoz] = true: el usuario YA dijo "sí" en voz alta como confirmación
+     *   (igual que en la web, donde decir "sí" guarda la factura directamente, sin pedir
+     *   un segundo toque en pantalla). En este caso se procesa de inmediato.
+     */
+    private fun emitirFactura(confirmadaPorVoz: Boolean = false) {
         if ((facturaClienteId == null && !facturaEsConsumidorFinal) || carritoTemporal.isEmpty()) {
-            Toast.makeText(this, "Faltan datos para emitir la factura (cliente y/o productos).", Toast.LENGTH_SHORT).show()
+            if (confirmadaPorVoz) {
+                avanzarPaso(VoiceStep.ESCUCHANDO, "Todavía faltan datos: cliente o productos. ¿Qué agregamos?")
+            } else {
+                Toast.makeText(this, "Faltan datos para emitir la factura (cliente y/o productos).", Toast.LENGTH_SHORT).show()
+            }
             return
         }
 
         // Doble chequeo: Consumidor Final nunca puede facturar a crédito (tarjeta de crédito)
         if (facturaMetodoPago == "TARJETA_CREDITO" && !permiteTarjetaCredito()) {
-            bloquearTarjetaSiConsumidorFinal(avisar = true)
+            bloquearTarjetaSiConsumidorFinal(avisar = !confirmadaPorVoz)
+            if (confirmadaPorVoz) {
+                avanzarPaso(VoiceStep.ESCUCHANDO, "Con Consumidor Final no se puede pagar con tarjeta. Cambié el pago a efectivo. ¿Qué más hacemos?")
+            }
             return
         }
 
-        if (facturaMetodoPago == "TARJETA_CREDITO") {
-            val numTarjeta = etNumeroTarjetaRef?.text?.toString()?.trim().orEmpty()
-            val vencimiento = etVencimientoTarjetaRef?.text?.toString()?.trim().orEmpty()
-            val cvc = etCvcTarjetaRef?.text?.toString()?.trim().orEmpty()
-
-            if (numTarjeta.isBlank() || vencimiento.isBlank() || cvc.isBlank()) {
-                Toast.makeText(this, "Por favor, completa los datos de la tarjeta de crédito.", Toast.LENGTH_LONG).show()
-                return
+        // Igual que la web: con TARJETA_CREDITO lo único que se valida es que se hayan
+        // elegido las cuotas. No se piden número de tarjeta, vencimiento ni CVC (la web
+        // tampoco los pide; son campos meramente informativos/simulados en pantalla).
+        if (facturaMetodoPago == "TARJETA_CREDITO" && facturaCuotas <= 0) {
+            if (confirmadaPorVoz) {
+                avanzarPaso(VoiceStep.ESCUCHANDO, "Falta elegir las cuotas de la tarjeta. ¿En cuántas cuotas?")
+            } else {
+                Toast.makeText(this, "Selecciona en cuántas cuotas se paga con la tarjeta.", Toast.LENGTH_LONG).show()
             }
+            return
+        }
+        if (confirmadaPorVoz) {
+            // La confirmación ya se dio por voz (dijo "sí"): guardamos directo, sin diálogo táctil,
+            // igual que hace la web.
+            procesarEmisionFactura()
+            return
         }
 
-        // Confirmación de seguridad antes de emitir: pedir un Sí o un No explícito
+        // Flujo táctil normal: confirmación de seguridad con un diálogo en pantalla
         val nombreClienteConfirm = if (facturaEsConsumidorFinal) "Consumidor Final" else (spClienteRef?.text?.toString().orEmpty().ifBlank { "el cliente seleccionado" })
         val totalConfirmFmt = String.format(Locale.US, "%.2f", totalCarritoFinal())
         MaterialAlertDialogBuilder(this)
@@ -726,6 +776,9 @@ class HistorialFacturasActivity : AppCompatActivity() {
     private fun cancelarAsistenteVoz() {
         voiceState = VoiceStep.OFF
         intentosReconexion = 0
+        intentosSinReconocer = 0
+        idiomaVozIndex = 0
+        escuchaEnCurso = false
         productosOpcionesPendientes = emptyList()
         dialogOpcionesAmbiguas?.dismiss()
         dialogOpcionesAmbiguas = null
@@ -762,25 +815,59 @@ class HistorialFacturasActivity : AppCompatActivity() {
         if (tts == null) {
             continuarUnaVez()
         } else {
+            // 🔒 Importante: NO se debe activar el micrófono mientras Zoe está hablando.
+            // Antes se llamaba a escucharVoz() aquí mismo (en paralelo al TTS), lo que hacía
+            // que el micrófono captara la propia voz de Zoe (eco) y abriera una segunda sesión
+            // de reconocimiento al mismo tiempo que la que se abre al terminar de hablar —
+            // eso era lo que hacía que "se desactivara" y no entendiera nada. Ahora se espera
+            // a que el TTS termine por completo (continuarUnaVez -> alTerminar) antes de escuchar.
             tts.speak(texto, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
             val tiempoEstimado = 1800L + (texto.length * 65L)
             voiceHandler.postDelayed({ continuarUnaVez() }, tiempoEstimado)
-            escucharVoz(interrupcionActiva = true)
         }
+    }
+
+    private var escuchaEnCurso = false
+
+    private fun nombreErrorVoz(codigo: Int): String = when (codigo) {
+        SpeechRecognizer.ERROR_NO_MATCH -> "NO_MATCH"
+        SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "TIMEOUT"
+        SpeechRecognizer.ERROR_NETWORK -> "SIN_RED"
+        SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "RED_LENTA"
+        SpeechRecognizer.ERROR_AUDIO -> "AUDIO"
+        SpeechRecognizer.ERROR_CLIENT -> "CLIENTE"
+        SpeechRecognizer.ERROR_SERVER -> "SERVIDOR"
+        SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "OCUPADO"
+        SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "SIN_PERMISO"
+        SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED -> "IDIOMA_NO_SOPORTADO"
+        SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE -> "IDIOMA_NO_DISPONIBLE"
+        else -> "COD_$codigo"
     }
 
     private fun escucharVoz(interrupcionActiva: Boolean = false) {
         if (voiceState == VoiceStep.OFF) return
+        if (escuchaEnCurso) return // evita abrir dos sesiones de reconocimiento a la vez
 
-        speechRecognizer?.destroy()
+        escuchaEnCurso = true
+        try {
+            speechRecognizer?.cancel()
+            speechRecognizer?.destroy()
+        } catch (_: Exception) {
+        }
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
 
+        val idiomaActual = idiomasVoz[idiomaVozIndex % idiomasVoz.size]
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "es-EC")
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, idiomaActual)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-            putExtra("android.speech.extra.SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS", 1400)
-            putExtra("android.speech.extra.SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS", 1400)
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
+            // Silencios un poco más largos: evita cortar la frase del usuario a la mitad,
+            // que era la causa más común de "no reconoce nada".
+            putExtra("android.speech.extra.SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS", 2000)
+            putExtra("android.speech.extra.SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS", 2000)
+            putExtra("android.speech.extra.SPEECH_INPUT_MINIMUM_LENGTH_MILLIS", 15000)
         }
 
         speechRecognizer?.setRecognitionListener(object : RecognitionListener {
@@ -799,11 +886,42 @@ class HistorialFacturasActivity : AppCompatActivity() {
             }
 
             override fun onError(error: Int) {
+                escuchaEnCurso = false
                 if (voiceState == VoiceStep.OFF) return
+                val nombreError = nombreErrorVoz(error)
                 when (error) {
-                    SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> reintentarEscucha()
+                    SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> {
+                        intentosSinReconocer++
+                        // Después de un par de intentos sin captar nada, se prueba con otra
+                        // variante de idioma español (algunos equipos no traen "es-EC" instalado)
+                        // y se avisa al usuario para que no sienta que la app se colgó.
+                        if (intentosSinReconocer >= 2) {
+                            idiomaVozIndex++
+                            intentosSinReconocer = 0
+                            tvZoeTranscripcionRef?.text = "No te escuché bien ($nombreError, probando ${idiomasVoz[idiomaVozIndex % idiomasVoz.size]}). Intenta de nuevo 🎙️"
+                        } else {
+                            tvZoeTranscripcionRef?.text = "No capté nada ($nombreError). Sigo escuchando 🎙️"
+                        }
+                        reintentarEscucha()
+                    }
+                    SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED, SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE -> {
+                        idiomaVozIndex++
+                        tvZoeTranscripcionRef?.text = "Idioma no soportado ($nombreError). Probando otro..."
+                        reintentarEscucha()
+                    }
+                    SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> {
+                        cancelarAsistenteVoz()
+                        Toast.makeText(this@HistorialFacturasActivity, "Falta permiso de micrófono para usar a Zoe.", Toast.LENGTH_LONG).show()
+                    }
+                    SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> {
+                        intentosReconexion++
+                        tvZoeTranscripcionRef?.text = "Sin conexión de datos para reconocer voz ($nombreError). Reintentando..."
+                        val espera = (600L * intentosReconexion).coerceAtMost(4000L)
+                        voiceHandler.postDelayed({ if (voiceState != VoiceStep.OFF) escucharVoz() }, espera)
+                    }
                     else -> {
                         intentosReconexion++
+                        tvZoeTranscripcionRef?.text = "Error del reconocedor ($nombreError). Reintentando..."
                         val espera = (400L * intentosReconexion).coerceAtMost(3000L)
                         voiceHandler.postDelayed({ if (voiceState != VoiceStep.OFF) escucharVoz() }, espera)
                     }
@@ -811,8 +929,11 @@ class HistorialFacturasActivity : AppCompatActivity() {
             }
 
             override fun onResults(results: Bundle?) {
+                escuchaEnCurso = false
                 intentosReconexion = 0
-                val texto = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.trim().orEmpty()
+                intentosSinReconocer = 0
+                val alternativas = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION).orEmpty()
+                val texto = alternativas.firstOrNull { it.isNotBlank() }?.trim().orEmpty()
                 if (texto.isNotEmpty()) {
                     procesarComandoVoz(texto)
                 } else {
@@ -844,6 +965,47 @@ class HistorialFacturasActivity : AppCompatActivity() {
         if (texto.isNullOrBlank()) return ""
         val normalizado = Normalizer.normalize(texto, Normalizer.Form.NFD)
         return normalizado.replace(Regex("\\p{Mn}+"), "").lowercase(Locale.ROOT).trim()
+    }
+
+    /**
+     * ArrayAdapter cuyo filtro de autocompletado busca por "contiene" (no solo "empieza con",
+     * que es el comportamiento por defecto de ArrayAdapter). Así, escribir solo una parte del
+     * nombre — por ejemplo "cola" — sí muestra "Coca Cola 500ml", "Inca Cola", etc.
+     * También ignora tildes/mayúsculas.
+     */
+    private fun crearAdapterBusquedaParcial(items: List<String>): ArrayAdapter<String> {
+        return object : ArrayAdapter<String>(this, android.R.layout.simple_dropdown_item_1line, items.toMutableList()) {
+            private val original = items.toList()
+
+            override fun getFilter(): Filter {
+                return object : Filter() {
+                    override fun performFiltering(constraint: CharSequence?): FilterResults {
+                        val query = limpiarTexto(constraint?.toString())
+                        val resultados = if (query.isBlank()) {
+                            original
+                        } else {
+                            original.filter { limpiarTexto(it).contains(query) }
+                        }
+                        return FilterResults().apply {
+                            values = resultados
+                            count = resultados.size
+                        }
+                    }
+
+                    @Suppress("UNCHECKED_CAST")
+                    override fun publishResults(constraint: CharSequence?, results: FilterResults?) {
+                        clear()
+                        val nuevos = results?.values as? List<String>
+                        if (nuevos != null) addAll(nuevos)
+                        notifyDataSetChanged()
+                    }
+
+                    override fun convertResultToString(resultValue: Any?): CharSequence {
+                        return resultValue as? String ?: ""
+                    }
+                }
+            }
+        }
     }
 
     private fun avanzarPaso(nuevoPaso: VoiceStep, mensaje: String) {
@@ -890,16 +1052,47 @@ class HistorialFacturasActivity : AppCompatActivity() {
         val palabrasEmitir = listOf("emite", "emitir", "factura ya", "cobra ya", "guarda la factura", "guardar factura", "todo bien", "listo", "cobra", "cobrar", "ya esta", "ya está", "nada mas", "nada más")
         val quiereEmitirPalabra = palabrasEmitir.any { transcript.contains(it) }
 
-        if (voiceState == VoiceStep.CONFIRMAR &&
-            (quiereEmitirPalabra || transcript == "si" || transcript.contains(" si ") || transcript.contains("dale") || transcript.contains("ok"))
-        ) {
-            voiceState = VoiceStep.OFF
-            hablar("¡Listo! Emitiendo factura por un total de ${String.format(Locale.US, "%.2f", totalCarritoFinal())} dólares.")
-            voiceHandler.postDelayed({ emitirFactura() }, 800)
-            return
+        // Confirmación de emisión: "sí" / "no" se resuelven aquí mismo, sin pasar por la IA
+        // (igual que la web), y un "sí" guarda la factura directo, sin pedir un toque en pantalla.
+        if (voiceState == VoiceStep.CONFIRMAR) {
+            if (esRespuestaAfirmativa(transcript) || quiereEmitirPalabra) {
+                voiceState = VoiceStep.OFF
+                hablar("¡Listo! Emitiendo factura por un total de ${String.format(Locale.US, "%.2f", totalCarritoFinal())} dólares.")
+                voiceHandler.postDelayed({ emitirFactura(confirmadaPorVoz = true) }, 800)
+                return
+            }
+            if (esRespuestaNegativa(transcript)) {
+                voiceState = VoiceStep.ESCUCHANDO
+                hablar("De acuerdo, no emitimos aún. ¿Qué deseas cambiar o agregar?") { escucharVoz() }
+                return
+            }
+            // Si no es un sí/no claro, puede estar pidiendo más productos o un descuento → se analiza con la IA
         }
 
         consultarIaYAplicar(transcriptOriginal, quiereEmitirPalabra)
+    }
+
+    /** Detecta afirmaciones de voz (sí, dale, ok, confirmo, etc.), igual que en la web. */
+    private fun esRespuestaAfirmativa(t: String): Boolean {
+        if (t.isBlank()) return false
+        val exactas = listOf("si", "ok", "okay", "dale", "claro", "listo", "confirmo", "confirmado", "de acuerdo", "afirmativo", "hazlo", "emite", "emitir", "cobra", "cobrar")
+        if (exactas.any { t == it || t == "$it por favor" || t == "$it gracias" }) return true
+        val frases = listOf(
+            "si por favor", "si dale", "si emite", "si emitir", "si cobra",
+            "de una", "de una vez", "adelante", "vamos", "esta bien", "esta bueno",
+            "confirmamos", "confirma", "si confirma", "si confirmo", "si listo"
+        )
+        if (frases.any { t.contains(it) }) return true
+        // "si" como palabra completa (evita falsos positivos dentro de otras palabras)
+        if (Regex("(^|\\s)si(\\s|$)").containsMatchIn(t) && t.length <= 40) return true
+        return false
+    }
+
+    /** Detecta negaciones de voz (no, cancela, espera, aún no, etc.), igual que en la web. */
+    private fun esRespuestaNegativa(t: String): Boolean {
+        if (t.isBlank()) return false
+        val neg = listOf("no", "nop", "nel", "cancelar", "cancela", "espera", "aun no", "todavia no", "todavía no", "no emitas", "no cobrar", "revisar")
+        return neg.any { t == it || t.startsWith("$it ") || t.contains(it) }
     }
 
     private fun procesarSeleccionOpcionPorVoz(transcript: String) {
@@ -963,37 +1156,97 @@ class HistorialFacturasActivity : AppCompatActivity() {
 
             if (voiceState == VoiceStep.OFF) return@launch
 
-            if (resultado == null) {
-                repetirPaso("Uy, me enredé con esa frase. ¿Me la repites?")
+            if (resultado != null) {
+                aplicarResultadoIA(resultado, quiereEmitirPalabra, fraseOriginal)
+                return@launch
+            }
+
+            // ⚠️ Falló la IA por internet/clave/límite: en vez de quedarse sin hacer nada,
+            // se intenta entender lo básico localmente por palabras clave contra el catálogo,
+            // así los campos SÍ se pueden llenar aunque no haya conexión con Groq.
+            val resultadoLocal = ZoeVoiceAI.interpretarLocal(fraseOriginal, nombresClientes, nombresProductos, nombresBodegas)
+            if (!ZoeVoiceAI.estaVacio(resultadoLocal)) {
+                aplicarResultadoIA(resultadoLocal, quiereEmitirPalabra, fraseOriginal)
             } else {
-                aplicarResultadoIA(resultado, quiereEmitirPalabra)
+                val motivo = ZoeVoiceAI.ultimoError ?: "DESCONOCIDO"
+                repetirPaso("Uy, no logré entender esa frase. ¿Me la repites más despacio?")
+                // Se pisa el texto DESPUÉS de iniciar el habla (no afecta lo que se dice en voz,
+                // solo lo que queda visible en pantalla) para poder diagnosticar la causa real.
+                tvZoeTranscripcionRef?.text = "⚠️ [$motivo] \"$fraseOriginal\""
             }
         }
     }
 
-    private fun aplicarResultadoIA(datos: ResultadoVozFactura, quiereEmitirPalabra: Boolean) {
+    private fun aplicarResultadoIA(datos: ResultadoVozFactura, quiereEmitirPalabra: Boolean, fraseOriginal: String = "") {
         val alertas = mutableListOf<String>()
+        val fraseLimpia = limpiarTexto(fraseOriginal)
 
-        datos.eliminarProducto?.let { nombreQuitar ->
+        // 🔒 "eliminar" SOLO se ejecuta si el usuario dijo literalmente "elimina"/"eliminar".
+        // Así evitamos que "quita", "borra" o un descuento se confundan con una eliminación real.
+        val dijoEliminaLiteral = Regex("\\belimin\\w*\\b").containsMatchIn(fraseLimpia)
+
+        if (datos.eliminarProducto != null && dijoEliminaLiteral) {
+            val nombreQuitar = datos.eliminarProducto
             val index = carritoTemporal.indexOfFirst {
-                limpiarTexto(it.nombreProducto).contains(limpiarTexto(nombreQuitar))
+                limpiarTexto(it.nombreProducto).contains(limpiarTexto(nombreQuitar)) ||
+                        limpiarTexto(nombreQuitar).contains(limpiarTexto(it.nombreProducto))
             }
             if (index != -1) {
-                val nombreQuitado = carritoTemporal[index].nombreProducto
-                carritoTemporal.removeAt(index)
+                val itemActual = carritoTemporal[index]
+                val nombreQuitado = itemActual.nombreProducto
+                val cantidadAQuitar = datos.eliminarCantidad
+
+                val mensaje: String
+                if (cantidadAQuitar != null && cantidadAQuitar > 0 && cantidadAQuitar < itemActual.cantidad) {
+                    // Eliminación parcial: reduce la cantidad, no borra la línea completa.
+                    carritoTemporal[index] = itemActual.copy(cantidad = itemActual.cantidad - cantidadAQuitar)
+                    mensaje = "Quité $cantidadAQuitar de $nombreQuitado. Quedan ${carritoTemporal[index].cantidad}."
+                } else {
+                    // Sin cantidad puntual, o pidió eliminar la cantidad total: se borra la línea entera.
+                    carritoTemporal.removeAt(index)
+                    mensaje = "Quité $nombreQuitado por completo del ticket."
+                }
                 actualizarUiCarrito()
                 val totalFmt = String.format(Locale.US, "%.2f", totalCarritoFinal())
-                avanzarPaso(VoiceStep.CONFIRMAR, "Quité $nombreQuitado. El nuevo total es $totalFmt dólares. ¿Qué más hacemos?")
+                if (carritoTemporal.isEmpty()) {
+                    avanzarPaso(VoiceStep.ESCUCHANDO, "$mensaje El ticket quedó vacío. ¿Qué agregamos?")
+                } else {
+                    avanzarPaso(VoiceStep.CONFIRMAR, "$mensaje El nuevo total es $totalFmt dólares. ¿Qué más hacemos?")
+                }
                 return
+            } else {
+                alertas.add("no encontré \"$nombreQuitar\" en el ticket para eliminarlo")
             }
         }
 
+        // 👤 Cliente PRIMERO: si en la misma frase piden "consumidor final" y "tarjeta" juntos,
+        // el bloqueo de tarjeta de abajo necesita ya saber que el cliente quedó en Consumidor
+        // Final (si se procesara el método de pago antes, se colaría la tarjeta esa única vez).
+        var pedirCedula = false
+        if (datos.cliente != null && (facturaClienteId == null || datos.cliente.isNotBlank())) {
+            if (datos.cliente.equals("CONSUMIDOR_FINAL", ignoreCase = true) || datos.cliente.contains("consumidor", ignoreCase = true)) {
+                setConsumidorFinalUi()
+            } else {
+                val matches = buscarClientesUniversales(datos.cliente)
+                when {
+                    matches.size == 1 -> seleccionarClienteUi(matches[0])
+                    matches.size > 1 -> pedirCedula = true
+                    else -> alertas.add("no encontré a ${datos.cliente}")
+                }
+            }
+        }
+        if (pedirCedula) {
+            avanzarPaso(VoiceStep.ESCUCHANDO, "Hay varios clientes con ese nombre. Dime su cédula o RUC para seleccionarlo.")
+            return
+        }
+
+        // 💳 Método de pago: la IA nunca debe dejar pasar Consumidor Final + Tarjeta de Crédito,
+        // pero por seguridad se vuelve a bloquear aquí sin importar lo que haya devuelto la IA.
         datos.metodoPago?.let { metodo ->
-            // Consumidor Final NUNCA puede facturar a crédito (tarjeta de crédito)
             if (metodo == "TARJETA_CREDITO" && facturaEsConsumidorFinal) {
                 actualizarMetodoPagoUi("EFECTIVO")
                 metodoPagoConfirmadoPorVoz = true
-                alertas.add("tarjeta no permitida con Consumidor Final; usé efectivo")
+                alertas.add("con Consumidor Final no se puede pagar con tarjeta; usé efectivo")
             } else {
                 actualizarMetodoPagoUi(metodo)
                 metodoPagoConfirmadoPorVoz = true
@@ -1013,41 +1266,28 @@ class HistorialFacturasActivity : AppCompatActivity() {
             }
         }
 
-        var pedirCedula = false
-        if (datos.cliente != null && (facturaClienteId == null || datos.cliente.isNotBlank())) {
-            if (datos.cliente.equals("CONSUMIDOR_FINAL", ignoreCase = true) || datos.cliente.contains("consumidor", ignoreCase = true)) {
-                setConsumidorFinalUi()
-            } else {
-                val matches = buscarClientesUniversales(datos.cliente)
-                when {
-                    matches.size == 1 -> seleccionarClienteUi(matches[0])
-                    matches.size > 1 -> pedirCedula = true
-                    else -> alertas.add("no encontré a ${datos.cliente}")
-                }
-            }
-        }
-        if (pedirCedula) {
-            avanzarPaso(VoiceStep.ESCUCHANDO, "Hay varios clientes con ese nombre. Dime su cédula o RUC para seleccionarlo.")
-            return
-        }
-
         datos.descuentoGlobalPorcentaje?.let { pct ->
             facturaDescuentoGlobalPorcentaje = pct.toDouble().coerceIn(0.0, 100.0)
             etDescuentoGlobalRef?.setText(pct.toString())
             alertas.add("apliqué $pct% de descuento global")
         }
 
+        // 🔁 Cambio de bodega: si el usuario menciona una bodega, SIEMPRE se intenta resolver y
+        // cambiar (aunque ya hubiera una bodega activa) — así "cambia a la bodega norte" funciona
+        // en cualquier momento, no solo la primera vez.
         var bodegaIdActual = pendingBodegaId
-        if (bodegaIdActual == null && datos.bodega != null && bodegasList.isNotEmpty()) {
+        if (datos.bodega != null && bodegasList.isNotEmpty()) {
             val nombreBuscado = limpiarTexto(datos.bodega)
-            val bodega = bodegasList.find {
-                val nom = limpiarTexto(it.nombre)
-                nom == nombreBuscado || nom.contains(nombreBuscado) || nombreBuscado.contains(nom)
-            }
+            val bodega = bodegasList.find { limpiarTexto(it.nombre) == nombreBuscado }
+                ?: bodegasList.find { limpiarTexto(it.nombre).contains(nombreBuscado) || nombreBuscado.contains(limpiarTexto(it.nombre)) }
             if (bodega != null) {
+                val eraOtraBodega = pendingBodegaId != null && pendingBodegaId != bodega.id
                 pendingBodegaId = bodega.id
                 bodegaIdActual = bodega.id
                 spBodegaRef?.setText(bodega.nombre, false)
+                if (eraOtraBodega) alertas.add("cambié a la bodega ${bodega.nombre}")
+            } else {
+                alertas.add("no encontré la bodega \"${datos.bodega}\"")
             }
         }
         if (bodegaIdActual == null && bodegasList.size == 1) {
@@ -1060,7 +1300,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
 
         if (bodegaIdActual != null) {
             for (item in datos.items) {
-                val matches = buscarProductosUniversales(item.producto)
+                val matches = resolverMatchesProductoVoz(item.producto, fraseOriginal)
                 when {
                     matches.size == 1 -> {
                         val producto = matches[0]
@@ -1089,6 +1329,12 @@ class HistorialFacturasActivity : AppCompatActivity() {
                     else -> alertas.add("no tengo ${item.producto} en catálogo")
                 }
             }
+        } else if (datos.items.isNotEmpty()) {
+            // Hay productos por agregar pero todavía no hay bodega seleccionada: en vez de
+            // perder el pedido en silencio, se pregunta explícitamente y no se avanza.
+            val nombresBodegas = bodegasList.joinToString(", ") { it.nombre }
+            avanzarPaso(VoiceStep.ESCUCHANDO, "Antes de agregar productos necesito saber la bodega. Tengo: $nombresBodegas. ¿Cuál usamos?")
+            return
         }
 
         val faltaCliente = facturaClienteId == null && !facturaEsConsumidorFinal
@@ -1099,9 +1345,10 @@ class HistorialFacturasActivity : AppCompatActivity() {
         val totalFmt = String.format(Locale.US, "%.2f", totalCarritoFinal())
 
         if (quiereEmitir && !faltaCliente && !faltaItems) {
-            voiceState = VoiceStep.OFF
-            hablar("${prefijo}¡Todo listo! Por seguridad, confirma en pantalla si deseas emitir la factura por $totalFmt dólares.")
-            voiceHandler.postDelayed({ emitirFactura() }, 1000)
+            // Igual que la web: aunque en la misma frase haya pedido emitir, se pide una
+            // confirmación hablada explícita ("sí"/"no") antes de guardar — nunca se guarda
+            // en el mismo paso en que se detecta la intención.
+            avanzarPaso(VoiceStep.CONFIRMAR, "${prefijo}Total a pagar $totalFmt dólares. ¿Confirmas que emitimos la factura? Di sí o no.")
             return
         }
 
@@ -1184,28 +1431,160 @@ class HistorialFacturasActivity : AppCompatActivity() {
         }
     }
 
+    /** Palabras que no aportan al nombre real del producto y deben ignorarse al tokenizar. */
+    private val stopWordsProducto = setOf(
+        "agrega", "agregue", "agregar", "agregame", "añade", "añadir", "anade", "anadir",
+        "pon", "ponme", "poner", "mete", "meteme", "meter", "incluye", "incluyeme", "incluir",
+        "carga", "cargame", "cargar", "anota", "anotame", "anotar", "manda", "mandame",
+        "quiero", "dame", "necesito", "sube", "subeme",
+        "uno", "una", "unos", "unas", "dos", "tres", "cuatro", "cinco", "seis", "siete",
+        "ocho", "nueve", "diez", "del", "de", "la", "el", "los", "las", "un", "al", "con",
+        "por", "para", "y", "o", "que", "me", "te", "le", "se", "producto", "productos",
+        "factura", "ticket", "favor", "porfa", "descuento", "porcentaje", "dolares", "dolar",
+        "centavos", "tambien", "también"
+    )
+
+    /** Deduplica por id y ordena por nombre más corto primero (más específico/probable). */
+    private fun dedupProductos(lista: List<ProductoResponseDto>): List<ProductoResponseDto> {
+        val vistos = mutableSetOf<Long>()
+        val out = mutableListOf<ProductoResponseDto>()
+        for (p in lista) {
+            val id = p.id ?: continue
+            if (vistos.add(id)) out.add(p)
+        }
+        return out.sortedBy { limpiarTexto(it.nombre).length }
+    }
+
+    /**
+     * Busca productos por nombre o código, tolerando que el usuario diga solo una parte del
+     * nombre (ej. "máscara" encuentra "Zen Máscara Facial", "Máscara de Pestañas", etc.) o el
+     * nombre con palabras de más o de menos, tildes, mayúsculas, etc.
+     *
+     * Regla: solo auto-elige si hay UNA sola coincidencia clara. Si hay 2+ candidatos
+     * (nombres parecidos/repetidos), se devuelven TODOS para forzar la desambiguación:
+     * nunca se elige un producto al azar entre varios que podrían ser el que el usuario quiso decir.
+     */
     private fun buscarProductosUniversales(textoBuscado: String): List<ProductoResponseDto> {
         val txt = limpiarTexto(textoBuscado)
         if (txt.isBlank()) return emptyList()
 
+        // 1) Nombre exacto
         val exact = productosList.filter { limpiarTexto(it.nombre) == txt }
-        if (exact.isNotEmpty()) return exact
+        if (exact.isNotEmpty()) return dedupProductos(exact)
 
+        // 2) Código exacto
+        val porCodigo = productosList.filter {
+            !it.codigoPrincipal.isNullOrBlank() && limpiarTexto(it.codigoPrincipal) == txt
+        }
+        if (porCodigo.isNotEmpty()) return dedupProductos(porCodigo)
+
+        // 3) El nombre del producto contiene lo dicho, o lo dicho contiene el nombre
         val partial = productosList.filter {
             val nom = limpiarTexto(it.nombre)
-            nom.contains(txt) || txt.contains(nom)
+            nom.contains(txt) || (txt.length >= 4 && txt.contains(nom))
         }
-        if (partial.isNotEmpty()) return partial
+        val uniqPartial = dedupProductos(partial)
+        if (uniqPartial.size == 1) return uniqPartial
+        if (uniqPartial.size > 1) {
+            // Si solo uno empieza exactamente igual que lo dicho y hay pocos candidatos en total,
+            // igual se muestran todos para que el usuario elija con seguridad (nunca al azar).
+            val empiezanIgual = uniqPartial.filter { limpiarTexto(it.nombre).startsWith(txt) }
+            return if (empiezanIgual.size > 1) empiezanIgual else uniqPartial
+        }
 
-        val palabras = txt.split(" ").filter { it.length > 2 }
+        // 4) Todas las palabras significativas de lo dicho deben aparecer en el nombre
+        val palabras = txt.split(Regex("\\s+")).filter { it.length > 2 }
         if (palabras.isNotEmpty()) {
-            val agresivo = productosList.filter { p ->
+            val porPalabras = productosList.filter { p ->
                 val nom = limpiarTexto(p.nombre)
-                palabras.any { nom.contains(it) }
+                palabras.all { nom.contains(it) }
             }
-            if (agresivo.isNotEmpty()) return agresivo
+            val uniq = dedupProductos(porPalabras)
+            if (uniq.isNotEmpty()) return uniq
         }
+
+        // 5) Fallback suave: coincide con al menos una palabra larga (mín. 4 letras)
+        val largas = txt.split(Regex("\\s+")).filter { it.length >= 4 }
+        if (largas.isNotEmpty()) {
+            val suaves = productosList.filter { p ->
+                val nom = limpiarTexto(p.nombre)
+                largas.any { nom.contains(it) }
+            }
+            return dedupProductos(suaves)
+        }
+
         return emptyList()
+    }
+
+    /**
+     * Productos "hermanos" del [producto] recibido: mismo nombre exacto (distintas presentaciones)
+     * o que comparten su palabra raíz principal. Sirve para que, aunque la IA haya extraído un
+     * nombre que matchea un único producto, si existen otros muy parecidos igual se le pregunte
+     * al usuario cuál quiso decir en vez de asumirlo.
+     */
+    private fun buscarHermanosProducto(producto: ProductoResponseDto): List<ProductoResponseDto> {
+        val nom = limpiarTexto(producto.nombre)
+
+        val exactos = dedupProductos(productosList.filter { limpiarTexto(it.nombre) == nom })
+        if (exactos.size > 1) return exactos
+
+        val palabras = nom.split(Regex("\\s+")).filter { it.length >= 3 }
+        val raiz = palabras.sortedByDescending { it.length }.firstOrNull()
+        if (raiz == null || raiz.length < 4) return listOf(producto)
+
+        var hermanos = dedupProductos(productosList.filter { limpiarTexto(it.nombre).contains(raiz) })
+        if (hermanos.size > 12 && palabras.size >= 2) {
+            val estrechos = hermanos.filter { p ->
+                val n = limpiarTexto(p.nombre)
+                palabras.count { n.contains(it) } >= minOf(2, palabras.size)
+            }
+            if (estrechos.size > 1) hermanos = estrechos
+        }
+        return if (hermanos.size > 1) hermanos else listOf(producto)
+    }
+
+    /**
+     * Resuelve qué producto(s) del catálogo corresponden a lo que la IA/local extrajo
+     * ([nombreIa]), apoyándose también en la frase completa que dijo el usuario
+     * ([fraseUsuario]) para no perder pistas cuando la IA solo capturó una palabra suelta
+     * (ej. usuario dice "agrégame el producto máscara" y la IA extrae solo "máscara").
+     */
+    private fun resolverMatchesProductoVoz(nombreIa: String, fraseUsuario: String): List<ProductoResponseDto> {
+        val tokensUsuario = limpiarTexto(fraseUsuario)
+            .split(Regex("\\s+"))
+            .filter { it.length >= 3 && it !in stopWordsProducto && it.toIntOrNull() == null }
+
+        // 1) Si alguna palabra suelta de lo que dijo el usuario matchea varios productos,
+        // se fuerza la desambiguación con la coincidencia más amplia encontrada.
+        var mejorMulti: List<ProductoResponseDto> = emptyList()
+        for (tok in tokensUsuario) {
+            val hits = dedupProductos(productosList.filter { limpiarTexto(it.nombre).contains(tok) })
+            if (hits.size > mejorMulti.size) mejorMulti = hits
+        }
+        if (mejorMulti.size > 1) return mejorMulti
+
+        // 2) Búsqueda normal por lo que extrajo la IA
+        val porIa = buscarProductosUniversales(nombreIa)
+
+        // 3) Si dio 1 solo resultado, verificar que no tenga "hermanos" muy parecidos
+        if (porIa.size == 1) {
+            val hermanos = buscarHermanosProducto(porIa[0])
+            return if (hermanos.size > 1) hermanos else porIa
+        }
+        if (porIa.size > 1) return porIa
+
+        // 4) Última opción: tokenizar el nombre que dio la IA y buscar por cada palabra
+        val tokensIa = limpiarTexto(nombreIa).split(Regex("\\s+")).filter { it.length >= 3 && it !in stopWordsProducto }
+        for (tok in tokensIa) {
+            val hits = dedupProductos(productosList.filter { limpiarTexto(it.nombre).contains(tok) })
+            if (hits.size > 1) return hits
+            if (hits.size == 1) {
+                val hermanos = buscarHermanosProducto(hits[0])
+                return if (hermanos.size > 1) hermanos else hits
+            }
+        }
+
+        return if (mejorMulti.size == 1) mejorMulti else emptyList()
     }
 
     private fun obtenerNombreProducto(item: DetalleFacturaResponseDto, posicion: Int): String {

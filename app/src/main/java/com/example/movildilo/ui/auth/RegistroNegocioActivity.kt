@@ -24,6 +24,7 @@ import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
 import com.example.movildilo.ui.admin.AdminActivity
 import com.example.movildilo.ui.dashboard.PropietarioActivity
+import com.example.movildilo.utils.FormValidator
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -182,39 +183,32 @@ class RegistroNegocioActivity : AppCompatActivity() {
         val metodoTexto = spMetodoInventario.text.toString().trim()
         val obligadoContabilidad = cbObligadoContabilidad.isChecked
 
-        // Validaciones estrictas
-        if (ruc.isEmpty()) {
-            etRuc.error = "El RUC es obligatorio"
-            etRuc.requestFocus()
-            return
+        // Validaciones estrictas, con mensaje exacto en cada campo
+        listOf(etRuc, etRazonSocial, etNombreComercial, etDireccion).forEach { it.error = null }
+
+        var campoConError: EditText? = null
+        fun marcar(campo: EditText, mensaje: String?) {
+            if (mensaje != null && campoConError == null) {
+                campo.error = mensaje
+                campoConError = campo
+            }
         }
 
-        if (ruc.length != 13) {
-            etRuc.error = "El RUC debe tener exactamente 13 dígitos"
-            etRuc.requestFocus()
-            return
-        }
+        marcar(etRuc, FormValidator.rucEcuatoriano(ruc))
+        marcar(etRazonSocial, FormValidator.requerido(razonSocial, "La razón social")
+            ?: FormValidator.longitudMinima(razonSocial, 3, "La razón social"))
+        marcar(etNombreComercial, FormValidator.requerido(nombreComercial, "El nombre comercial")
+            ?: FormValidator.longitudMinima(nombreComercial, 3, "El nombre comercial"))
+        marcar(etDireccion, FormValidator.requerido(direccion, "La dirección")
+            ?: FormValidator.longitudMinima(direccion, 5, "La dirección"))
 
-        if (razonSocial.isEmpty()) {
-            etRazonSocial.error = "La razón social es obligatoria"
-            etRazonSocial.requestFocus()
-            return
-        }
-
-        if (nombreComercial.isEmpty()) {
-            etNombreComercial.error = "El nombre comercial es obligatorio"
-            etNombreComercial.requestFocus()
-            return
-        }
-
-        if (direccion.isEmpty()) {
-            etDireccion.error = "La dirección es obligatoria"
-            etDireccion.requestFocus()
+        if (campoConError != null) {
+            campoConError?.requestFocus()
             return
         }
 
         if (metodoTexto.isEmpty()) {
-            Toast.makeText(this, "Debe seleccionar un método de inventario válido de la lista", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Selecciona un método de costeo de inventario de la lista (Promedio, FIFO o LIFO).", Toast.LENGTH_LONG).show()
             return
         }
 

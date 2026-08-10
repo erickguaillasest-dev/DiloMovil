@@ -27,8 +27,10 @@ import com.bumptech.glide.Glide
 import com.example.movildilo.R
 import com.example.movildilo.data.model.dto.CategoriaDto
 import com.example.movildilo.data.model.dto.ProductoDto
+import com.example.movildilo.utils.FormValidator
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 
@@ -49,6 +51,12 @@ class ProductoDialog(
     private lateinit var etPrecioPvp: TextInputEditText
     private lateinit var spinnerCategoria: AutoCompleteTextView
     private lateinit var spinnerUnidad: AutoCompleteTextView
+    private lateinit var tilNombre: TextInputLayout
+    private lateinit var tilCodigo: TextInputLayout
+    private lateinit var tilMarca: TextInputLayout
+    private lateinit var tilPrecioPvp: TextInputLayout
+    private lateinit var tilCategoria: TextInputLayout
+    private lateinit var tilUnidad: TextInputLayout
     private lateinit var cbGrabaIva: CheckBox
     private lateinit var cbTieneCaducidad: CheckBox
     private lateinit var btnCancelar: MaterialButton
@@ -122,6 +130,27 @@ class ProductoDialog(
         cbTieneCaducidad = v.findViewById(R.id.cbTieneCaducidad)
         btnCancelar = v.findViewById(R.id.btnCancelar)
         btnGuardar = v.findViewById(R.id.btnGuardarProducto)
+        tilNombre = v.findViewById(R.id.tilNombreProducto)
+        tilCodigo = v.findViewById(R.id.tilCodigoPrincipal)
+        tilMarca = v.findViewById(R.id.tilMarca)
+        tilPrecioPvp = v.findViewById(R.id.tilPrecioPvp)
+        tilCategoria = v.findViewById(R.id.tilCategoria)
+        tilUnidad = v.findViewById(R.id.tilUnidadMedida)
+
+        // Limpia el error del campo apenas el usuario empieza a corregirlo
+        etNombre.doAfterTextChangedClearError(tilNombre)
+        etCodigo.doAfterTextChangedClearError(tilCodigo)
+        etMarca.doAfterTextChangedClearError(tilMarca)
+        etPrecioPvp.doAfterTextChangedClearError(tilPrecioPvp)
+    }
+
+    /** Limpia el error de [til] apenas el usuario modifica el texto de este campo. */
+    private fun TextInputEditText.doAfterTextChangedClearError(til: TextInputLayout) {
+        this.addTextChangedListener(object : android.text.TextWatcher {
+            override fun afterTextChanged(s: android.text.Editable?) { FormValidator.marcarError(til, null) }
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+        })
     }
 
     private fun setupDropdowns() {
@@ -212,24 +241,31 @@ class ProductoDialog(
 
     private fun guardarProducto() {
         val nombre = etNombre.text.toString().trim()
+        val codigo = etCodigo.text.toString().trim()
         val precioStr = etPrecioPvp.text.toString().trim()
         val nombreCategoria = spinnerCategoria.text.toString().trim()
         val unidad = spinnerUnidad.text.toString().trim()
 
-        if (nombre.isEmpty()) {
-            etNombre.error = "Campo requerido"
-            return
-        }
-
-        if (precioStr.isEmpty()) {
-            etPrecioPvp.error = "Campo requerido"
-            return
-        }
-
-        if (nombreCategoria.isEmpty()) {
-            spinnerCategoria.error = "Selecciona una categoría"
-            return
-        }
+        val ok = FormValidator.validar(
+            FormValidator.Campo(tilNombre) {
+                FormValidator.requerido(nombre, "El nombre del producto")
+                    ?: FormValidator.longitudMinima(nombre, 2, "El nombre del producto")
+                    ?: FormValidator.longitudMaxima(nombre, 100, "El nombre del producto")
+            },
+            FormValidator.Campo(tilCodigo) {
+                if (codigo.isNotBlank()) FormValidator.longitudMinima(codigo, 2, "El código principal") else null
+            },
+            FormValidator.Campo(tilPrecioPvp) {
+                FormValidator.montoMayorACero(precioStr, "El precio (PVP)")
+            },
+            FormValidator.Campo(tilCategoria) {
+                FormValidator.requerido(nombreCategoria, "La categoría")
+            },
+            FormValidator.Campo(tilUnidad) {
+                FormValidator.requerido(unidad, "La unidad de medida")
+            }
+        )
+        if (!ok) return
 
         val precio = precioStr.toDoubleOrNull() ?: 0.0
 

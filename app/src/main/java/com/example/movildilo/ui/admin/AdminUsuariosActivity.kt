@@ -10,6 +10,8 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -18,9 +20,9 @@ import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
 import com.example.movildilo.data.model.dto.ParroquiaResponseDto
 import com.example.movildilo.data.model.dto.UsuarioMeDto
+import com.example.movildilo.utils.FormValidator
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
-import java.util.Locale
 
 interface OnUsuarioActualizadoListener {
     fun onUsuarioActualizado()
@@ -28,6 +30,7 @@ interface OnUsuarioActualizadoListener {
 
 class AdminUsuariosActivity : AppCompatActivity(), OnUsuarioActualizadoListener {
 
+    private lateinit var mainRoot: View
     private lateinit var btnRegresar: MaterialButton
     private lateinit var btnNuevoUsuario: MaterialButton
     private lateinit var etBuscar: EditText
@@ -52,6 +55,7 @@ class AdminUsuariosActivity : AppCompatActivity(), OnUsuarioActualizadoListener 
         sessionManager = SessionManager(this)
 
         initViews()
+        setupEdgeToEdgeInsets()
         setupRecyclerView()
 
         btnRegresar.setOnClickListener { finish() }
@@ -61,7 +65,9 @@ class AdminUsuariosActivity : AppCompatActivity(), OnUsuarioActualizadoListener 
 
         etBuscar.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { aplicarFiltro() }
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                aplicarFiltro()
+            }
             override fun afterTextChanged(s: Editable?) {}
         })
 
@@ -70,12 +76,27 @@ class AdminUsuariosActivity : AppCompatActivity(), OnUsuarioActualizadoListener 
     }
 
     private fun initViews() {
+        mainRoot = findViewById(R.id.mainRoot)
         btnRegresar = findViewById(R.id.btnRegresar)
         btnNuevoUsuario = findViewById(R.id.btnNuevoUsuario)
         etBuscar = findViewById(R.id.etBuscar)
         tvTotalUsuarios = findViewById(R.id.tvTotalUsuarios)
         progressBar = findViewById(R.id.progressBar)
         rvUsuarios = findViewById(R.id.rvUsuarios)
+    }
+
+    private fun setupEdgeToEdgeInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(mainRoot) { _, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val headerLayout = findViewById<View>(R.id.headerLayout)
+            headerLayout.setPadding(
+                headerLayout.paddingLeft,
+                systemBars.top + 12,
+                headerLayout.paddingRight,
+                headerLayout.paddingBottom
+            )
+            insets
+        }
     }
 
     private fun setupRecyclerView() {
@@ -96,8 +117,8 @@ class AdminUsuariosActivity : AppCompatActivity(), OnUsuarioActualizadoListener 
                 if (response.isSuccessful) {
                     parroquias = (response.body() ?: emptyList()).toMutableList()
                 }
-            } catch (e: Exception) {
-                // Si falla, el selector de parroquias queda vacío; no bloqueamos la pantalla por esto.
+            } catch (_: Exception) {
+                // Si falla la carga, la app continúa funcional
             }
         }
     }
@@ -114,27 +135,39 @@ class AdminUsuariosActivity : AppCompatActivity(), OnUsuarioActualizadoListener 
                     listaCompleta = (response.body() ?: emptyList()).toMutableList()
                     aplicarFiltro()
                 } else {
-                    Toast.makeText(this@AdminUsuariosActivity, "No se pudieron cargar los usuarios (${response.code()})", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this@AdminUsuariosActivity,
+                        "No se pudieron cargar los usuarios (${response.code()})",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             } catch (e: Exception) {
                 progressBar.visibility = View.GONE
-                Toast.makeText(this@AdminUsuariosActivity, "Error de conexión: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    this@AdminUsuariosActivity,
+                    "Error de conexión: ${e.message}",
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
     }
 
     private fun aplicarFiltro() {
-        val texto = etBuscar.text.toString().trim().lowercase(Locale.ROOT)
-        listaFiltrada = if (texto.isEmpty()) {
+        val query = FormValidator.normalizar(etBuscar.text.toString())
+
+        listaFiltrada = if (query.isEmpty()) {
             listaCompleta.toMutableList()
         } else {
-            listaCompleta.filter {
-                (it.primerNombre?.lowercase(Locale.ROOT)?.contains(texto) == true) ||
-                        (it.apellidoPaterno?.lowercase(Locale.ROOT)?.contains(texto) == true) ||
-                        (it.dni?.lowercase(Locale.ROOT)?.contains(texto) == true) ||
-                        (it.email?.lowercase(Locale.ROOT)?.contains(texto) == true)
+            listaCompleta.filter { u ->
+                FormValidator.normalizar(u.primerNombre).contains(query) ||
+                        FormValidator.normalizar(u.segundoNombre).contains(query) ||
+                        FormValidator.normalizar(u.apellidoPaterno).contains(query) ||
+                        FormValidator.normalizar(u.apellidoMaterno).contains(query) ||
+                        FormValidator.normalizar(u.dni).contains(query) ||
+                        FormValidator.normalizar(u.email).contains(query)
             }.toMutableList()
         }
+
         tvTotalUsuarios.text = "${listaFiltrada.size} usuarios"
         adapter.actualizarLista(listaFiltrada)
     }
