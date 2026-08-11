@@ -6,7 +6,7 @@ data class DetalleCompraRequestDto(
     @SerializedName("productoId") val productoId: Long,
     @SerializedName("cantidad") val cantidad: Int,
     @SerializedName("costoUnitario") val costoUnitario: Double,
-    @SerializedName("fechaCaducidad") val fechaCaducidad: String? = null // "yyyy-MM-dd"
+    @SerializedName("fechaCaducidad") val fechaCaducidad: String? = null
 )
 
 data class CompraRequestDto(

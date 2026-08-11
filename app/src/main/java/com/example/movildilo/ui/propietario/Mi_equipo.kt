@@ -15,8 +15,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -62,7 +60,6 @@ class Mi_equipo : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_mi_equipo)
-
 
         sessionManager = SessionManager(this)
         negocioId = sessionManager.getNegocioId()
@@ -121,7 +118,6 @@ class Mi_equipo : AppCompatActivity() {
     }
 
     private fun setupRecyclerViews() {
-        // Solicitudes Pendientes
         adapterPendientes = MiembroEquipoAdapter(
             lista = solicitudes,
             onAprobar = { miembro -> responderSolicitud(miembro, aceptar = true) },
@@ -130,7 +126,6 @@ class Mi_equipo : AppCompatActivity() {
         rvSolicitudesPendientes.layoutManager = LinearLayoutManager(this)
         rvSolicitudesPendientes.adapter = adapterPendientes
 
-        // Colaboradores (Activos)
         adapterActivos = MiembroEquipoAdapter(
             lista = miembrosActivos,
             onDesactivar = { miembro -> desactivarMiembro(miembro) },
@@ -140,9 +135,6 @@ class Mi_equipo : AppCompatActivity() {
         rvColaboradoresActivos.adapter = adapterActivos
     }
 
-    // =======================================================
-    // 1. CARGAR EQUIPO (Igual a cargarEquipo() de Angular)
-    // =======================================================
     private fun cargarEquipo(id: Long) {
         val authHeader = sessionManager.getAuthHeader()
         if (authHeader.isNullOrEmpty()) {
@@ -158,21 +150,17 @@ class Mi_equipo : AppCompatActivity() {
                 val respMiembros = reqMiembros.await()
                 val respNegocio = reqNegocio.await()
 
-                // PROCESAR MIEMBROS
                 if (respMiembros?.isSuccessful == true) {
                     val equipoCompleto = respMiembros.body() ?: emptyList()
 
-                    // Solicitudes pendientes: estadoInvitacion === 'PENDIENTE'
                     solicitudes = equipoCompleto.filter {
                         it.estadoInvitacion?.trim()?.uppercase() == "PENDIENTE"
                     }.toMutableList()
 
-                    // Colaboradores activos: estadoInvitacion !== 'PENDIENTE'
                     miembrosActivos = equipoCompleto.filter {
                         it.estadoInvitacion?.trim()?.uppercase() != "PENDIENTE"
                     }.toMutableList()
 
-                    // Lógica del Creador (Orden de fechaVinculacion más antigua a más reciente)
                     if (miembrosActivos.isNotEmpty()) {
                         miembrosActivos.sortBy { miembro ->
                             obtenerTimestampFecha(miembro.fechaVinculacion)
@@ -188,7 +176,6 @@ class Mi_equipo : AppCompatActivity() {
                     Toast.makeText(this@Mi_equipo, "Error al obtener miembros del equipo.", Toast.LENGTH_SHORT).show()
                 }
 
-                // PROCESAR NEGOCIO
                 if (respNegocio?.isSuccessful == true && respNegocio.body() != null) {
                     val negocio = respNegocio.body()!!
                     tvCodigoAcceso.text = negocio.codigoInvitacion ?: "NO-DISPONIBLE"
@@ -206,13 +193,14 @@ class Mi_equipo : AppCompatActivity() {
         }
     }
 
-    // =======================================================
-    // 2. RESPONDER SOLICITUD (Igual a responderSolicitud() de Angular)
-    // PUT /negocios/{negocioId}/miembros/{miembro.id}/responder?aceptar={aceptar}
-    // =======================================================
     private fun responderSolicitud(miembro: MiembroResponseDto, aceptar: Boolean) {
         val authHeader = sessionManager.getAuthHeader() ?: return
-        val miembroId = miembro.id ?: miembro.usuarioId ?: return
+        val miembroId = miembro.id ?: miembro.usuarioId
+
+        if (miembroId == null) {
+            Toast.makeText(this, "Error: ID de miembro no encontrado.", Toast.LENGTH_SHORT).show()
+            return
+        }
 
         val accion = if (aceptar) "aceptar" else "rechazar"
         val mensaje = if (aceptar) "El usuario tendrá acceso al sistema." else "La solicitud será eliminada."
@@ -233,7 +221,6 @@ class Mi_equipo : AppCompatActivity() {
                             Toast.makeText(this@Mi_equipo, "Oops... Error al procesar la solicitud.", Toast.LENGTH_SHORT).show()
                         }
                     } catch (e: Exception) {
-                        // Manejo de respuesta vacía 200 OK de Retrofit/Gson (EOFException)
                         if (e is java.io.EOFException || e.cause is java.io.EOFException || e.message?.contains("End of input") == true) {
                             Toast.makeText(this@Mi_equipo, "¡Listo! La solicitud fue ${if (aceptar) "aceptada" else "rechazada"}.", Toast.LENGTH_SHORT).show()
                             cargarEquipo(negocioId)
@@ -247,13 +234,14 @@ class Mi_equipo : AppCompatActivity() {
             .show()
     }
 
-    // =======================================================
-    // 3. DESACTIVAR MIEMBRO / EXPULSAR (Igual a desactivarMiembro() de Angular)
-    // PUT /negocios/{negocioId}/miembros/{miembro.id}/desactivar
-    // =======================================================
     private fun desactivarMiembro(miembro: MiembroResponseDto) {
         val authHeader = sessionManager.getAuthHeader() ?: return
-        val miembroId = miembro.id ?: miembro.usuarioId ?: return
+        val miembroId = miembro.id ?: miembro.usuarioId
+
+        if (miembroId == null) {
+            Toast.makeText(this, "Error: ID de miembro no encontrado.", Toast.LENGTH_SHORT).show()
+            return
+        }
 
         MaterialAlertDialogBuilder(this)
             .setTitle("¿Expulsar miembro?")
@@ -284,11 +272,14 @@ class Mi_equipo : AppCompatActivity() {
             .show()
     }
 
-    // =======================================================
-    // 4. CAMBIAR ROL (Igual a cambiarRol() de Angular)
-    // PUT /negocios/{negocioId}/miembros/{miembro.id}/rol?rol={nuevoRol}
-    // =======================================================
     private fun cambiarRol(miembro: MiembroResponseDto) {
+        val miembroId = miembro.id ?: miembro.usuarioId
+
+        if (miembroId == null) {
+            Toast.makeText(this, "Error: No se pudo obtener el ID del usuario.", Toast.LENGTH_LONG).show()
+            return
+        }
+
         val rolesClaves = arrayOf("PROPIETARIO", "VENDEDOR", "BODEGUERO")
         val rolesEtiquetas = arrayOf(
             "Propietario / Administrador (Control total)",
@@ -296,26 +287,30 @@ class Mi_equipo : AppCompatActivity() {
             "Bodeguero (Solo inventario)"
         )
 
-        MaterialAlertDialogBuilder(this)
+        val rolActual = miembro.rol?.trim()?.uppercase() ?: ""
+
+        MaterialAlertDialogBuilder(this, com.google.android.material.R.style.ThemeOverlay_MaterialComponents_MaterialAlertDialog)
             .setTitle("Modificar Rol")
-            .setMessage("Selecciona el nuevo rol para ${miembro.nombreUsuario ?: "este usuario"}:")
-            .setItems(rolesEtiquetas) { dialog, which ->
+            .setSingleChoiceItems(rolesEtiquetas, rolesClaves.indexOf(rolActual)) { dialog, which ->
                 dialog.dismiss()
                 val nuevoRol = rolesClaves[which]
 
-                if (nuevoRol.equals(miembro.rol, ignoreCase = true)) {
+                if (nuevoRol.equals(rolActual, ignoreCase = true)) {
                     Toast.makeText(this, "El usuario ya tiene este rol asignado.", Toast.LENGTH_SHORT).show()
                 } else {
-                    ejecutarCambioRol(miembro, nuevoRol)
+                    ejecutarCambioRol(miembroId, nuevoRol)
                 }
             }
             .setNegativeButton("Cancelar", null)
             .show()
     }
 
-    private fun ejecutarCambioRol(miembro: MiembroResponseDto, nuevoRol: String) {
-        val authHeader = sessionManager.getAuthHeader() ?: return
-        val miembroId = miembro.id ?: miembro.usuarioId ?: return
+    private fun ejecutarCambioRol(miembroId: Long, nuevoRol: String) {
+        val authHeader = sessionManager.getAuthHeader()
+        if (authHeader.isNullOrEmpty()) {
+            Toast.makeText(this, "Sesión no válida.", Toast.LENGTH_SHORT).show()
+            return
+        }
 
         lifecycleScope.launch {
             try {
@@ -339,9 +334,6 @@ class Mi_equipo : AppCompatActivity() {
         }
     }
 
-    // =======================================================
-    // FUNCIONES AUXILIARES
-    // =======================================================
     private fun obtenerTimestampFecha(fechaStr: String?): Long {
         if (fechaStr.isNullOrBlank()) return System.currentTimeMillis()
         return try {

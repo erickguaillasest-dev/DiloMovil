@@ -22,9 +22,6 @@ class VendedorRepository(private val sessionManager: SessionManager) {
     private val api = RetrofitClient.apiService
     private val gson = Gson()
 
-    // ==========================================
-    // ENDPOINTS PÚBLICOS
-    // ==========================================
 
     suspend fun login(request: LoginRequestDto): Response<LoginResponseDto> {
         return api.login(request)
@@ -38,9 +35,6 @@ class VendedorRepository(private val sessionManager: SessionManager) {
         return api.getParroquias()
     }
 
-    // ==========================================
-    // HELPERS DE SESIÓN
-    // ==========================================
 
     private fun negocioIdOrNull(): Long? {
         val id = sessionManager.getNegocioId()
@@ -51,9 +45,6 @@ class VendedorRepository(private val sessionManager: SessionManager) {
         return sessionManager.getAuthHeader()
     }
 
-    // ==========================================
-    // CLIENTES
-    // ==========================================
 
     suspend fun getClientes(): Response<List<ClienteResponseDto>>? {
         val negocioId = negocioIdOrNull() ?: return null
@@ -61,9 +52,7 @@ class VendedorRepository(private val sessionManager: SessionManager) {
         return api.getClientes(token, negocioId)
     }
 
-    // ==========================================
-    // CATÁLOGO Y PRODUCTOS
-    // ==========================================
+
 
     suspend fun getCatalogo(): Response<List<ProductoResponseDto>>? {
         val negocioId = negocioIdOrNull() ?: return null

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/mainRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#083344">
@@ -21,7 +22,6 @@
             android:layout_height="40dp"
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
-            android:layout_marginTop="19dp"
             app:backgroundTint="#1E293B"
             app:cornerRadius="12dp"
             app:icon="@android:drawable/ic_menu_revert"
@@ -33,7 +33,6 @@
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
             android:layout_marginStart="12dp"
-            android:layout_marginTop="19dp"
             android:layout_toEndOf="@id/btnRegresar"
             android:orientation="vertical">
 
@@ -128,7 +127,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="52dp"
                 android:layout_gravity="bottom|end"
-                android:layout_margin="35dp"
+                android:layout_margin="24dp"
                 android:backgroundTint="#EA580C"
                 android:paddingHorizontal="20dp"
                 android:text="+ Nuevo Usuario"

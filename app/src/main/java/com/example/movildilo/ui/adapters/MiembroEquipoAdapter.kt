@@ -51,15 +51,14 @@ class MiembroEquipoAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = lista[position]
 
-        // 1. Textos e Iniciales
         holder.tvNombre.text = item.nombreUsuario?.takeIf { it.isNotBlank() } ?: "Sin Nombre"
         holder.tvEmail.text = item.emailUsuario?.takeIf { it.isNotBlank() } ?: "Sin Correo"
         holder.tvIniciales.text = obtenerIniciales(item.nombreUsuario)
 
         val rolTexto = item.rol?.takeIf { it.isNotBlank() } ?: "COLABORADOR"
         holder.tvRol.text = rolTexto.uppercase()
+        holder.tvRol.visibility = View.VISIBLE
 
-        // 2. Verificación de Estados
         val estadoInvitacionUpper = item.estadoInvitacion?.trim()?.uppercase() ?: ""
         val estadoLaboralUpper = item.estadoLaboral?.trim()?.uppercase() ?: ""
 
@@ -68,7 +67,6 @@ class MiembroEquipoAdapter(
         val esActivo = !esPendiente && !esInactivo
 
         when {
-            // === CASO 1: SOLICITUD PENDIENTE (AMARILLO) ===
             esPendiente -> {
                 holder.cardMiembro.setCardBackgroundColor(Color.parseColor("#FFFBEB"))
                 holder.cardMiembro.strokeColor = Color.parseColor("#FDE68A")
@@ -86,7 +84,6 @@ class MiembroEquipoAdapter(
                 holder.btnRechazar.setOnClickListener { onRechazar?.invoke(item) }
             }
 
-            // === CASO 2: COLABORADOR ACTIVO ===
             esActivo -> {
                 holder.cardMiembro.setCardBackgroundColor(Color.parseColor("#FFFFFF"))
                 holder.cardMiembro.strokeColor = Color.parseColor("#E2E8F0")
@@ -96,12 +93,11 @@ class MiembroEquipoAdapter(
                 holder.layoutAccionesPendiente.visibility = View.GONE
 
                 holder.layoutBadgeActivo.visibility = View.VISIBLE
-                holder.layoutBadgeActivo.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#22C55E")) // Verde Activo
+                holder.layoutBadgeActivo.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#22C55E"))
 
-                // 🔥 LÓGICA DE LA WEB: Se protege si tiene rol PROPIETARIO o es el CREADOR del negocio
-                val esPropietario = rolTexto.equals("PROPIETARIO", ignoreCase = true) || item.esCreador
+                val esCreadorAbsoluto = item.esCreador
 
-                if (esPropietario) {
+                if (esCreadorAbsoluto) {
                     holder.cardOpciones.visibility = View.GONE
                     holder.btnEditarRol.visibility = View.GONE
                     holder.btnDesactivar.visibility = View.GONE
@@ -110,7 +106,6 @@ class MiembroEquipoAdapter(
                     holder.btnEditarRol.visibility = View.VISIBLE
                     holder.btnDesactivar.visibility = View.VISIBLE
 
-                    // Botón Desactivar (Texto y Borde Rojo)
                     holder.btnDesactivar.text = "Desactivar"
                     holder.btnDesactivar.setTextColor(Color.parseColor("#EF4444"))
                     holder.btnDesactivar.strokeColor = ColorStateList.valueOf(Color.parseColor("#FCA5A5"))
@@ -134,7 +129,6 @@ class MiembroEquipoAdapter(
                 }
             }
 
-            // === CASO 3: COLABORADOR INACTIVO ===
             else -> {
                 holder.cardMiembro.setCardBackgroundColor(Color.parseColor("#FFFFFF"))
                 holder.cardMiembro.strokeColor = Color.parseColor("#E2E8F0")
@@ -144,13 +138,12 @@ class MiembroEquipoAdapter(
                 holder.layoutAccionesPendiente.visibility = View.GONE
 
                 holder.layoutBadgeActivo.visibility = View.VISIBLE
-                holder.layoutBadgeActivo.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#9CA3AF")) // Gris Inactivo
+                holder.layoutBadgeActivo.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#9CA3AF"))
 
                 holder.cardOpciones.visibility = View.VISIBLE
                 holder.btnEditarRol.visibility = View.GONE
                 holder.btnDesactivar.visibility = View.VISIBLE
 
-                // Botón Reactivar (Texto y Borde Verde)
                 holder.btnDesactivar.text = "Reactivar"
                 holder.btnDesactivar.setTextColor(Color.parseColor("#16A34A"))
                 holder.btnDesactivar.strokeColor = ColorStateList.valueOf(Color.parseColor("#22C55E"))

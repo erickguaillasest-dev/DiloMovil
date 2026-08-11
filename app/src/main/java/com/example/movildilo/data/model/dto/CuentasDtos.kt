@@ -12,7 +12,7 @@ data class CuentaPorCobrarResponseDto(
     @SerializedName("factura") val factura: FacturaDto?,
     @SerializedName("clienteNombre") val clienteNombre: String?,
     @SerializedName("cuotas") val cuotas: List<CuotaDto>?,
-    var isExpanded: Boolean = false // Estado UI para expandir/colapsar cuotas
+    var isExpanded: Boolean = false
 )
 
 data class FacturaDto(

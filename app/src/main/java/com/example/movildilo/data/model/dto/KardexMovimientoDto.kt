@@ -2,9 +2,6 @@ package com.example.movildilo.data.model.dto
 
 import com.google.gson.annotations.SerializedName
 
-/**
- * Modelo para recibir la lista de movimientos del Kardex desde el Backend.
- */
 data class KardexMovimientoDto(
     @SerializedName("id") val id: Long? = null,
     @SerializedName("tipo", alternate = ["tipoMovimiento"]) val tipo: String? = null,
@@ -21,10 +18,6 @@ data class KardexMovimientoDto(
     @SerializedName("usuarioResponsableNombre", alternate = ["usuarioResponsable"]) val usuarioResponsableNombre: String? = null
 )
 
-/**
- * Payload exacto requerido por el endpoint POST /api/v1/negocios/{id}/kardex
- * Mapeado exactamente con la tabla transacciones_inventario y la app Angular.
- */
 data class NuevoAjusteRequestDto(
     @SerializedName("tipo") val tipo: String,
     @SerializedName("productoId") val productoId: Long,

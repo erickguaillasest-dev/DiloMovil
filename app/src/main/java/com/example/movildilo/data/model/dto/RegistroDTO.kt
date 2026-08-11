@@ -7,28 +7,28 @@ data class RegistroDto(
     val dni: String,
 
     @SerializedName("fotoPerfil")
-    val fotoPerfil: String? = null, // Puede ser null si no sube foto al inicio
+    val fotoPerfil: String? = null,
 
     @SerializedName("primerNombre")
     val primerNombre: String,
 
     @SerializedName("segundoNombre")
-    val segundoNombre: String? = null, // Opcional
+    val segundoNombre: String? = null,
 
     @SerializedName("apellidoPaterno")
     val apellidoPaterno: String,
 
     @SerializedName("apellidoMaterno")
-    val apellidoMaterno: String? = null, // Opcional
+    val apellidoMaterno: String? = null,
 
     @SerializedName("email")
     val email: String,
 
     @SerializedName("password")
-    val password: String, // Coincide con tu backend
+    val password: String,
 
     @SerializedName("fechaNacimiento")
-    val fechaNacimiento: String, // En formato "yyyy-MM-dd"
+    val fechaNacimiento: String,
 
     @SerializedName("telefono")
     val telefono: String? = null,
@@ -37,5 +37,5 @@ data class RegistroDto(
     val direccion: String? = null,
 
     @SerializedName("id_parroquia")
-    val id_parroquia: Long? = null // Coincide exactamente con el backend y con el Activity
+    val id_parroquia: Long? = null
 )

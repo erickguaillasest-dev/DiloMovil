@@ -14,6 +14,4 @@ data class CategoriaDto(
 
     @SerializedName("negocioId")
     val negocioId: Long? = null
-) {
-    override fun toString(): String = nombre
-}
+)

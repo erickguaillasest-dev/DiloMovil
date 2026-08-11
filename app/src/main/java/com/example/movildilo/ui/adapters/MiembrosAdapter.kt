@@ -39,21 +39,20 @@ class MiembrosAdapter(
         val nombre = miembro.nombreUsuario ?: "Sin nombre"
         holder.tvNombreMiembro.text = nombre
 
-        // Ya no mostramos correo (el DTO no lo trae); ocultamos esa línea
         holder.tvEmailMiembro.visibility = View.GONE
 
         holder.tvRolMiembro.text = (miembro.rol ?: "Sin rol").uppercase()
+        holder.tvRolMiembro.visibility = View.VISIBLE
 
-        // Avatar de iniciales (2 letras) en vez de foto
         holder.tvIniciales.text = obtenerIniciales(nombre)
 
         if (soloLectura) {
-            // Vista solo de consulta: se ocultan el botón de opciones (⌄) y el lápiz de editar rol
             holder.cardOpcionesMiembro.visibility = View.GONE
             holder.btnOpcionesMiembro.setOnClickListener(null)
             holder.btnOpcionesMiembro.isClickable = false
 
             holder.btnEditarRol.visibility = View.GONE
+            holder.btnEditarRol.setOnClickListener(null)
         } else {
             holder.cardOpcionesMiembro.visibility = View.VISIBLE
             holder.btnOpcionesMiembro.isClickable = true
@@ -62,6 +61,9 @@ class MiembrosAdapter(
             }
 
             holder.btnEditarRol.visibility = View.VISIBLE
+            holder.btnEditarRol.setOnClickListener {
+                onCambiarRolClick(miembro)
+            }
         }
     }
 

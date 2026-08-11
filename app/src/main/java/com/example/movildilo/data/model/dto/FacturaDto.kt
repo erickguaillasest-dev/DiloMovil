@@ -26,7 +26,6 @@ data class DetalleFacturaRequestDto(
     @SerializedName("productoId") val productoId: Long,
     @SerializedName("bodegaId") val bodegaId: Long,
     @SerializedName("cantidad") val cantidad: Int,
-    // Monto (no porcentaje) de descuento aplicado a esta línea específica.
     @SerializedName("descuento") val descuento: Double = 0.0,
     @SerializedName("tarjeta")val tarjeta: String? = null,
 )

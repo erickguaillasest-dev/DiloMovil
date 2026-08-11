@@ -59,6 +59,8 @@
     <color name="color_superficie">#FFFFFF</color>
     <color name="color_texto_principal">#0F172A</color>
     <color name="color_texto_secundario">#475569</color>
+    <color name="error_red">#DC2626</color>
+    <color name="error_red_bg">#FEF2F2</color>
     <color name="gris_400">#94A3B8</color>
     <color name="input_background">#F1F5F9</color>
     <color name="input_stroke">#E2E8F0</color>
