@@ -52,11 +52,18 @@ drawable bg_badge_activo
 drawable bg_badge_dni
 drawable bg_badge_editar_foto
 drawable bg_badge_rojo
+drawable bg_banner_rendimiento
 drawable bg_boton_outline
 drawable bg_boton_primario
 drawable bg_button_outline
 drawable bg_campo_entrada
 drawable bg_chat_input
+drawable bg_chip_amber
+drawable bg_chip_orange
+drawable bg_chip_orange_solid
+drawable bg_chip_red
+drawable bg_chip_slate
+drawable bg_chip_teal
 drawable bg_gradient_navy
 drawable bg_gradient_orange
 drawable bg_icon_circle
@@ -341,6 +348,7 @@ id ivAvatarUsuario
 id ivFotoPerfil
 id ivHeaderAvatar
 id ivIconoMetrica
+id ivIconoVoz
 id ivLogoNegocio
 id ivLogoPreview
 id ivTogglePassword
@@ -442,6 +450,8 @@ id tilRuc
 id tilSegundoNombre
 id tilTelefono
 id tilUnidadMedida
+id tvAlertIcon
+id tvAlertIconCxC
 id tvAvatarInicial
 id tvBadgeAlertas
 id tvBadgePendiente
@@ -485,6 +495,7 @@ id tvEstado
 id tvEstadoBadge
 id tvEstadoContabilidad
 id tvEstadoCuota
+id tvEstadoVoz
 id tvFacturaTempCantidad
 id tvFacturaTempDescuento
 id tvFacturaTempNombre

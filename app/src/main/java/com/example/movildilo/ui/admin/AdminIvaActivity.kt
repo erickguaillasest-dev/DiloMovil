@@ -9,9 +9,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.movildilo.R
-import com.example.movildilo.data.api.IvaRequestDto
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
+import com.example.movildilo.data.model.dto.IvaRequestDto
 import com.example.movildilo.utils.FormValidator
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder

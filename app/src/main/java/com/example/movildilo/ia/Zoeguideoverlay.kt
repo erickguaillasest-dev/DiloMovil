@@ -41,10 +41,20 @@ object ZoeGuideOverlay {
     private var ivMicrofono: ImageView? = null
     private var animacionMic: ObjectAnimator? = null
 
+    // 🔽 Parte "plegable" de la tarjeta (explicación + fila de botones). Antes la burbuja ocupaba
+    // todo el ancho de la pantalla y su altura completa quedaba encima del contenido, tapando el
+    // FAB de "Crear" en varias pantallas. Ahora es angosta (no todo el ancho), va pegada a la
+    // esquina inferior IZQUIERDA (los FAB de "crear" suelen estar a la derecha) y además se puede
+    // minimizar a una burbuja chica con el botón ▾/▸.
+    private var contenidoPlegable: LinearLayout? = null
+    private var btnPlegar: ImageView? = null
+    private var estaPlegado = false
+
     fun mostrar(activity: Activity, paso: GuiaPaso, esUltimo: Boolean) {
         val root = activity.findViewById<ViewGroup>(android.R.id.content) ?: return
         root.findViewWithTag<View>(TAG_OVERLAY)?.let { root.removeView(it) }
 
+        estaPlegado = false
         val vista = construirVista(activity, paso, esUltimo)
         vista.tag = TAG_OVERLAY
         root.addView(vista)
@@ -88,23 +98,30 @@ object ZoeGuideOverlay {
         tvExplicacion = null
         btnSiguiente = null
         ivMicrofono = null
+        contenidoPlegable = null
+        btnPlegar = null
     }
 
     private fun dp(activity: Activity, valor: Int): Int =
         TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, valor.toFloat(), activity.resources.displayMetrics).toInt()
 
     private fun construirVista(activity: Activity, paso: GuiaPaso, esUltimo: Boolean): View {
+        // Ancho máximo de la tarjeta: nunca todo el ancho de pantalla, para dejar libre la
+        // esquina inferior derecha (donde suelen vivir los FAB de "Crear").
+        val anchoMaximo = minOf(dp(activity, 300), (activity.resources.displayMetrics.widthPixels * 0.8f).toInt())
+
         val contenedorExterno = FrameLayout(activity).apply {
             layoutParams = FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
-                Gravity.BOTTOM
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM or Gravity.START
             ).also { it.setMargins(dp(activity, 12), 0, dp(activity, 12), dp(activity, 16)) }
         }
 
         val tarjeta = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(activity, 16))
+            layoutParams = FrameLayout.LayoutParams(anchoMaximo, ViewGroup.LayoutParams.WRAP_CONTENT)
             background = GradientDrawable().apply {
                 setColor(Color.parseColor("#1A2234"))
                 cornerRadius = dp(activity, 18).toFloat()
@@ -131,11 +148,29 @@ object ZoeGuideOverlay {
             textSize = 15f
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             setPadding(dp(activity, 10), 0, 0, 0)
+            maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.END
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         }
         tvTitulo = titulo
 
+        // Botón para plegar/desplegar la tarjeta a una burbuja mínima, por si aun así estorba.
+        val plegar = ImageView(activity).apply {
+            layoutParams = LinearLayout.LayoutParams(dp(activity, 24), dp(activity, 24)).also {
+                it.marginStart = dp(activity, 6)
+            }
+            setImageResource(android.R.drawable.arrow_down_float)
+            setColorFilter(Color.parseColor("#94A3B8"))
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            isClickable = true
+            isFocusable = true
+            contentDescription = "Minimizar la guía de Zoe"
+        }
+        btnPlegar = plegar
+
         filaTitulo.addView(avatar)
         filaTitulo.addView(titulo)
+        filaTitulo.addView(plegar)
 
         val explicacion = TextView(activity).apply {
             text = paso.explicacion
@@ -202,9 +237,25 @@ object ZoeGuideOverlay {
         filaBotones.addView(btnDetener)
         filaBotones.addView(siguiente, paramsBtnSiguiente)
 
+        // Envoltorio de todo lo que se pliega/despliega (todo menos la fila del título).
+        val plegable = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(explicacion)
+            addView(filaBotones)
+        }
+        contenidoPlegable = plegable
+
+        plegar.setOnClickListener {
+            estaPlegado = !estaPlegado
+            plegable.visibility = if (estaPlegado) View.GONE else View.VISIBLE
+            plegar.setImageResource(
+                if (estaPlegado) android.R.drawable.arrow_up_float else android.R.drawable.arrow_down_float
+            )
+            plegar.contentDescription = if (estaPlegado) "Expandir la guía de Zoe" else "Minimizar la guía de Zoe"
+        }
+
         tarjeta.addView(filaTitulo)
-        tarjeta.addView(explicacion)
-        tarjeta.addView(filaBotones)
+        tarjeta.addView(plegable)
 
         contenedorExterno.addView(tarjeta)
         return contenedorExterno

@@ -50,11 +50,18 @@ int drawable bg_badge_activo 0x0
 int drawable bg_badge_dni 0x0
 int drawable bg_badge_editar_foto 0x0
 int drawable bg_badge_rojo 0x0
+int drawable bg_banner_rendimiento 0x0
 int drawable bg_boton_outline 0x0
 int drawable bg_boton_primario 0x0
 int drawable bg_button_outline 0x0
 int drawable bg_campo_entrada 0x0
 int drawable bg_chat_input 0x0
+int drawable bg_chip_amber 0x0
+int drawable bg_chip_orange 0x0
+int drawable bg_chip_orange_solid 0x0
+int drawable bg_chip_red 0x0
+int drawable bg_chip_slate 0x0
+int drawable bg_chip_teal 0x0
 int drawable bg_gradient_navy 0x0
 int drawable bg_gradient_orange 0x0
 int drawable bg_icon_circle 0x0
@@ -339,6 +346,7 @@ int id ivAvatarUsuario 0x0
 int id ivFotoPerfil 0x0
 int id ivHeaderAvatar 0x0
 int id ivIconoMetrica 0x0
+int id ivIconoVoz 0x0
 int id ivLogoNegocio 0x0
 int id ivLogoPreview 0x0
 int id ivTogglePassword 0x0
@@ -440,6 +448,8 @@ int id tilRuc 0x0
 int id tilSegundoNombre 0x0
 int id tilTelefono 0x0
 int id tilUnidadMedida 0x0
+int id tvAlertIcon 0x0
+int id tvAlertIconCxC 0x0
 int id tvAvatarInicial 0x0
 int id tvBadgeAlertas 0x0
 int id tvBadgePendiente 0x0
@@ -483,6 +493,7 @@ int id tvEstado 0x0
 int id tvEstadoBadge 0x0
 int id tvEstadoContabilidad 0x0
 int id tvEstadoCuota 0x0
+int id tvEstadoVoz 0x0
 int id tvFacturaTempCantidad 0x0
 int id tvFacturaTempDescuento 0x0
 int id tvFacturaTempNombre 0x0

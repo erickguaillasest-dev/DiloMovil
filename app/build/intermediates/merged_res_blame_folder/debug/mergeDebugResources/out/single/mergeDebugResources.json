@@ -16,12 +16,12 @@
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\xml\\backup_rules.xml"
     },
     {
-        "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\drawable_file_paths.xml.flat",
-        "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\drawable\\file_paths.xml"
-    },
-    {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\mipmap-xxxhdpi_ic_launcher_foreground.webp.flat",
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\mipmap-xxxhdpi\\ic_launcher_foreground.webp"
+    },
+    {
+        "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\drawable_file_paths.xml.flat",
+        "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\drawable\\file_paths.xml"
     },
     {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\drawable_bg_badge_editar_foto.xml.flat",
@@ -32,8 +32,16 @@
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\mipmap-hdpi\\ic_launcher.webp"
     },
     {
+        "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\drawable_bg_chip_teal.xml.flat",
+        "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\drawable\\bg_chip_teal.xml"
+    },
+    {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\layout_bottom_sheet_zoe_chat.xml.flat",
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\layout\\bottom_sheet_zoe_chat.xml"
+    },
+    {
+        "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\drawable_bg_chip_orange.xml.flat",
+        "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\drawable\\bg_chip_orange.xml"
     },
     {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\layout_dialog_nuevo_ajuste_manual.xml.flat",
@@ -48,24 +56,24 @@
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\layout\\item_inventario_bodega.xml"
     },
     {
-        "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\layout_activity_perfil.xml.flat",
-        "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\layout\\activity_perfil.xml"
-    },
-    {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\layout_item_cliente.xml.flat",
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\layout\\item_cliente.xml"
+    },
+    {
+        "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\layout_activity_perfil.xml.flat",
+        "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\layout\\activity_perfil.xml"
     },
     {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\drawable_ic_invoice.xml.flat",
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\drawable\\ic_invoice.xml"
     },
     {
-        "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\layout_activity_proveedores.xml.flat",
-        "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\layout\\activity_proveedores.xml"
-    },
-    {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\layout_dialog_ingresar_codigo.xml.flat",
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\layout\\dialog_ingresar_codigo.xml"
+    },
+    {
+        "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\layout_activity_proveedores.xml.flat",
+        "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\layout\\activity_proveedores.xml"
     },
     {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\drawable_bg_campo_entrada.xml.flat",
@@ -84,6 +92,10 @@
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\layout\\activity_vendedor.xml"
     },
     {
+        "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\drawable_bg_banner_rendimiento.xml.flat",
+        "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\drawable\\bg_banner_rendimiento.xml"
+    },
+    {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\layout_activity_admin_negocios.xml.flat",
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\layout\\activity_admin_negocios.xml"
     },
@@ -100,6 +112,10 @@
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\drawable\\ic_profile.xml"
     },
     {
+        "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\drawable_bg_rounded_field_error.xml.flat",
+        "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\drawable\\bg_rounded_field_error.xml"
+    },
+    {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\mipmap-xxxhdpi_ic_launcher_round.webp.flat",
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\mipmap-xxxhdpi\\ic_launcher_round.webp"
     },
@@ -108,8 +124,16 @@
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\drawable\\bg_button_outline.xml"
     },
     {
+        "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\drawable_bg_chip_orange_solid.xml.flat",
+        "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\drawable\\bg_chip_orange_solid.xml"
+    },
+    {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\layout_item_factura.xml.flat",
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\layout\\item_factura.xml"
+    },
+    {
+        "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\drawable_bg_chip_red.xml.flat",
+        "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\drawable\\bg_chip_red.xml"
     },
     {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\layout_item_categoria.xml.flat",
@@ -176,6 +200,10 @@
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\layout\\dialog_usuario.xml"
     },
     {
+        "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\drawable_bg_chip_amber.xml.flat",
+        "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\drawable\\bg_chip_amber.xml"
+    },
+    {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\layout_dialog_registrar_compra.xml.flat",
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\layout\\dialog_registrar_compra.xml"
     },
@@ -214,6 +242,10 @@
     {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\layout_dialog_lotes_producto.xml.flat",
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\layout\\dialog_lotes_producto.xml"
+    },
+    {
+        "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\drawable_bg_chip_slate.xml.flat",
+        "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\drawable\\bg_chip_slate.xml"
     },
     {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\drawable_bg_chat_input.xml.flat",
@@ -258,10 +290,6 @@
     {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\mipmap-xhdpi_ic_launcher_foreground.webp.flat",
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\mipmap-xhdpi\\ic_launcher_foreground.webp"
-    },
-    {
-        "merged": "com.example.movildilo.app-debug-47:/layout_dialog_cliente_form.xml.flat",
-        "source": "com.example.movildilo.app-main-49:/layout/dialog_cliente_form.xml"
     },
     {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\layout_activity_select_role.xml.flat",
@@ -316,10 +344,6 @@
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\layout\\activity_admin.xml"
     },
     {
-        "merged": "com.example.movildilo.app-debug-47:/layout_dialog_editar_negocio.xml.flat",
-        "source": "com.example.movildilo.app-main-49:/layout/dialog_editar_negocio.xml"
-    },
-    {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\layout_activity_rendimiento_comercial.xml.flat",
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\layout\\activity_rendimiento_comercial.xml"
     },
@@ -344,18 +368,6 @@
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\drawable\\ic_producto.xml"
     },
     {
-        "merged": "com.example.movildilo.app-debug-47:/drawable_bg_rounded_field_error.xml.flat",
-        "source": "com.example.movildilo.app-main-49:/drawable/bg_rounded_field_error.xml"
-    },
-    {
-        "merged": "com.example.movildilo.app-debug-47:/layout_activity_admin_usuarios.xml.flat",
-        "source": "com.example.movildilo.app-main-49:/layout/activity_admin_usuarios.xml"
-    },
-    {
-        "merged": "com.example.movildilo.app-debug-47:/layout_dialog_producto.xml.flat",
-        "source": "com.example.movildilo.app-main-49:/layout/dialog_producto.xml"
-    },
-    {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\layout_activity_historial_facturas.xml.flat",
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\layout\\activity_historial_facturas.xml"
     },
@@ -374,10 +386,6 @@
     {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\drawable_bg_avatar_circulo.xml.flat",
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\drawable\\bg_avatar_circulo.xml"
-    },
-    {
-        "merged": "com.example.movildilo.app-debug-47:/layout_dialog_usuario.xml.flat",
-        "source": "com.example.movildilo.app-main-49:/layout/dialog_usuario.xml"
     },
     {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\layout_dialog_detalle_compra.xml.flat",
@@ -508,10 +516,6 @@
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\drawable\\bg_input_field.xml"
     },
     {
-        "merged": "com.example.movildilo.app-debug-47:/layout_activity_perfil.xml.flat",
-        "source": "com.example.movildilo.app-main-49:/layout/activity_perfil.xml"
-    },
-    {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\drawable_bg_badge_activo.xml.flat",
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\drawable\\bg_badge_activo.xml"
     },
@@ -532,10 +536,6 @@
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\drawable\\bg_info_card.xml"
     },
     {
-        "merged": "com.example.movildilo.app-debug-47:/layout_activity_login.xml.flat",
-        "source": "com.example.movildilo.app-main-49:/layout/activity_login.xml"
-    },
-    {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\layout_item_producto_catalogo.xml.flat",
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\layout\\item_producto_catalogo.xml"
     },
@@ -552,12 +552,12 @@
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\mipmap-mdpi\\ic_launcher_round.webp"
     },
     {
-        "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\drawable_bg_gradient_navy.xml.flat",
-        "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\drawable\\bg_gradient_navy.xml"
+        "merged": "com.example.movildilo.app-debug-47:/layout_activity_propietario.xml.flat",
+        "source": "com.example.movildilo.app-main-49:/layout/activity_propietario.xml"
     },
     {
-        "merged": "com.example.movildilo.app-debug-47:/layout_activity_admin_iva.xml.flat",
-        "source": "com.example.movildilo.app-main-49:/layout/activity_admin_iva.xml"
+        "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\drawable_bg_gradient_navy.xml.flat",
+        "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\drawable\\bg_gradient_navy.xml"
     },
     {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\layout_item_producto.xml.flat",

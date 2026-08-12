@@ -45,6 +45,7 @@
         android:label="Dilo"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
+        android:testOnly="true"
         android:theme="@style/Theme.MaterialComponents.Light.NoActionBar"
         android:usesCleartextTraffic="true" >
 
@@ -110,7 +111,7 @@
             android:exported="false"
             android:windowSoftInputMode="adjustNothing" />
         <activity
-            android:name="com.example.movildilo.ui.propietario.HistorialFacturasActivity"
+            android:name="com.example.movildilo.ui.facturas.HistorialFacturasActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustNothing" />
         <activity
@@ -118,7 +119,7 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity
-            android:name="com.example.movildilo.ui.propietario.KardexActivity"
+            android:name="com.example.movildilo.ui.Kardex.KardexActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity

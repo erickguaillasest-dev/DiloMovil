@@ -27,7 +27,15 @@ import androidx.lifecycle.lifecycleScope
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
+import com.example.movildilo.data.model.dto.ClienteTopDto
+import com.example.movildilo.data.model.dto.ComparativaItemDto
+import com.example.movildilo.data.model.dto.DiaCalorDto
+import com.example.movildilo.data.model.dto.DiaSemanaItemDto
 import com.example.movildilo.data.model.dto.FacturaResponseDto
+import com.example.movildilo.data.model.dto.FormaPagoItemDto
+import com.example.movildilo.data.model.dto.HoraItemDto
+import com.example.movildilo.data.model.dto.ProductoDemandaDto
+import com.example.movildilo.data.model.dto.SerieDiariaItemDto
 import com.google.android.material.card.MaterialCardView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -41,24 +49,7 @@ import kotlin.math.round
 
 class RendimientoComercialActivity : AppCompatActivity() {
 
-    private data class DiaCalor(
-        val fecha: String,
-        val label: String,
-        val diaSemana: String,
-        val total: Double,
-        val cantidad: Int,
-        val intensidad: Double
-    )
 
-    private data class ProductoDemanda(val nombre: String, val unidades: Int, val ingresos: Double, val porcentaje: Int)
-    private data class ComparativaItem(val label: String, val actual: Double, val anterior: Double, val variacion: Double)
-    private data class ClienteTop(val nombre: String, val total: Double, val facturas: Int, val porcentaje: Int)
-    private data class FormaPagoItem(val nombre: String, val total: Double, val porcentaje: Int)
-    private data class DiaSemanaItem(val nombre: String, val total: Double, val intensidad: Double)
-    private data class HoraItem(val hora: String, val total: Double, val intensidad: Double)
-    private data class SerieDiariaItem(val label: String, val total: Double, val altura: Int)
-
-    // ---------- Vistas ----------
     private lateinit var chip7: TextView
     private lateinit var chip30: TextView
     private lateinit var chip90: TextView
@@ -102,14 +93,14 @@ class RendimientoComercialActivity : AppCompatActivity() {
     private var mejorRacha = 0
     private var rachaActivaHoy = false
 
-    private var comparativas: List<ComparativaItem> = emptyList()
-    private var heatmapDias: List<DiaCalor> = emptyList()
-    private var calorPorDiaSemana: List<DiaSemanaItem> = emptyList()
-    private var calorPorHora: List<HoraItem> = emptyList()
-    private var topProductos: List<ProductoDemanda> = emptyList()
-    private var topClientes: List<ClienteTop> = emptyList()
-    private var porFormaPago: List<FormaPagoItem> = emptyList()
-    private var serieDiaria: List<SerieDiariaItem> = emptyList()
+    private var comparativas: List<ComparativaItemDto> = emptyList()
+    private var heatmapDias: List<DiaCalorDto> = emptyList()
+    private var calorPorDiaSemana: List<DiaSemanaItemDto> = emptyList()
+    private var calorPorHora: List<HoraItemDto> = emptyList()
+    private var topProductos: List<ProductoDemandaDto> = emptyList()
+    private var topClientes: List<ClienteTopDto> = emptyList()
+    private var porFormaPago: List<FormaPagoItemDto> = emptyList()
+    private var serieDiaria: List<SerieDiariaItemDto> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -260,7 +251,7 @@ class RendimientoComercialActivity : AppCompatActivity() {
         val maxTotal = max(mapaDia.values.maxOfOrNull { it.total } ?: 1.0, 1.0)
         heatmapDias = mapaDia.entries.map { (fecha, v) ->
             val d = parseFechaSimple(fecha)
-            DiaCalor(
+            DiaCalorDto(
                 fecha = fecha,
                 label = fmtDiaMes(d),
                 diaSemana = nombreDiaCorto(d),
@@ -273,7 +264,7 @@ class RendimientoComercialActivity : AppCompatActivity() {
         val ultimos = heatmapDias.takeLast(minOf(14, periodoDias))
         val maxBarra = max(ultimos.maxOfOrNull { it.total } ?: 1.0, 1.0)
         serieDiaria = ultimos.map {
-            SerieDiariaItem(it.label, it.total, max(4, round((it.total / maxBarra) * 100).toInt()))
+            SerieDiariaItemDto(it.label, it.total, max(4, round((it.total / maxBarra) * 100).toInt()))
         }
 
         calcularRachas(mapaDia.mapValues { it.value.cantidad }, ahora)
@@ -285,7 +276,7 @@ class RendimientoComercialActivity : AppCompatActivity() {
             acumDia[d.get(Calendar.DAY_OF_WEEK) - 1] += f.totalCalculado
         }
         val maxDiaSem = max(acumDia.maxOrNull() ?: 1.0, 1.0)
-        calorPorDiaSemana = diasSem.mapIndexed { i, nombre -> DiaSemanaItem(nombre, acumDia[i], acumDia[i] / maxDiaSem) }
+        calorPorDiaSemana = diasSem.mapIndexed { i, nombre -> DiaSemanaItemDto(nombre, acumDia[i], acumDia[i] / maxDiaSem) }
 
         val acumHora = DoubleArray(24)
         facturasPeriodo.forEach { f ->
@@ -293,16 +284,16 @@ class RendimientoComercialActivity : AppCompatActivity() {
             acumHora[d.get(Calendar.HOUR_OF_DAY)] += f.totalCalculado
         }
         val maxHora = max(acumHora.maxOrNull() ?: 1.0, 1.0)
-        calorPorHora = acumHora.mapIndexed { h, total -> HoraItem(String.format(Locale.US, "%02d:00", h), total, total / maxHora) }
+        calorPorHora = acumHora.mapIndexed { h, total -> HoraItemDto(String.format(Locale.US, "%02d:00", h), total, total / maxHora) }
 
         val ventasAnt = facturasAnterior.sumOf { it.totalCalculado }
         val facturasAnt = facturasAnterior.size
         val diasAntSet = facturasAnterior.mapNotNull { parseFecha(it.fechaEmision) }.map { keyFecha(it) }.toSet()
 
         comparativas = listOf(
-            ComparativaItem("Ventas totales", ventasPeriodo, ventasAnt, variacionPct(ventasPeriodo, ventasAnt)),
-            ComparativaItem("Facturas emitidas", facturasPeriodoCount.toDouble(), facturasAnt.toDouble(), variacionPct(facturasPeriodoCount.toDouble(), facturasAnt.toDouble())),
-            ComparativaItem("Días con venta", diasConVenta.toDouble(), diasAntSet.size.toDouble(), variacionPct(diasConVenta.toDouble(), diasAntSet.size.toDouble()))
+            ComparativaItemDto("Ventas totales", ventasPeriodo, ventasAnt, variacionPct(ventasPeriodo, ventasAnt)),
+            ComparativaItemDto("Facturas emitidas", facturasPeriodoCount.toDouble(), facturasAnt.toDouble(), variacionPct(facturasPeriodoCount.toDouble(), facturasAnt.toDouble())),
+            ComparativaItemDto("Días con venta", diasConVenta.toDouble(), diasAntSet.size.toDouble(), variacionPct(diasConVenta.toDouble(), diasAntSet.size.toDouble()))
         )
 
         data class AcumProd(var unidades: Int = 0, var ingresos: Double = 0.0)
@@ -320,7 +311,7 @@ class RendimientoComercialActivity : AppCompatActivity() {
             .take(8)
         val maxIng = listaProd.firstOrNull()?.third ?: 1.0
         topProductos = listaProd.map { (nombre, unidades, ingresos) ->
-            ProductoDemanda(nombre, unidades, ingresos, round((ingresos / max(maxIng, 1.0)) * 100).toInt())
+            ProductoDemandaDto(nombre, unidades, ingresos, round((ingresos / max(maxIng, 1.0)) * 100).toInt())
         }
 
         data class AcumCli(var total: Double = 0.0, var facturas: Int = 0)
@@ -336,7 +327,7 @@ class RendimientoComercialActivity : AppCompatActivity() {
             .take(6)
         val maxCli = listaCli.firstOrNull()?.second ?: 1.0
         topClientes = listaCli.map { (nombre, total, facturasCount) ->
-            ClienteTop(nombre, total, facturasCount, round((total / max(maxCli, 1.0)) * 100).toInt())
+            ClienteTopDto(nombre, total, facturasCount, round((total / max(maxCli, 1.0)) * 100).toInt())
         }
 
         val mapPago = LinkedHashMap<String, Double>()
@@ -346,7 +337,7 @@ class RendimientoComercialActivity : AppCompatActivity() {
         }
         val totalPago = max(mapPago.values.sum(), 1.0)
         porFormaPago = mapPago.entries.map { (nombre, total) ->
-            FormaPagoItem(nombre, total, round((total / totalPago) * 100).toInt())
+            FormaPagoItemDto(nombre, total, round((total / totalPago) * 100).toInt())
         }.sortedByDescending { it.total }
     }
 
@@ -385,7 +376,6 @@ class RendimientoComercialActivity : AppCompatActivity() {
         rachaActual = racha
     }
 
-    // ---------- Utilidades de fecha ----------
     private fun parseFecha(raw: String?): Calendar? {
         if (raw.isNullOrBlank()) return null
         return try {
@@ -466,7 +456,6 @@ class RendimientoComercialActivity : AppCompatActivity() {
 
     private fun fmtMoney(n: Double): String = String.format(Locale.US, "%,.2f", n)
 
-    // ---------- Render de UI ----------
     private fun renderTodo() {
         renderKpis()
         renderRacha()
@@ -575,7 +564,7 @@ class RendimientoComercialActivity : AppCompatActivity() {
         }
     }
 
-    private fun crearTarjetaComparativa(c: ComparativaItem): View {
+    private fun crearTarjetaComparativa(c: ComparativaItemDto): View {
         val esMoneda = c.label.contains("Ventas")
         val card = MaterialCardView(this).apply {
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
@@ -733,7 +722,6 @@ class RendimientoComercialActivity : AppCompatActivity() {
         }
     }
 
-    /** Crea una barra tipo "progress" usando pesos, ya que no se puede medir el ancho del padre en tiempo de creación. */
     private fun crearBarraProgreso(fraccion: Double, colorFill: Int): View {
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -913,7 +901,6 @@ class RendimientoComercialActivity : AppCompatActivity() {
     private fun dp(value: Float): Float =
         TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, resources.displayMetrics)
 
-    // ---------- Exportar PDF ----------
     private fun exportarPdf() {
         if (exportandoPdf || isLoading) return
         exportandoPdf = true
@@ -982,7 +969,6 @@ class RendimientoComercialActivity : AppCompatActivity() {
         var y = 0f
         var pageNum = 1
 
-        // ---------- Helpers de dibujo ----------
         fun rr(rect: RectF, radius: Float, color: Int) {
             val p = Paint().apply { isAntiAlias = true; this.color = color; style = Paint.Style.FILL }
             canvas.drawRoundRect(rect, radius, radius, p)
@@ -1053,7 +1039,6 @@ class RendimientoComercialActivity : AppCompatActivity() {
             if (f > 0f) rr(RectF(x, yTop, x + w * f, yTop + h), h / 2, colorFill)
         }
 
-        // Paints reutilizables
         val paintSeccion = Paint().apply { color = cNavy; textSize = 13f; isFakeBoldText = true; isAntiAlias = true }
         val paintSubSeccion = Paint().apply { color = cMutedLight; textSize = 9f; isAntiAlias = true }
         val paintLabelMuted = Paint().apply { color = cMuted; textSize = 8.5f; isFakeBoldText = true; isAntiAlias = true }
@@ -1076,7 +1061,6 @@ class RendimientoComercialActivity : AppCompatActivity() {
             if (y + necesario > pageHeight - 34) nuevaPagina()
         }
 
-        // ---------- Encabezado ----------
         canvas.drawRect(0f, 0f, pageWidth.toFloat(), 96f, Paint().apply { color = cNavy })
         val paintTitle = Paint().apply { color = Color.WHITE; textSize = 18f; isFakeBoldText = true; isAntiAlias = true }
         val paintSubtitle = Paint().apply { color = cNavySubtitle; textSize = 10.5f; isAntiAlias = true }
@@ -1094,7 +1078,6 @@ class RendimientoComercialActivity : AppCompatActivity() {
 
         y = 116f
 
-        // ---------- KPIs ----------
         val kpiH = 58f
         fun tarjetaKpi(valor: String, label: String, accent: Int, iconBg: Int, textColor: Int, icono: String) {
             asegurarEspacio(kpiH + 10f)
@@ -1120,7 +1103,6 @@ class RendimientoComercialActivity : AppCompatActivity() {
         tarjetaKpi(facturasPeriodoCount.toString(), "Facturas emitidas", cBlue, cBlueBg, cBlueText, "factura")
         tarjetaKpi(diasConVenta.toString(), "Días con venta", cPurple, cPurpleBg, cPurpleText, "calendario")
 
-        // ---------- Racha ----------
         val activa = rachaActual > 0
         val badgePrefix = when {
             rachaActual >= 7 -> "En racha · "
@@ -1154,7 +1136,6 @@ class RendimientoComercialActivity : AppCompatActivity() {
         }
         y += rachaH + 18f
 
-        // ---------- Comparativa vs periodo anterior ----------
         asegurarEspacio(30f)
         canvas.drawText("Comparativa de desempeño", margin, y, paintSeccion)
         y += 12f
@@ -1183,7 +1164,6 @@ class RendimientoComercialActivity : AppCompatActivity() {
             y += cardH + 10f
         }
 
-        // ---------- Demanda por día de la semana ----------
         y += 6f
         asegurarEspacio(30f)
         canvas.drawText("Demanda por día de la semana", margin, y, paintSeccion)
@@ -1200,7 +1180,6 @@ class RendimientoComercialActivity : AppCompatActivity() {
             y += 18f
         }
 
-        // ---------- Ranking (productos / clientes) ----------
         fun dibujarItemRanking(numero: Int, titulo: String, subtitulo: String, porcentaje: Int, colorAccent: Int, colorBadgeBg: Int, colorBadgeText: Int) {
             val itemH = 34f
             asegurarEspacio(itemH + 4f)
@@ -1251,7 +1230,6 @@ class RendimientoComercialActivity : AppCompatActivity() {
             }
         }
 
-        // ---------- Formas de pago ----------
         y += 8f
         asegurarEspacio(30f)
         canvas.drawText("Formas de pago", margin, y, paintSeccion)
@@ -1271,7 +1249,6 @@ class RendimientoComercialActivity : AppCompatActivity() {
             }
         }
 
-        // ---------- Ventas diarias (tabla) ----------
         y += 8f
         asegurarEspacio(40f)
         canvas.drawText("Ventas diarias (días con movimiento)", margin, y, paintSeccion)

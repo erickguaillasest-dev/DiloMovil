@@ -1,17 +1,6 @@
 package com.example.movildilo.ia
 
-/**
- * 📚 Manual de conocimiento de Zoe (chat general de texto/voz).
- *
- * Este archivo NO tiene lógica de red ni de UI: solo arma el "system prompt" que se le
- * manda a la IA para que sepa responder CUALQUIER pregunta sobre lo que la app puede hacer
- * (módulos, pantallas, botones, roles, etc.), además del contexto real del negocio.
- *
- * Se deja aislado a propósito (mismo criterio que ZoeVoiceAI.kt) para que:
- *   1) ZoeBottomSheetDialog.kt no se llene de texto de prompt gigante.
- *   2) Si agregan una pantalla/módulo nuevo a la app, solo hay que añadir una línea aquí,
- *      sin tocar la lógica del chat, de la voz, ni de la UI.
- */
+
 object ZoeKnowledgeBase {
 
     /**
@@ -59,7 +48,6 @@ object ZoeKnowledgeBase {
     )
 
     private val FUNCIONES_SOLO_WEB = listOf(
-        "Configuración fiscal avanzada: firma electrónica, RUC legal completo y método de costeo detallado.",
         "Exportación e impresión masiva de reportes contables, auditorías y balances de pérdidas/ganancias en Excel/PDF.",
         "Panel de Super Administrador: gestión global de negocios, usuarios, parroquias e IVA del sistema (solo para el rol ADMIN)."
     )

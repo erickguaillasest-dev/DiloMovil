@@ -19,11 +19,12 @@ import com.example.movildilo.data.model.dto.CategoriaDto
 import com.example.movildilo.data.model.dto.ClienteResponseDto
 import com.example.movildilo.data.model.dto.FacturaResponseDto
 import com.example.movildilo.data.model.dto.InventarioResponseDto
-import com.example.movildilo.data.model.dto.KardexMovimientoDto
 import com.example.movildilo.data.model.dto.ProductoResponseDto
+import com.example.movildilo.ui.Kardex.KardexActivity
 import com.example.movildilo.ui.adapters.MiembrosAdapter
 import com.example.movildilo.ui.auth.LoginActivity
 import com.example.movildilo.ui.bodegas.BodegasActivity
+import com.example.movildilo.ui.facturas.HistorialFacturasActivity
 import com.example.movildilo.ui.propietario.*
 import com.example.movildilo.utils.Constants
 import com.google.android.material.button.MaterialButton
@@ -39,7 +40,7 @@ import java.util.Locale
 
 class PropietarioActivity : AppCompatActivity() {
 
-    // Vistas
+
     private lateinit var ivAvatar: ShapeableImageView
     private lateinit var tvWelcome: TextView
     private lateinit var tvBusinessName: TextView
@@ -83,8 +84,6 @@ class PropietarioActivity : AppCompatActivity() {
     private var negocioNombreReal: String = "Mi Empresa"
 
 
-
-    // Datos recopilados para Zoe
     private var contextoNegocioTexto: String = "Aún no se ha cargado la información del negocio."
     private var alertasTexto: String = "No hay productos próximos a caducar en los siguientes 30 días."
 

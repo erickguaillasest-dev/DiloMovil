@@ -17,9 +17,9 @@ import com.example.movildilo.ui.propietario.ClientesActivity
 import com.example.movildilo.ui.propietario.ComprasActivity
 import com.example.movildilo.ui.propietario.ConfiguracionNegocioActivity
 import com.example.movildilo.ui.propietario.CuentasPorCobrarActivity
-import com.example.movildilo.ui.propietario.HistorialFacturasActivity
+import com.example.movildilo.ui.facturas.HistorialFacturasActivity
 import com.example.movildilo.ui.propietario.InventarioBodegasActivity
-import com.example.movildilo.ui.propietario.KardexActivity
+import com.example.movildilo.ui.Kardex.KardexActivity
 import com.example.movildilo.ui.propietario.Mi_equipo
 import com.example.movildilo.ui.propietario.Perfil
 import com.example.movildilo.ui.propietario.ProveedoresActivity
@@ -32,41 +32,19 @@ data class GuiaPaso(
     val activityDestino: Class<out Activity>? = null
 )
 
-/**
- * 🧭 Guía de bienvenida por voz de Zoe.
- *
- * Recorre, pantalla por pantalla, los módulos reales de la app (navegando de verdad entre las
- * Activities) explicando en voz alta para qué sirve cada una. Pensada para un usuario nuevo que
- * recién entra al negocio: empieza creando una bodega (todo lo demás depende de tener al menos
- * una) y termina emitiendo su primera factura de práctica.
- *
- * Cómo funciona sin tocar cada Activity una por una:
- *   - [DiloApplication] registra un ActivityLifecycleCallbacks que, mientras la guía está activa,
- *     agrega automáticamente la burbuja flotante de Zoe ([ZoeGuideOverlay]) sobre cualquier
- *     Activity que se abra o reanude.
- *   - Mientras guía, escucha en bucle por el micrófono (ver [ZoeSpeechHelper.escucharComandosDeGuia]):
- *       · "detente" / "cállate" / "para" → detiene la guía por completo.
- *       · "siguiente" / "avanza" / "continúa" (o tocar el botón) → pasa al siguiente paso.
- *       · Cualquier orden de crear algo que Zoe reconozca ("agrega una bodega", "crea un
- *         producto"...) → te lleva directo a esa pantalla con el formulario ya abierto, sin
- *         salir de la guía; cuando termines, solo dile "siguiente" para retomar el recorrido.
- */
 object ZoeOnboardingManager {
+
+    private const val CODIGO_PERMISO_MICROFONO = 9821
 
     private var activa = false
     private var pasoActual = -1
     private var pasos: List<GuiaPaso> = emptyList()
     private var voz: ZoeSpeechHelper? = null
     private var rolActual: String = "PROPIETARIO"
+    private var escuchandoManualmente = false
 
     val enCurso: Boolean get() = activa
 
-    /**
-     * Pasos para el rol PROPIETARIO: recorre todos los módulos administrativos del negocio.
-     * Empieza SIEMPRE por Bodegas (todo lo demás —productos, compras, inventario, ventas—
-     * depende de tener al menos una) y termina en Facturas, emitiendo una factura de práctica
-     * como cierre del recorrido.
-     */
     private fun pasosPropietario() = listOf(
         GuiaPaso(
             "Panel de Control",
@@ -139,10 +117,6 @@ object ZoeOnboardingManager {
         )
     )
 
-    /**
-     * Pasos para el rol VENDEDOR: se enfoca en lo comercial (facturar, clientes, cobros).
-     * Termina también en Facturas, con la emisión de una factura de práctica.
-     */
     private fun pasosVendedor() = listOf(
         GuiaPaso(
             "Panel de Vendedor",
@@ -165,7 +139,6 @@ object ZoeOnboardingManager {
         )
     )
 
-    /** Pasos para el rol BODEGUERO: enfocado en catálogo, inventario y abastecimiento (sin Facturas). */
     private fun pasosBodeguero() = listOf(
         GuiaPaso(
             "Panel de Bodeguero",
@@ -209,89 +182,83 @@ object ZoeOnboardingManager {
         else -> pasosPropietario()
     }
 
-    /** Pantalla de inicio (dashboard) a la que vuelve cada rol al terminar su recorrido. */
     private fun pantallaInicioPorRol(rol: String): Class<out Activity> = when (rol.uppercase()) {
         "VENDEDOR", "CAJERO" -> VendedorActivity::class.java
         "BODEGUERO", "INVENTARIO" -> BodegueroActivity::class.java
         else -> PropietarioActivity::class.java
     }
 
-    /** Empieza la guía desde la pantalla actual. [activity] es la Activity de inicio (el dashboard). */
     fun iniciar(activity: AppCompatActivity, rol: String) {
-        detener(activity) // por si había una guía previa colgada
+        detener(activity, decirDespedida = false)
 
         pasos = pasosParaRol(rol)
         pasoActual = 0
         activa = true
         rolActual = rol
 
-        // El primer paso se muestra YA MISMO, sin esperar a que el motor de voz esté listo:
-        // así el mensaje ("Esta es tu pantalla de inicio...") se ve de inmediato en la pantalla
-        // principal, en vez de aparecer recién cuando el usuario entra a otra sección.
         ZoeGuideOverlay.mostrar(activity, pasos[0], esUltimo = pasos.size == 1)
 
         voz = ZoeSpeechHelper(activity.applicationContext).also { helper ->
             helper.inicializar(
                 onListo = {
-                    escucharComandosDeLaGuia(activity)
-                    helper.hablar(pasos[0].explicacion)
+                    if (activa && !activity.isFinishing && !activity.isDestroyed) {
+                        escucharComandosDeLaGuia(activity)
+                        helper.hablar(pasos[0].explicacion)
+                    }
                 },
                 onFallo = {
-                    // Sin voz disponible en el dispositivo: el mensaje igual queda visible en la
-                    // burbuja, y dejamos escuchar comandos (avanzar, "agrega una bodega"...)
-                    // aunque Zoe no pueda leerlo en voz alta.
-                    escucharComandosDeLaGuia(activity)
+                    if (activa && !activity.isFinishing && !activity.isDestroyed) {
+                        escucharComandosDeLaGuia(activity)
+                    }
                 }
             )
         }
     }
 
-    /** Avanza al siguiente paso: si requiere otra pantalla, la abre de verdad. */
+    /** Avanza al siguiente paso: abre la nueva pantalla y cierra la anterior si no es el inicio. */
     fun siguiente(activity: AppCompatActivity) {
-        if (!activa) return
+        if (!activa || activity.isFinishing || activity.isDestroyed) return
         voz?.detenerHabla()
         voz?.detenerEscuchaDeComandos()
 
         if (pasoActual >= pasos.size - 1) {
-            // Recorrido terminado (último paso, siempre Facturas): cierra la guía sin la
-            // despedida hablada —el propio último paso ya se despide— y manda al usuario
-            // directo a la pantalla de inicio de SU rol, limpiando el historial de pantallas
-            // que recorrió la guía para que no pueda "volver" con el botón atrás a mitad del tour.
             val destinoInicio = pantallaInicioPorRol(rolActual)
             detener(activity, decirDespedida = false)
             val intent = Intent(activity, destinoInicio).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             }
             activity.startActivity(intent)
+            activity.finish()
             return
         }
+
         pasoActual++
         val paso = pasos[pasoActual]
 
-        // Actualiza el texto ya mismo (por si no cambia de Activity); si cambia, DiloApplication
-        // vuelve a mostrar la burbuja en onActivityReanudada, ya con el texto correcto.
         ZoeGuideOverlay.actualizarTexto(paso, esUltimo = pasoActual == pasos.size - 1)
 
         val destino = paso.activityDestino
         if (destino != null && destino != activity::class.java) {
-            activity.startActivity(Intent(activity, destino))
+            val intent = Intent(activity, destino)
+            activity.startActivity(intent)
+
+            val inicioClass = pantallaInicioPorRol(rolActual)
+            if (activity::class.java != inicioClass) {
+                activity.finish()
+            }
         }
+
         escucharComandosDeLaGuia(activity)
         voz?.hablar(paso.explicacion)
     }
 
-    /**
-     * Escucha en bucle, mientras la guía está activa, cualquier orden que el usuario diga:
-     * parar la guía, avanzar de paso, o crear algo de lo que Zoe reconozca (ver
-     * [ZoeActionRouter.detectarCreacion]). Se relanza sola tras cada frase reconocida, así que
-     * sigue escuchando de corrido durante todo el recorrido, aunque se cambie de pantalla.
-     */
     private fun escucharComandosDeLaGuia(activity: AppCompatActivity) {
+        if (activity.isFinishing || activity.isDestroyed) return
         voz?.escucharComandosDeGuia { texto -> procesarComandoDeGuia(activity, texto) }
     }
 
     private fun procesarComandoDeGuia(activity: AppCompatActivity, texto: String) {
-        if (!activa) return
+        if (!activa || activity.isFinishing || activity.isDestroyed) return
         when {
             ZoeSpeechHelper.esComandoDeParada(texto) -> detener(activity)
             esOrdenDeAvanzar(texto) -> siguiente(activity)
@@ -305,59 +272,46 @@ object ZoeOnboardingManager {
                         voz?.hablar("Esa función no está disponible para tu rol. Sigamos con el recorrido.")
                     }
                 }
-                // Si no reconoce nada (ruido, silencio, una frase suelta), se ignora y se sigue
-                // escuchando: no interrumpimos el recorrido por algo que Zoe no entendió.
             }
         }
     }
 
-    /** true si [texto] pide avanzar al siguiente paso de la guía, por voz. */
     private fun esOrdenDeAvanzar(texto: String): Boolean {
-        val t = " ${texto.trim().lowercase()} "
-        return listOf("siguiente", "avanza", "avancemos", "continua", "continúa", "continuemos", "sigamos")
-            .any { t.contains(" $it ") }
+        val textoLimpio = texto.lowercase().replace(Regex("[^a-záéíóúñ0-9\\s]"), " ")
+        val palabras = textoLimpio.split("\\s+".toRegex())
+        val comandos = setOf("siguiente", "avanza", "avancemos", "continua", "continúa", "continuemos", "sigamos")
+        return palabras.any { it in comandos }
     }
 
-    /**
-     * Detiene la guía por completo: deja de hablar, de escuchar y quita la burbuja.
-     * [decirDespedida] se pone en `false` cuando el recorrido terminó normalmente en su último
-     * paso (ese paso ya se despide por su cuenta), para no repetir el mensaje de despedida justo
-     * antes de mandar al usuario a su pantalla de inicio.
-     */
     fun detener(activity: Activity?, decirDespedida: Boolean = true) {
         val estabaActiva = activa
         activa = false
         pasoActual = -1
         pasos = emptyList()
         escuchandoManualmente = false
+
         voz?.liberar()
         voz = null
-        if (activity != null) ZoeGuideOverlay.ocultar(activity)
-        if (estabaActiva && activity != null && decirDespedida) {
-            // Aviso corto de que se detuvo, sin volver a escuchar después.
+
+        if (activity != null) {
+            ZoeGuideOverlay.ocultar(activity)
+        }
+
+        if (estabaActiva && activity != null && decirDespedida && !activity.isFinishing && !activity.isDestroyed) {
             val despedida = ZoeSpeechHelper(activity.applicationContext)
-            despedida.inicializar { despedida.hablar("Listo, dejo de guiarte.") { despedida.liberar() } }
+            despedida.inicializar(
+                onListo = {
+                    despedida.hablar("Listo, dejo de guiarte.")
+                },
+                onFallo = {
+                    despedida.liberar()
+                }
+            )
         }
     }
 
-    /**
-     * Código de solicitud usado al pedir el permiso de micrófono desde el botón 🎙️ de la guía.
-     * La Activity destino no necesita manejar el resultado: si el usuario concede el permiso,
-     * simplemente vuelve a tocar el botón para activar el micrófono.
-     */
-    private const val CODIGO_PERMISO_MICROFONO = 9821
-
-    /** true mientras se está escuchando una orden puntual pedida a mano con el botón del micrófono. */
-    private var escuchandoManualmente = false
-
-    /**
-     * Activa el micrófono a pedido del usuario (botón 🎙️ de la burbuja de la guía), para que
-     * pueda darle una orden puntual a Zoe de forma explícita —mejor experiencia que depender
-     * solo de la escucha continua en segundo plano—, con retroalimentación visual clara de
-     * cuándo Zoe está escuchando (el botón se pone naranja y pulsa) y de cuándo terminó.
-     */
     fun activarMicrofono(activity: AppCompatActivity) {
-        if (!activa || escuchandoManualmente) return
+        if (!activa || escuchandoManualmente || activity.isFinishing || activity.isDestroyed) return
 
         if (ContextCompat.checkSelfPermission(activity, Manifest.permission.RECORD_AUDIO)
             != PackageManager.PERMISSION_GRANTED
@@ -386,9 +340,8 @@ object ZoeOnboardingManager {
         )
     }
 
-    /** Llamado por [DiloApplication] cada vez que se reanuda una Activity mientras la guía está activa. */
     fun onActivityReanudada(activity: Activity) {
-        if (!activa) return
+        if (!activa || activity.isFinishing || activity.isDestroyed) return
         val paso = pasos.getOrNull(pasoActual) ?: return
         ZoeGuideOverlay.mostrar(activity, paso, esUltimo = pasoActual == pasos.size - 1)
     }

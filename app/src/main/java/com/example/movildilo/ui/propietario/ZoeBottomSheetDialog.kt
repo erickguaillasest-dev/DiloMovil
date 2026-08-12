@@ -10,6 +10,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
+import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -48,8 +50,11 @@ class ZoeBottomSheetDialog(
     private lateinit var btnEnviarMensaje: MaterialButton
     private lateinit var btnCerrarChat: MaterialButton
     private lateinit var btnMicChat: MaterialButton
-    private lateinit var btnToggleVozChat: MaterialButton
-    private lateinit var btnIniciarGuia: MaterialButton
+    private lateinit var btnToggleVozChat: View
+    private lateinit var ivIconoVoz: ImageView
+    private lateinit var tvEstadoVoz: TextView
+    private lateinit var btnIniciarGuia: View
+    private lateinit var btnCambiarVoz: View
 
     private val listaHistorialDto = mutableListOf<GroqMessage>()
     private val listaChatUi = mutableListOf<ChatItem>()
@@ -59,11 +64,19 @@ class ZoeBottomSheetDialog(
     /** Si está activo, Zoe lee en voz alta cada respuesta que da (además de mostrarla en texto). Activo por defecto. */
     private var vozActivada: Boolean = true
 
+    /**
+     * 🎙️ Escucha continua "manos libres", igual que `keepListeningActive` en la web: un solo
+     * toque en el micrófono la activa, y desde ahí el ciclo es solo: escuchar → procesar →
+     * Zoe responde por voz → en cuanto termina de hablar, vuelve a escuchar sola, sin que el
+     * usuario tenga que tocar el botón cada vez. Un segundo toque (o decir "detente") la apaga.
+     */
+    private var escuchaContinuaActiva: Boolean = false
+
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { concedido ->
         if (concedido) {
-            iniciarEscuchaChat()
+            iniciarEscuchaContinua()
         } else {
             Toast.makeText(requireContext(), "Se requiere permiso de micrófono para hablarle a Zoe.", Toast.LENGTH_SHORT).show()
         }
@@ -107,7 +120,10 @@ class ZoeBottomSheetDialog(
         btnCerrarChat = view.findViewById(R.id.btnCerrarChat)
         btnMicChat = view.findViewById(R.id.btnMicChat)
         btnToggleVozChat = view.findViewById(R.id.btnToggleVozChat)
+        ivIconoVoz = view.findViewById(R.id.ivIconoVoz)
+        tvEstadoVoz = view.findViewById(R.id.tvEstadoVoz)
         btnIniciarGuia = view.findViewById(R.id.btnIniciarGuia)
+        btnCambiarVoz = view.findViewById(R.id.btnCambiarVoz)
 
         adapter = ChatAdapter(listaChatUi)
         rvChatMensajes.layoutManager = LinearLayoutManager(requireContext())
@@ -115,26 +131,26 @@ class ZoeBottomSheetDialog(
 
         voz = ZoeSpeechHelper(requireContext())
 
-        // Mensaje de Bienvenida
+
         val bienvenida = "¡Hola!  Soy **Zoe**, tu asistente inteligente en **Dilo Móvil**. Tengo acceso a la información en tiempo real de **$negocioNombre**. Pregúntame lo que sea sobre la app, dime \"crea un producto\"  y te llevo directo al formulario, o \"cambia mi contraseña\" para ir a tu perfil. También puedo guiarte por toda la app: toca la brújula de arriba o dime \"guíame\"."
 
-        // El TTS tarda un instante en inicializar (es asíncrono). Por eso la bienvenida NO se
-        // habla desde agregarMensajeUi (llegaría antes de que el motor esté listo): se habla
-        // explícitamente aquí, en cuanto el "onListo" confirma que ya puede hablar.
+
         voz.inicializar(
             onListo = { if (vozActivada) voz.hablar(bienvenida) },
             onFallo = { mensaje -> Toast.makeText(requireContext(), mensaje, Toast.LENGTH_LONG).show() }
         )
-        // El ícono arranca reflejando que la voz está activada por defecto.
-        btnToggleVozChat.setIconResource(android.R.drawable.ic_lock_silent_mode)
+
+        actualizarEstadoVoz()
 
         btnCerrarChat.setOnClickListener {
+            escuchaContinuaActiva = false
             voz.detenerHabla()
             voz.detenerEscuchaDeComandos()
+            voz.detenerEscucha()
             dismiss()
         }
 
-        // Mensaje de Bienvenida
+
         agregarMensajeUi("assistant", bienvenida)
 
         btnEnviarMensaje.setOnClickListener {
@@ -148,10 +164,7 @@ class ZoeBottomSheetDialog(
         btnToggleVozChat.setOnClickListener {
             vozActivada = !vozActivada
             if (!vozActivada) voz.detenerHabla()
-            btnToggleVozChat.setIconResource(
-                if (vozActivada) android.R.drawable.ic_lock_silent_mode
-                else android.R.drawable.ic_lock_silent_mode_off
-            )
+            actualizarEstadoVoz()
             Toast.makeText(
                 requireContext(),
                 if (vozActivada) "Zoe leerá sus respuestas en voz alta" else "Zoe ya no leerá sus respuestas",
@@ -159,11 +172,30 @@ class ZoeBottomSheetDialog(
             ).show()
         }
 
-        btnMicChat.setOnClickListener { pedirPermisoYEscuchar() }
+        btnMicChat.setOnClickListener {
+            if (escuchaContinuaActiva) {
+                detenerEscuchaContinua()
+            } else {
+                pedirPermisoYEscuchar()
+            }
+        }
 
         btnIniciarGuia.setOnClickListener {
             iniciarGuiaDeBienvenida()
         }
+
+        btnCambiarVoz.setOnClickListener {
+            cambiarVozDeZoe()
+        }
+    }
+
+    /** Refleja en el ícono y en el texto ("Voz: ON"/"Voz: OFF") si Zoe está leyendo sus respuestas. */
+    private fun actualizarEstadoVoz() {
+        ivIconoVoz.setImageResource(
+            if (vozActivada) android.R.drawable.ic_lock_silent_mode
+            else android.R.drawable.ic_lock_silent_mode_off
+        )
+        tvEstadoVoz.text = if (vozActivada) "Voz: ON" else "Voz: OFF"
     }
 
     /**
@@ -180,6 +212,8 @@ class ZoeBottomSheetDialog(
         val cambio = ZoeActionRouter.detectarCambio(texto)
         when {
             ZoeSpeechHelper.esComandoDeParada(texto) -> {
+                escuchaContinuaActiva = false
+                actualizarIconoMic()
                 voz.detenerHabla()
                 agregarMensajeUi("assistant", "Listo, me detengo. 🙂")
             }
@@ -217,6 +251,7 @@ class ZoeBottomSheetDialog(
     }
 
     private fun iniciarGuiaDeBienvenida() {
+        escuchaContinuaActiva = false
         agregarMensajeUi("assistant", "¡Vamos! Te voy guiando pantalla por pantalla. Di \"detente\" cuando quieras que pare.")
         val activityActual = activity as? androidx.appcompat.app.AppCompatActivity
         if (activityActual != null) {
@@ -239,8 +274,9 @@ class ZoeBottomSheetDialog(
         cerrarConPequenaDemora { ZoeActionRouter.navegar(activityActual, destino, accion) }
     }
 
-    /** Cierra el chat después de una breve pausa, para que la frase de confirmación alcance a leerse. */
     private fun cerrarConPequenaDemora(accion: () -> Unit) {
+        escuchaContinuaActiva = false
+        voz.detenerEscucha()
         rvChatMensajes.postDelayed({
             if (isAdded) {
                 accion()
@@ -251,7 +287,6 @@ class ZoeBottomSheetDialog(
         }, 500)
     }
 
-    /** Rota al siguiente perfil de voz de Zoe y avisa al usuario cuál quedó activo. */
     private fun cambiarVozDeZoe() {
         val nombrePerfil = voz.cambiarVoz()
         agregarMensajeUi("assistant", "Listo, ahora hablo con: **$nombrePerfil**. ¿Cómo se escucha?")
@@ -263,21 +298,60 @@ class ZoeBottomSheetDialog(
         ) == PackageManager.PERMISSION_GRANTED
 
         if (permisoConcedido) {
-            iniciarEscuchaChat()
+            iniciarEscuchaContinua()
         } else {
             requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
         }
     }
 
-    private fun iniciarEscuchaChat() {
+    private fun iniciarEscuchaContinua() {
+        escuchaContinuaActiva = true
+        actualizarIconoMic()
         Toast.makeText(requireContext(), "Te escucho...", Toast.LENGTH_SHORT).show()
+        cicloEscuchaContinua()
+    }
+
+
+    private fun cicloEscuchaContinua() {
+        if (!escuchaContinuaActiva || !isAdded) return
         voz.escuchar(
-            onResultado = { texto -> procesarMensajeUsuario(texto) },
-            onError = { mensaje -> Toast.makeText(requireContext(), mensaje, Toast.LENGTH_SHORT).show() }
+            onResultado = { texto ->
+                if (isAdded) procesarMensajeUsuario(texto)
+            },
+            onError = { mensaje ->
+                if (!isAdded) return@escuchar
+                if (escuchaContinuaActiva) {
+                    cicloEscuchaContinua()
+                } else {
+                    Toast.makeText(requireContext(), mensaje, Toast.LENGTH_SHORT).show()
+                }
+            },
+            onEmpezoAEscuchar = { actualizarIconoMic() }
         )
     }
 
+
+    private fun detenerEscuchaContinua() {
+        escuchaContinuaActiva = false
+        voz.detenerEscucha()
+        actualizarIconoMic()
+    }
+
+    private fun actualizarIconoMic() {
+        if (!::btnMicChat.isInitialized) return
+        if (escuchaContinuaActiva) {
+            btnMicChat.setIconResource(R.drawable.ic_mic)
+            btnMicChat.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#EA580C"))
+            btnMicChat.contentDescription = "Detener la escucha de Zoe"
+        } else {
+            btnMicChat.setIconResource(R.drawable.ic_mic)
+            btnMicChat.backgroundTintList = null
+            btnMicChat.contentDescription = "Hablarle a Zoe"
+        }
+    }
+
     override fun onDestroyView() {
+        escuchaContinuaActiva = false
         voz.liberar()
         super.onDestroyView()
     }
@@ -290,10 +364,14 @@ class ZoeBottomSheetDialog(
         if (role != "system") {
             listaHistorialDto.add(GroqMessage(role = role, content = text))
         }
-        // Cualquier mensaje que Zoe "diga" (assistant) se lee en voz alta automáticamente,
-        // sin que el usuario tenga que activar nada, salvo que haya apagado la voz manualmente.
+
         if (role == "assistant" && vozActivada) {
-            voz.hablar(text)
+            voz.hablar(text) {
+                if (escuchaContinuaActiva && isAdded) cicloEscuchaContinua()
+            }
+        } else if (role == "assistant" && escuchaContinuaActiva && isAdded) {
+
+            cicloEscuchaContinua()
         }
     }
 
@@ -325,19 +403,31 @@ class ZoeBottomSheetDialog(
                 val response = GroqApiClient.apiService.enviarMensajeChat("Bearer $groqApiKey", request)
                 withContext(Dispatchers.Main) {
                     btnEnviarMensaje.isEnabled = true
+                    if (!isAdded) return@withContext
 
                     if (response.isSuccessful) {
                         val respuestaBot = response.body()?.choices?.firstOrNull()?.message?.content
                             ?: "No dispongo de esa información en este momento. Te sugiero consultar en la **plataforma Web de Dilo**."
                         agregarMensajeUi("assistant", respuestaBot)
+                    } else if (response.code() == 429) {
+
+                        escuchaContinuaActiva = false
+                        actualizarIconoMic()
+                        agregarMensajeUi(
+                            "assistant",
+                            "Uy, me hiciste pensar demasiado rápido y me quedé sin aire. Espera unos segundos, por favor. 😅"
+                        )
                     } else {
                         Toast.makeText(requireContext(), "Error en el servidor de IA: ${response.code()}", Toast.LENGTH_SHORT).show()
+                        if (escuchaContinuaActiva) cicloEscuchaContinua()
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     btnEnviarMensaje.isEnabled = true
+                    if (!isAdded) return@withContext
                     Toast.makeText(requireContext(), "Fallo de conexión: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                    if (escuchaContinuaActiva) cicloEscuchaContinua()
                 }
             }
         }

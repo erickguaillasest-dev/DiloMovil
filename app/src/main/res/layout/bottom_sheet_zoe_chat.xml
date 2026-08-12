@@ -20,13 +20,13 @@
             android:layout_height="match_parent"
             android:orientation="vertical">
 
-            <!-- CABECERA OSCURA -->
+            <!-- CABECERA OSCURA: marca + cerrar -->
             <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="#1A2234"
                 android:paddingHorizontal="16dp"
-                android:paddingVertical="12dp">
+                android:paddingVertical="10dp">
 
                 <LinearLayout
                     android:layout_width="wrap_content"
@@ -44,75 +44,162 @@
                         android:src="@drawable/zoe"
                         app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
 
-                    <TextView
+                    <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="12dp"
-                        android:text="Zoe"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Zoe"
+                            android:textColor="@color/white"
+                            android:textSize="17sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Tu asistente virtual"
+                            android:textColor="#9AA5B8"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Único botón arriba: cerrar el chat. Bien grande y solo, para que no
+                     se confunda con ninguna otra acción. -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCerrarChat"
+                    style="@style/Widget.Material3.Button.IconButton"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:contentDescription="Cerrar el chat"
+                    android:tooltipText="Cerrar"
+                    app:backgroundTint="#2B354A"
+                    app:cornerRadius="18dp"
+                    app:icon="@android:drawable/ic_menu_close_clear_cancel"
+                    app:iconSize="18dp"
+                    app:iconTint="@color/white" />
+            </RelativeLayout>
+
+            <!-- BARRA DE ACCIONES: cada botón lleva su nombre debajo del ícono,
+                 para que se entienda de un vistazo qué hace sin necesidad de adivinar. -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="#141B29"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingVertical="8dp">
+
+                <!-- Guía de bienvenida -->
+                <LinearLayout
+                    android:id="@+id/btnIniciarGuia"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:contentDescription="Ver guía de bienvenida paso a paso"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:paddingVertical="4dp">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:contentDescription="@null"
+                        android:src="@android:drawable/ic_menu_help"
+                        app:tint="#EA580C" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Guía"
                         android:textColor="@color/white"
-                        android:textSize="18sp"
+                        android:textSize="11sp"
                         android:textStyle="bold" />
                 </LinearLayout>
 
-                <!-- Botón Altavoz (leer respuestas en voz alta) + Botón Cerrar (X) -->
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="28dp"
+                    android:background="#2B354A" />
+
+                <!-- Activar/silenciar voz -->
                 <LinearLayout
-                    android:layout_width="wrap_content"
+                    android:id="@+id/btnToggleVozChat"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_alignParentEnd="true"
-                    android:layout_centerVertical="true"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                    android:layout_weight="1"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:contentDescription="Activar o silenciar la voz de Zoe"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:paddingVertical="4dp">
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnIniciarGuia"
-                        style="@style/Widget.Material3.Button.IconButton"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:layout_marginEnd="6dp"
-                        android:contentDescription="Guía de bienvenida"
-                        app:backgroundTint="#2B354A"
-                        app:cornerRadius="16dp"
-                        app:icon="@android:drawable/ic_menu_directions"
-                        app:iconSize="16dp"
-                        app:iconTint="@color/white" />
+                    <ImageView
+                        android:id="@+id/ivIconoVoz"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:contentDescription="@null"
+                        android:src="@android:drawable/ic_lock_silent_mode_off"
+                        app:tint="#EA580C" />
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnToggleVozChat"
-                        style="@style/Widget.Material3.Button.IconButton"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:layout_marginEnd="6dp"
-                        app:backgroundTint="#2B354A"
-                        app:cornerRadius="16dp"
-                        app:icon="@android:drawable/ic_lock_silent_mode_off"
-                        app:iconSize="16dp"
-                        app:iconTint="@color/white" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnCambiarVoz"
-                        style="@style/Widget.Material3.Button.IconButton"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:layout_marginEnd="6dp"
-                        android:contentDescription="Cambiar voz de Zoe"
-                        app:backgroundTint="#2B354A"
-                        app:cornerRadius="16dp"
-                        app:icon="@android:drawable/ic_menu_myplaces"
-                        app:iconSize="16dp"
-                        app:iconTint="@color/white" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnCerrarChat"
-                        style="@style/Widget.Material3.Button.IconButton"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        app:backgroundTint="#2B354A"
-                        app:cornerRadius="16dp"
-                        app:icon="@android:drawable/ic_menu_close_clear_cancel"
-                        app:iconSize="16dp"
-                        app:iconTint="@color/white" />
+                    <TextView
+                        android:id="@+id/tvEstadoVoz"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Voz: OFF"
+                        android:textColor="@color/white"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
                 </LinearLayout>
-            </RelativeLayout>
+
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="28dp"
+                    android:background="#2B354A" />
+
+                <!-- Cambiar el tono/perfil de voz -->
+                <LinearLayout
+                    android:id="@+id/btnCambiarVoz"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:contentDescription="Cambiar el tono de voz de Zoe"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:paddingVertical="4dp">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:contentDescription="@null"
+                        android:src="@android:drawable/ic_popup_sync"
+                        app:tint="#EA580C" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Tono"
+                        android:textColor="@color/white"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
 
             <!-- LÍNEA NARANJA DE SEPARACIÓN -->
             <View
@@ -145,9 +232,12 @@
                     android:layout_height="44dp"
                     android:layout_weight="1"
                     android:background="@drawable/bg_chat_input"
-                    android:hint="Pregúntame lo que necesites..."
+                    android:contentDescription="Escribe tu mensaje para Zoe"
+                    android:hint="Escribe tu pregunta o toca el micrófono…"
+                    android:imeOptions="actionSend"
                     android:inputType="textCapSentences"
                     android:paddingHorizontal="16dp"
+                    android:singleLine="true"
                     android:textColor="#1E293B"
                     android:textColorHint="#94A3B8"
                     android:textSize="14sp" />
@@ -158,7 +248,8 @@
                     android:layout_width="44dp"
                     android:layout_height="44dp"
                     android:layout_marginStart="8dp"
-                    android:contentDescription="Hablar con Zoe"
+                    android:contentDescription="Hablar con Zoe por voz"
+                    android:tooltipText="Hablar por voz"
                     app:backgroundTint="#7C3AED"
                     app:cornerRadius="22dp"
                     app:icon="@android:drawable/ic_btn_speak_now"
@@ -171,6 +262,8 @@
                     android:layout_width="44dp"
                     android:layout_height="44dp"
                     android:layout_marginStart="10dp"
+                    android:contentDescription="Enviar mensaje"
+                    android:tooltipText="Enviar"
                     app:backgroundTint="#EA580C"
                     app:cornerRadius="22dp"
                     app:icon="@android:drawable/ic_menu_send"

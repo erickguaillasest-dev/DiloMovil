@@ -29,8 +29,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
+import com.example.movildilo.ui.Kardex.KardexActivity
 
 class InventarioBodegasActivity : AppCompatActivity() {
 

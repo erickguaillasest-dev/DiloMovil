@@ -20,12 +20,10 @@ class ChatAdapter(
         private const val VIEW_TYPE_BOT = 2
     }
 
-    // ViewHolder para mensajes del Usuario (Globo Naranja a la derecha)
     class UserViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvMensajeUser: TextView = view.findViewById(R.id.tvMensajeUser)
     }
 
-    // ViewHolder para mensajes de Zoe (Globo Blanco a la izquierda con Avatar)
     class BotViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvMensajeBot: TextView = view.findViewById(R.id.tvMensajeBot)
     }
@@ -67,7 +65,6 @@ class ChatAdapter(
         notifyItemInserted(listaMensajes.size - 1)
     }
 
-    // Convierte el texto con formato Markdown (**texto**) en negritas visibles para el TextView
     private fun parseMarkdown(text: String): Spanned {
         val htmlFormatted = text
             .replace(Regex("\\*\\*(.*?)\\*\\*"), "<b>$1</b>")

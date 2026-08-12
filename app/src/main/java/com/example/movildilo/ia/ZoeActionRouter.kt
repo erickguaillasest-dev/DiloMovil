@@ -9,7 +9,7 @@ import com.example.movildilo.ui.propietario.ClientesActivity
 import com.example.movildilo.ui.propietario.ComprasActivity
 import com.example.movildilo.ui.propietario.ConfiguracionNegocioActivity
 import com.example.movildilo.ui.propietario.CuentasPorCobrarActivity
-import com.example.movildilo.ui.propietario.HistorialFacturasActivity
+import com.example.movildilo.ui.facturas.HistorialFacturasActivity
 import com.example.movildilo.ui.propietario.Mi_equipo
 import com.example.movildilo.ui.propietario.Perfil
 import com.example.movildilo.ui.propietario.ProveedoresActivity

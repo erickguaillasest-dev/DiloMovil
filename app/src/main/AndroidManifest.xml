@@ -94,7 +94,7 @@
             android:exported="false"
             android:windowSoftInputMode="adjustNothing" />
         <activity
-            android:name=".ui.propietario.HistorialFacturasActivity"
+            android:name=".ui.facturas.HistorialFacturasActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustNothing" />
         <activity
@@ -102,7 +102,7 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize"/>
         <activity
-            android:name=".ui.propietario.KardexActivity"
+            android:name=".ui.Kardex.KardexActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize"/>
         <activity

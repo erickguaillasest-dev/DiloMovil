@@ -1,6 +1,6 @@
 package com.example.movildilo.data.api
 
-import com.example.movildilo.data.model.dto.ActualizarStockMinimoRequestDto
+import com.example.movildilo.data.model.dto.IvaRequestDto
 import com.example.movildilo.data.model.dto.AlertaCaducidadDto
 import com.example.movildilo.data.model.dto.BodegaDto
 import com.example.movildilo.data.model.dto.BodegaRequest
@@ -44,16 +44,9 @@ import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
-// DTO interno auxiliar para actualizar el IVA
-data class IvaRequestDto(
-    val nuevoIva: String
-)
 
 interface ApiService {
 
-    // ==========================================
-    // AUTHENTICATION & USUARIOS
-    // ==========================================
 
     @POST("api/v1/auth/login")
     suspend fun login(@Body request: LoginRequestDto): Response<LoginResponseDto>
@@ -103,10 +96,7 @@ interface ApiService {
         @Part foto: MultipartBody.Part? = null
     ): Response<ResponseBody>
 
-
-    // ==========================================
     // PARROQUIAS / UBICACIÓN
-    // ==========================================
 
     @GET("api/v1/parroquias")
     suspend fun getParroquias(
@@ -132,10 +122,7 @@ interface ApiService {
         @Path("id") id: Long
     ): Response<ResponseBody>
 
-
-    // ==========================================
     // NEGOCIOS Y EQUIPO
-    // ==========================================
 
     @GET("api/v1/negocios")
     suspend fun getAllNegocios(
@@ -223,10 +210,7 @@ interface ApiService {
         @Path("miembroId") miembroId: Long
     ): Response<MiembroResponseDto>
 
-
-    // ==========================================
     // CATEGORÍAS
-    // ==========================================
 
     @GET("api/v1/negocios/{negocioId}/categorias")
     suspend fun getCategorias(
@@ -257,9 +241,7 @@ interface ApiService {
     ): Response<ResponseBody>
 
 
-    // ==========================================
     // CLIENTES
-    // ==========================================
 
     @GET("api/v1/negocios/{id}/clientes")
     suspend fun getClientes(
@@ -289,10 +271,7 @@ interface ApiService {
         @Path("clienteId") clienteId: Long
     ): Response<ResponseBody>
 
-
-    // ==========================================
     // CATÁLOGO Y PRODUCTOS
-    // ==========================================
 
     @GET("api/v1/negocios/{negocioId}/productos")
     suspend fun getCatalogo(
@@ -326,10 +305,7 @@ interface ApiService {
         @Path("id") id: Long
     ): Response<ResponseBody>
 
-
-    // ==========================================
     // FACTURACIÓN
-    // ==========================================
 
     @POST("api/v1/negocios/{negocioId}/facturas")
     suspend fun crearFactura(
@@ -345,9 +321,7 @@ interface ApiService {
     ): Response<List<FacturaResponseDto>>
 
 
-    // ==========================================
     // CUENTAS POR COBRAR Y ABONOS
-    // ==========================================
 
     @GET("api/v1/cuentas-por-cobrar/negocio/{id}")
     suspend fun getCuentasPorCobrar(
@@ -363,9 +337,7 @@ interface ApiService {
     ): Response<ResponseBody>
 
 
-    // ==========================================
     // INVENTARIO EN BODEGAS
-    // ==========================================
 
     @GET("api/v1/negocios/{negocioId}/inventario")
     suspend fun getInventario(
@@ -373,11 +345,6 @@ interface ApiService {
         @Path("negocioId") negocioId: Long
     ): Response<List<InventarioResponseDto>>
 
-    @PUT("api/v1/inventario/stock-minimo")
-    suspend fun actualizarStockMinimoGlobal(
-        @Header("Authorization") authHeader: String,
-        @Body dto: ActualizarStockMinimoRequestDto
-    ): Response<ResponseBody>
 
     @PATCH("api/v1/negocios/{negocioId}/inventario/{inventarioId}/stock-minimo")
     suspend fun actualizarStockMinimo(
@@ -396,9 +363,7 @@ interface ApiService {
     ): Response<List<LoteResponseDto>>
 
 
-    // ==========================================
     // KARDEX / MOVIMIENTOS
-    // ==========================================
 
     @GET("api/v1/negocios/{negocioId}/kardex")
     suspend fun getKardexMovimientos(
@@ -419,9 +384,7 @@ interface ApiService {
     ): Response<ResponseBody>
 
 
-    // ==========================================
     // BODEGAS
-    // ==========================================
 
     @GET("api/v1/negocios/{negocioId}/bodegas")
     suspend fun getBodegas(
@@ -458,10 +421,7 @@ interface ApiService {
         @Path("bodegaId") bodegaId: Long
     ): Response<ResponseBody>
 
-
-    // ==========================================
     // PROVEEDORES
-    // ==========================================
 
     @GET("api/v1/negocios/{negocioId}/proveedores")
     suspend fun getProveedores(
@@ -492,9 +452,7 @@ interface ApiService {
     ): Response<ResponseBody>
 
 
-    // ==========================================
     // COMPRAS
-    // ==========================================
 
     @GET("api/v1/negocios/{negocioId}/compras")
     suspend fun getCompras(
@@ -510,9 +468,7 @@ interface ApiService {
     ): Response<CompraResponseDto>
 
 
-    // ==========================================
     // MÓDULO IVA / PARÁMETROS GLOBALES
-    // ==========================================
 
     @GET("api/v1/parametros/iva")
     suspend fun getIva(
