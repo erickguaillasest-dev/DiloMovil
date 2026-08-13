@@ -56,8 +56,7 @@ class ConfiguracionNegocioActivity : AppCompatActivity() {
     private val opcionesCosteo = arrayOf(
         "PROMEDIO" to "Promedio Ponderado",
         "FIFO" to "FIFO (Primeras Entradas, Primeras Salidas)",
-        "LIFO" to "LIFO (Últimas Entradas, Primeras Salidas)",
-        "IDENTIFICADO" to "Costo Identificado"
+        "LIFO" to "LIFO (Últimas Entradas, Primeras Salidas)"
     )
 
     private val seleccGaleriaLauncher = registerForActivityResult(
@@ -184,9 +183,6 @@ class ConfiguracionNegocioActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Valida cada uno de los campos obligatorios del formulario antes de realizar el envío.
-     */
     private fun validarFormulario(
         ruc: String,
         razonSocial: String,
@@ -196,7 +192,6 @@ class ConfiguracionNegocioActivity : AppCompatActivity() {
         var esValido = true
         var primerCampoError: View? = null
 
-        // Validación RUC (Obligatorio, 13 dígitos numéricos)
         if (ruc.isEmpty()) {
             etRuc.error = "El RUC es obligatorio"
             if (primerCampoError == null) primerCampoError = etRuc
@@ -209,7 +204,6 @@ class ConfiguracionNegocioActivity : AppCompatActivity() {
             etRuc.error = null
         }
 
-        // Validación Razón Social (Obligatoria, mínimo 3 caracteres)
         if (razonSocial.isEmpty()) {
             etRazonSocial.error = "La razón social es obligatoria"
             if (primerCampoError == null) primerCampoError = etRazonSocial
@@ -222,7 +216,6 @@ class ConfiguracionNegocioActivity : AppCompatActivity() {
             etRazonSocial.error = null
         }
 
-        // Validación Nombre Comercial (Obligatorio, mínimo 2 caracteres)
         if (nombreComercial.isEmpty()) {
             etNombreComercial.error = "El nombre comercial es obligatorio"
             if (primerCampoError == null) primerCampoError = etNombreComercial
@@ -235,7 +228,6 @@ class ConfiguracionNegocioActivity : AppCompatActivity() {
             etNombreComercial.error = null
         }
 
-        // Validación Dirección (Obligatoria, mínimo 5 caracteres)
         if (direccion.isEmpty()) {
             etDireccion.error = "La dirección es obligatoria"
             if (primerCampoError == null) primerCampoError = etDireccion
@@ -267,7 +259,6 @@ class ConfiguracionNegocioActivity : AppCompatActivity() {
         val nombreComercial = etNombreComercial.text.toString().trim()
         val direccion = etDireccion.text.toString().trim()
 
-        // Ejecución de las validaciones del formulario
         if (!validarFormulario(ruc, razonSocial, nombreComercial, direccion)) {
             return
         }
@@ -277,7 +268,7 @@ class ConfiguracionNegocioActivity : AppCompatActivity() {
             return
         }
 
-        // Obtener la clave contable seleccionada
+
         val selectedText = spinnerMetodoCosteo.text.toString()
         val metodoCosteo = opcionesCosteo.find { it.second == selectedText }?.first ?: selectedText
 

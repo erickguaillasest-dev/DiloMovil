@@ -312,7 +312,6 @@ int id etNuevoStockMinimo 0x0
 int id etNumeroComprobante 0x0
 int id etNumeroTarjeta 0x0
 int id etPassword 0x0
-int id etPrecioPvp 0x0
 int id etPrimerNombre 0x0
 int id etRazonSocial 0x0
 int id etRuc 0x0
@@ -412,6 +411,7 @@ int id spProducto 0x0
 int id spProductoFactura 0x0
 int id spProveedor 0x0
 int id spinnerBodega 0x0
+int id spinnerBodegaDestino 0x0
 int id spinnerCategoriaFiltro 0x0
 int id spinnerEstado 0x0
 int id spinnerFiltroBodega 0x0
@@ -425,6 +425,8 @@ int id spinnerTipoMovimiento 0x0
 int id spinnerUnidadMedida 0x0
 int id tilApellidoMaterno 0x0
 int id tilApellidoPaterno 0x0
+int id tilBodega 0x0
+int id tilBodegaDestino 0x0
 int id tilBuscar 0x0
 int id tilCategoria 0x0
 int id tilCodigoPrincipal 0x0
@@ -442,7 +444,6 @@ int id tilNombreProducto 0x0
 int id tilNuevaContrasena 0x0
 int id tilNuevoIva 0x0
 int id tilParroquia 0x0
-int id tilPrecioPvp 0x0
 int id tilPrimerNombre 0x0
 int id tilRazonSocial 0x0
 int id tilRuc 0x0

@@ -18,13 +18,14 @@
         android:layout_height="wrap_content"
         android:padding="12dp">
 
-        <!-- Imagen del Producto -->
+
         <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/imgProducto"
             android:layout_width="64dp"
             android:layout_height="64dp"
+            android:layout_marginStart="4dp"
             android:scaleType="centerCrop"
-            android:src="@android:drawable/ic_menu_gallery"
+            android:src="@drawable/logo_dilo_sf"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
@@ -32,7 +33,6 @@
             app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Small"
             tools:src="@tools:sample/backgrounds/scenic" />
 
-        <!-- PVP Venta -->
         <TextView
             android:id="@+id/tvPvpVenta"
             android:layout_width="wrap_content"
@@ -44,7 +44,6 @@
             app:layout_constraintTop_toTopOf="parent"
             tools:text="$10.00" />
 
-        <!-- Nombre del Producto -->
         <TextView
             android:id="@+id/tvNombreProducto"
             android:layout_width="0dp"
@@ -61,7 +60,6 @@
             app:layout_constraintTop_toTopOf="parent"
             tools:text="Teclado Mecánico RGB Pro" />
 
-        <!-- Costo Promedio (Texto Naranja) -->
         <TextView
             android:id="@+id/tvCostoPromedio"
             android:layout_width="wrap_content"
@@ -74,7 +72,6 @@
             app:layout_constraintTop_toBottomOf="@+id/tvPvpVenta"
             tools:text="Costo: $10.2367" />
 
-        <!-- Marca y Unidad -->
         <TextView
             android:id="@+id/tvMarcaUnidad"
             android:layout_width="0dp"
@@ -90,7 +87,6 @@
             app:layout_constraintTop_toBottomOf="@+id/tvNombreProducto"
             tools:text="Logitech | UNIDADES" />
 
-        <!-- Badges (Categoría e Impuesto) -->
         <LinearLayout
             android:id="@+id/layoutBadges"
             android:layout_width="0dp"
@@ -105,7 +101,6 @@
             app:layout_constraintTop_toBottomOf="@+id/tvMarcaUnidad"
             app:layout_constraintVertical_bias="1.0">
 
-            <!-- Badge Categoría (Morado) -->
             <TextView
                 android:id="@+id/tvCategoriaBadge"
                 android:layout_width="wrap_content"
@@ -118,7 +113,6 @@
                 android:textStyle="bold"
                 tools:text="Tecnologia" />
 
-            <!-- Badge Impuesto (Dynamic: CON IVA / SIN IVA) -->
             <TextView
                 android:id="@+id/tvImpuestoBadge"
                 android:layout_width="wrap_content"
@@ -133,7 +127,6 @@
                 tools:text="SIN IVA" />
         </LinearLayout>
 
-        <!-- Botones de Acción (Editar / Eliminar) -->
         <LinearLayout
             android:id="@+id/layoutAcciones"
             android:layout_width="wrap_content"

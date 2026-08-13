@@ -1,6 +1,5 @@
 package com.example.movildilo.ui.dashboard
 
-
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
@@ -54,10 +53,12 @@ class VendedorActivity : AppCompatActivity() {
 
     private val baseServerUrl = "https://dilo-backend-mxlu.onrender.com"
 
-
     private var negocioId: Long = -1L
     private var usuarioNombre: String = "Vendedor"
     private var negocioNombreReal: String = "Mi Empresa"
+
+    private var fotoUsuarioUrl: String? = null
+    private var logoNegocioUrl: String? = null
 
     private var contextoNegocioTexto: String = "Aún no se ha cargado la información del negocio."
     private var alertasTexto: String = "No hay cuentas por cobrar pendientes por el momento."
@@ -83,7 +84,6 @@ class VendedorActivity : AppCompatActivity() {
             Toast.makeText(this, "Selecciona una empresa válida para continuar", Toast.LENGTH_SHORT).show()
         }
     }
-
 
     private fun initViews() {
         btnLogout = findViewById(R.id.btnLogout)
@@ -113,7 +113,8 @@ class VendedorActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
-        btnLogout.setOnClickListener {confirmarCerrarSesion()
+        btnLogout.setOnClickListener {
+            confirmarCerrarSesion()
         }
 
         findViewById<LinearLayout>(R.id.headerProfileClick).setOnClickListener {
@@ -171,19 +172,24 @@ class VendedorActivity : AppCompatActivity() {
                     usuarioNombre = usuario.primerNombre?.takeIf { it.isNotBlank() } ?: "Vendedor"
                     tvWelcome.text = "Hola, $usuarioNombre 👋"
 
-                    val urlFoto = construirUrlFoto(usuario.fotoPerfil)
-                    if (urlFoto != null) {
-                        Glide.with(this@VendedorActivity)
-                            .load(urlFoto)
-                            .placeholder(R.drawable.bg_avatar_circulo)
-                            .error(R.drawable.ic_mic)
-                            .circleCrop()
-                            .into(ivAvatar)
-                    }
+                    fotoUsuarioUrl = construirUrlFoto(usuario.fotoPerfil)
+                    actualizarAvatarHeader()
                 }
             } catch (e: Exception) {
             }
         }
+    }
+
+    private fun actualizarAvatarHeader() {
+        val urlAMostrar = logoNegocioUrl?.takeIf { it.isNotBlank() } ?: fotoUsuarioUrl
+        if (urlAMostrar.isNullOrBlank()) return
+
+        Glide.with(this)
+            .load(urlAMostrar)
+            .placeholder(R.drawable.bg_avatar_circulo)
+            .error(R.drawable.ic_mic)
+            .circleCrop()
+            .into(ivAvatar)
     }
 
     private fun cargarResumenVentas() {
@@ -192,11 +198,15 @@ class VendedorActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val responseNegocio = RetrofitClient.apiService.getNegocio(authHeader, negocioId)
-                tvBusinessName.text = if (responseNegocio.isSuccessful) {
+                if (responseNegocio.isSuccessful) {
                     val negocio = responseNegocio.body()
-                    negocio?.nombreComercial ?: negocio?.razonSocial ?: "Mi Negocio"
+                    tvBusinessName.text = negocio?.nombreComercial ?: negocio?.razonSocial ?: "Mi Negocio"
+                    negocioNombreReal = tvBusinessName.text.toString()
+
+                    logoNegocioUrl = construirUrlFoto(negocio?.rutaImagen)
+                    actualizarAvatarHeader()
                 } else {
-                    "Mi Negocio"
+                    tvBusinessName.text = "Mi Negocio"
                 }
             } catch (e: Exception) {
                 tvBusinessName.text = "Mi Negocio"
@@ -224,7 +234,6 @@ class VendedorActivity : AppCompatActivity() {
                     tvTotalFacturas.text = "0 facturas"
                 }
 
-                // 2. Cargar cuentas por cobrar para actualizar el banner de alerta superior
                 val responseCxC = RetrofitClient.apiService.getCuentasPorCobrar(authHeader, negocioId)
                 if (responseCxC.isSuccessful) {
                     val cuentas = responseCxC.body() ?: emptyList()

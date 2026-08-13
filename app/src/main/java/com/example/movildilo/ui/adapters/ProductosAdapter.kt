@@ -42,68 +42,59 @@ class ProductosAdapter(
     override fun onBindViewHolder(holder: ProductoViewHolder, position: Int) {
         val prod = listaProductos[position]
 
-        // 1. Nombre del producto
         holder.tvNombreProducto.text = prod.nombre ?: "Producto sin nombre"
 
-        // 2. Marca y Unidad de medida
         val marca = prod.marca ?: "Sin Marca"
         val unidad = prod.unidadMedida ?: "UNIDADES"
         holder.tvMarcaUnidad.text = "$marca | $unidad"
 
-        // 3. Categoría
         holder.tvCategoriaBadge.text = prod.categoria ?: "General"
 
-        // 4. Imagen (URL o Base64)
         val imagenStr = prod.imagen
         if (!imagenStr.isNullOrEmpty()) {
             if (imagenStr.startsWith("http://") || imagenStr.startsWith("https://")) {
-                // Carga desde URL de red
                 Glide.with(holder.itemView.context)
                     .load(imagenStr)
-                    .placeholder(android.R.drawable.ic_menu_gallery)
-                    .error(android.R.drawable.ic_menu_gallery)
+                    .placeholder(R.drawable.logo_dilo_sf)
+                    .error(R.drawable.logo_dilo_sf)
                     .centerCrop()
                     .into(holder.imgProducto)
             } else {
-                // Carga desde string en Base64
                 try {
                     val cleanBase64 = if (imagenStr.contains(",")) imagenStr.substringAfter(",") else imagenStr
                     val imageBytes = Base64.decode(cleanBase64, Base64.DEFAULT)
                     Glide.with(holder.itemView.context)
                         .asBitmap()
                         .load(imageBytes)
-                        .placeholder(android.R.drawable.ic_menu_gallery)
-                        .error(android.R.drawable.ic_menu_gallery)
+                        .placeholder(R.drawable.logo_dilo_sf)
+                        .error(R.drawable.logo_dilo_sf)
                         .centerCrop()
                         .into(holder.imgProducto)
                 } catch (e: Exception) {
-                    holder.imgProducto.setImageResource(android.R.drawable.ic_menu_gallery)
+                    holder.imgProducto.setImageResource(R.drawable.logo_dilo_sf)
                 }
             }
         } else {
-            holder.imgProducto.setImageResource(android.R.drawable.ic_menu_gallery)
+            holder.imgProducto.setImageResource(R.drawable.logo_dilo_sf)
         }
 
-        // 5. Precios (PVP con 2 decimales y Costo Promedio con 4 decimales)
         val pvp = prod.precioUnitario ?: 0.0
         val costo = prod.costoPromedio ?: 0.0
 
         holder.tvPvpVenta.text = String.format(Locale.US, "$%.2f", pvp)
         holder.tvCostoPromedio.text = String.format(Locale.US, "$%.4f", costo)
 
-        // 6. Impuesto Badge (CON IVA / SIN IVA)
         val grabaIva = prod.grabaIva ?: true
         if (grabaIva) {
             holder.tvImpuestoBadge.text = "CON IVA"
-            holder.tvImpuestoBadge.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#DCFCE7")) // Verde claro
-            holder.tvImpuestoBadge.setTextColor(Color.parseColor("#166534"))                                 // Verde oscuro
+            holder.tvImpuestoBadge.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#DCFCE7"))
+            holder.tvImpuestoBadge.setTextColor(Color.parseColor("#166534"))
         } else {
             holder.tvImpuestoBadge.text = "SIN IVA"
-            holder.tvImpuestoBadge.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#F1F5F9")) // Gris claro
-            holder.tvImpuestoBadge.setTextColor(Color.parseColor("#475569"))                                 // Gris oscuro
+            holder.tvImpuestoBadge.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#F1F5F9"))
+            holder.tvImpuestoBadge.setTextColor(Color.parseColor("#475569"))
         }
 
-        // 7. Acciones de los botones
         holder.btnEditar.setOnClickListener { onEditClick(prod) }
         holder.btnEliminar.setOnClickListener { onDeleteClick(prod) }
     }

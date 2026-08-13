@@ -6,13 +6,12 @@
     android:background="#083344"
     android:fitsSystemWindows="false">
 
-    <!-- Círculo decorativo de fondo -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:clickable="false"
         android:clipChildren="false"
         android:clipToPadding="false"
+        android:clickable="false"
         android:focusable="false"
         android:importantForAccessibility="no">
 
@@ -29,7 +28,6 @@
             app:strokeWidth="0dp" />
     </RelativeLayout>
 
-    <!-- Header / Encabezado -->
     <RelativeLayout
         android:id="@+id/headerLayout"
         android:layout_width="match_parent"
@@ -57,7 +55,7 @@
             android:layout_height="wrap_content"
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
-            android:layout_marginTop="23dp"
+            android:layout_marginTop="25dp"
             android:layout_toStartOf="@id/btnLogout"
             android:clickable="true"
             android:focusable="true"
@@ -68,8 +66,8 @@
 
             <com.google.android.material.imageview.ShapeableImageView
                 android:id="@+id/ivAvatar"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="52dp"
+                android:layout_height="51dp"
                 android:scaleType="centerCrop"
                 android:src="@android:color/darker_gray"
                 app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full"
@@ -103,7 +101,6 @@
         </LinearLayout>
     </RelativeLayout>
 
-    <!-- Panel blanco principal -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -111,8 +108,8 @@
         android:layout_alignParentBottom="true"
         app:cardBackgroundColor="#F8FAFC"
         app:cardElevation="8dp"
-        app:shapeAppearanceOverlay="@style/ShapeAppearance.BottomRoundedPanel"
-        app:strokeWidth="0dp">
+        app:strokeWidth="0dp"
+        app:shapeAppearanceOverlay="@style/ShapeAppearance.BottomRoundedPanel">
 
         <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
@@ -126,12 +123,11 @@
                 android:padding="20dp"
                 android:paddingBottom="60dp">
 
-                <!-- Sección: Métricas Globales -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
-                    android:text="Métricas Globales"
+                    android:text="Métricas globales"
                     android:textColor="#0F172A"
                     android:textSize="15sp"
                     android:textStyle="bold" />
@@ -143,7 +139,6 @@
                     android:orientation="horizontal"
                     android:weightSum="3">
 
-                    <!-- Tarjeta: Negocios -->
                     <com.google.android.material.card.MaterialCardView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
@@ -164,9 +159,9 @@
                             <TextView
                                 android:layout_width="28dp"
                                 android:layout_height="28dp"
-                                android:background="@drawable/bg_chip_teal"
+                                android:background="@drawable/bg_chip_orange"
                                 android:gravity="center"
-                                android:text="🏬"
+                                android:text="🏢"
                                 android:textSize="13sp" />
 
                             <TextView
@@ -182,14 +177,13 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="0 registrados"
+                                android:text="-- registrados"
                                 android:textColor="#0F172A"
-                                android:textSize="16sp"
+                                android:textSize="14sp"
                                 android:textStyle="bold" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
 
-                    <!-- Tarjeta: Usuarios -->
                     <com.google.android.material.card.MaterialCardView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
@@ -210,7 +204,7 @@
                             <TextView
                                 android:layout_width="28dp"
                                 android:layout_height="28dp"
-                                android:background="@drawable/bg_chip_orange"
+                                android:background="@drawable/bg_chip_slate"
                                 android:gravity="center"
                                 android:text="👥"
                                 android:textSize="13sp" />
@@ -228,14 +222,13 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="0 activos"
+                                android:text="-- activos"
                                 android:textColor="#0F172A"
-                                android:textSize="16sp"
+                                android:textSize="14sp"
                                 android:textStyle="bold" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
 
-                    <!-- Tarjeta: IVA Vigente -->
                     <com.google.android.material.card.MaterialCardView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
@@ -256,16 +249,18 @@
                             <TextView
                                 android:layout_width="28dp"
                                 android:layout_height="28dp"
-                                android:background="@drawable/bg_chip_slate"
+                                android:background="@drawable/bg_chip_teal"
                                 android:gravity="center"
-                                android:text="⚙️"
-                                android:textSize="13sp" />
+                                android:text="%"
+                                android:textColor="#0F766E"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="10dp"
-                                android:text="IVA Vigente"
+                                android:text="IVA vigente"
                                 android:textColor="#64748B"
                                 android:textSize="11sp" />
 
@@ -274,20 +269,19 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="15%"
+                                android:text="--%"
                                 android:textColor="#0F172A"
-                                android:textSize="16sp"
+                                android:textSize="14sp"
                                 android:textStyle="bold" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>
 
-                <!-- Sección: Central de Control -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="10dp"
-                    android:text="Central de Control"
+                    android:text="Administración"
                     android:textColor="#0F172A"
                     android:textSize="15sp"
                     android:textStyle="bold" />
@@ -295,7 +289,7 @@
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="24dp"
+                    android:layout_marginBottom="20dp"
                     app:cardBackgroundColor="@color/white"
                     app:cardCornerRadius="20dp"
                     app:cardElevation="0dp"
@@ -306,10 +300,9 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:alignmentMode="alignMargins"
-                        android:columnCount="2"
+                        android:columnCount="3"
                         android:padding="6dp">
 
-                        <!-- Opción: Negocios -->
                         <LinearLayout
                             android:id="@+id/cardNegocios"
                             android:layout_width="0dp"
@@ -325,10 +318,10 @@
                             <TextView
                                 android:layout_width="52dp"
                                 android:layout_height="52dp"
-                                android:background="@drawable/bg_chip_teal"
+                                android:background="@drawable/bg_chip_orange"
                                 android:gravity="center"
-                                android:text="🏬"
-                                android:textSize="18sp" />
+                                android:text="🏢"
+                                android:textSize="20sp" />
 
                             <TextView
                                 android:layout_width="wrap_content"
@@ -341,7 +334,6 @@
                                 android:textStyle="bold" />
                         </LinearLayout>
 
-                        <!-- Opción: Usuarios -->
                         <LinearLayout
                             android:id="@+id/cardUsuarios"
                             android:layout_width="0dp"
@@ -373,7 +365,6 @@
                                 android:textStyle="bold" />
                         </LinearLayout>
 
-                        <!-- Opción: Configuración (IVA) -->
                         <LinearLayout
                             android:id="@+id/cardConfiguracionIva"
                             android:layout_width="0dp"
@@ -389,7 +380,7 @@
                             <TextView
                                 android:layout_width="52dp"
                                 android:layout_height="52dp"
-                                android:background="@drawable/bg_chip_slate"
+                                android:background="@drawable/bg_chip_orange"
                                 android:gravity="center"
                                 android:text="⚙️"
                                 android:textSize="18sp" />
@@ -399,13 +390,12 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="8dp"
                                 android:gravity="center"
-                                android:text="Configuración (IVA)"
+                                android:text="IVA"
                                 android:textColor="#1E293B"
                                 android:textSize="12sp"
                                 android:textStyle="bold" />
                         </LinearLayout>
 
-                        <!-- Opción: Parroquias -->
                         <LinearLayout
                             android:id="@+id/cardParroquias"
                             android:layout_width="0dp"
@@ -421,7 +411,7 @@
                             <TextView
                                 android:layout_width="52dp"
                                 android:layout_height="52dp"
-                                android:background="@drawable/bg_chip_teal"
+                                android:background="@drawable/bg_chip_orange"
                                 android:gravity="center"
                                 android:text="📍"
                                 android:textSize="18sp" />

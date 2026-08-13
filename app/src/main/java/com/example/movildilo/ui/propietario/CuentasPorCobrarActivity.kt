@@ -209,6 +209,19 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         }
     }
 
+    /** Igual que obtenerNombreCliente() en la web: nombreCliente -> nombreCompleto -> nombre -> razonSocial -> primerNombre+apellidoPaterno */
+    private fun obtenerNombreClienteBusqueda(c: CuentaPorCobrarResponseDto): String {
+        val directo = c.clienteNombre?.trim()
+        if (!directo.isNullOrEmpty()) return directo
+
+        val cl = c.factura?.cliente
+        return cl?.nombreCompleto?.trim()?.takeIf { it.isNotEmpty() }
+            ?: cl?.nombre?.trim()?.takeIf { it.isNotEmpty() }
+            ?: cl?.razonSocial?.trim()?.takeIf { it.isNotEmpty() }
+            ?: cl?.let { "${it.primerNombre ?: ""} ${it.apellidoPaterno ?: ""}".trim() }?.takeIf { it.isNotEmpty() }
+            ?: ""
+    }
+
     private fun aplicarFiltros() {
         var filtradas = cuentasBase
 
@@ -219,15 +232,12 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
             }
         }
 
-        // 2. Búsqueda por texto (Factura o Cliente)
+        // 2. Búsqueda por texto (Factura o Cliente, incluye DNI si viene en el nombre)
         val term = terminoBusqueda.trim().lowercase(Locale.getDefault())
         if (term.isNotEmpty()) {
             filtradas = filtradas.filter { c ->
                 val numero = (c.numeroFactura ?: c.factura?.numeroFactura ?: "").lowercase(Locale.getDefault())
-                val cliente = (c.clienteNombre ?: run {
-                    val cl = c.factura?.cliente
-                    if (cl != null) "${cl.primerNombre ?: ""} ${cl.apellidoPaterno ?: ""}".trim() else ""
-                }).lowercase(Locale.getDefault())
+                val cliente = obtenerNombreClienteBusqueda(c).lowercase(Locale.getDefault())
 
                 numero.contains(term) || cliente.contains(term)
             }

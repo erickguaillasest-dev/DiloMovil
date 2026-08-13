@@ -344,14 +344,14 @@ ADDED from C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\
 		ADDED from C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:138:13-37
 	android:name
 		ADDED from C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:137:13-72
-activity#com.example.movildilo.ui.admin.AdminActivity
+activity#com.example.movildilo.ui.dashboard.AdminActivity
 ADDED from C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:141:9-144:57
 	android:windowSoftInputMode
 		ADDED from C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:144:13-55
 	android:exported
 		ADDED from C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:143:13-37
 	android:name
-		ADDED from C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:142:13-51
+		ADDED from C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:142:13-55
 activity#com.example.movildilo.ui.admin.AdminIvaActivity
 ADDED from C:\Users\USER\AndroidStudioProjects\MovilDilo\MovilDilo\app\src\main\AndroidManifest.xml:146:9-148:40
 	android:exported

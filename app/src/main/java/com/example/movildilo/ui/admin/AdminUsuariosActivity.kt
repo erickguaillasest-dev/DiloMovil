@@ -20,6 +20,7 @@ import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
 import com.example.movildilo.data.model.dto.ParroquiaResponseDto
 import com.example.movildilo.data.model.dto.UsuarioMeDto
+import com.example.movildilo.ui.adapters.UsuariosAdapter
 import com.example.movildilo.utils.FormValidator
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
@@ -103,7 +104,8 @@ class AdminUsuariosActivity : AppCompatActivity(), OnUsuarioActualizadoListener 
         adapter = UsuariosAdapter(
             lista = listaFiltrada,
             onClickUsuario = { usuario ->
-                UsuarioDialog.newInstanceEditar(usuario).show(supportFragmentManager, "UsuarioDialog")
+                UsuarioDialog.newInstanceEditar(usuario)
+                    .show(supportFragmentManager, "UsuarioDialog")
             }
         )
         rvUsuarios.layoutManager = LinearLayoutManager(this)

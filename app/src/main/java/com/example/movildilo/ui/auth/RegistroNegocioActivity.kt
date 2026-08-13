@@ -22,7 +22,7 @@ import androidx.lifecycle.lifecycleScope
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
-import com.example.movildilo.ui.admin.AdminActivity
+import com.example.movildilo.ui.dashboard.AdminActivity
 import com.example.movildilo.ui.dashboard.PropietarioActivity
 import com.example.movildilo.utils.FormValidator
 import com.google.android.material.button.MaterialButton

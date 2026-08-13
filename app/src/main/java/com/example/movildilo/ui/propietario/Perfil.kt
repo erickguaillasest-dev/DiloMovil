@@ -40,10 +40,7 @@ class Perfil : AppCompatActivity() {
     private lateinit var sessionManager: SessionManager
     private val gson = Gson()
 
-    // URL base del servidor definida directamente en la vista
     private val baseServerUrl = "https://dilo-backend-mxlu.onrender.com"
-
-    // Vistas principales
     private lateinit var btnRegresar: ImageView
     private lateinit var scrollView: NestedScrollView
     private lateinit var imgAvatar: ShapeableImageView
@@ -57,7 +54,6 @@ class Perfil : AppCompatActivity() {
     private lateinit var tvParroquia: TextView
     private lateinit var btnEditarPerfil: MaterialButton
 
-    // Contenedores perfil
     private lateinit var containerNombreLectura: View
     private lateinit var containerNombreEdicion: View
     private lateinit var containerBotonesEdicion: View
@@ -254,7 +250,6 @@ class Perfil : AppCompatActivity() {
         manejarAccionDeZoe()
     }
 
-    /** Si Zoe nos trajo aquí para editar el perfil o la contraseña, activamos ese modo automáticamente. */
     private fun manejarAccionDeZoe() {
         when (intent.getStringExtra(com.example.movildilo.ia.ZoeActionRouter.EXTRA_ACCION)) {
             com.example.movildilo.ia.ZoeActionRouter.Accion.EDITAR_PERFIL -> activarModoEdicion()
@@ -350,7 +345,6 @@ class Perfil : AppCompatActivity() {
         val direccion = etDireccion.text?.toString()?.trim().orEmpty()
         val fechaNacimiento = etFechaNacimiento.text?.toString()?.trim().orEmpty()
 
-        // Validaciones
         var esValido = true
 
         if (primerNombre.isEmpty()) {
@@ -427,7 +421,6 @@ class Perfil : AppCompatActivity() {
         val nuevaContrasena = etNuevaContrasena.text?.toString()?.trim().orEmpty()
         val confirmarContrasena = etConfirmarContrasena.text?.toString()?.trim().orEmpty()
 
-        // Validaciones
         var esValido = true
 
         if (nuevaContrasena.isEmpty()) {

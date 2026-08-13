@@ -11,8 +11,6 @@ import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -23,6 +21,7 @@ import com.example.movildilo.data.model.dto.CategoriaDto
 import com.example.movildilo.data.model.dto.ProductoDto
 import com.example.movildilo.data.model.dto.toProductoDtoList
 import com.example.movildilo.ui.adapters.ProductosAdapter
+import com.example.movildilo.ui.productos.ProductoDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
 import com.google.gson.Gson
@@ -244,9 +243,6 @@ class CatalogoProductosActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Valida los datos del producto antes de proceder con el guardado en el servidor
-     */
     private fun validarProducto(producto: ProductoDto): Boolean {
         if (negocioId == -1L) {
             Toast.makeText(this, "No hay un negocio seleccionado.", Toast.LENGTH_SHORT).show()
@@ -268,7 +264,6 @@ class CatalogoProductosActivity : AppCompatActivity() {
     }
 
     private fun guardarProductoEnBackend(producto: ProductoDto, categoriaId: Long?) {
-        // Validar datos antes de realizar petición
         if (!validarProducto(producto)) {
             return
         }
@@ -323,11 +318,13 @@ class CatalogoProductosActivity : AppCompatActivity() {
                     } else {
                         val errorDetail = response.errorBody()?.string()
                         Log.e("PROD_UPDATE_ERR", "Error ${response.code()}: $errorDetail")
-                        Toast.makeText(
-                            this@CatalogoProductosActivity,
-                            "Error ${response.code()} al guardar producto",
-                            Toast.LENGTH_SHORT
-                        ).show()
+
+                        val mensaje = when {
+                            response.code() == 400 && !errorDetail.isNullOrBlank() -> errorDetail
+                            response.code() == 500 && errorDetail?.contains("Ya existe") == true -> errorDetail
+                            else -> "Ocurrió un error al guardar el producto. Inténtalo nuevamente."
+                        }
+                        Toast.makeText(this@CatalogoProductosActivity, mensaje, Toast.LENGTH_LONG).show()
                     }
                 }
             } catch (e: Exception) {

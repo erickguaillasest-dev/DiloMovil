@@ -18,7 +18,7 @@ import com.example.movildilo.data.local.SessionManager
 import com.example.movildilo.data.model.dto.ForgotPasswordRequestDto
 import com.example.movildilo.data.model.dto.LoginRequestDto
 import com.example.movildilo.data.model.dto.ResetPasswordRequestDto
-import com.example.movildilo.ui.admin.AdminActivity
+import com.example.movildilo.ui.dashboard.AdminActivity
 import com.example.movildilo.ui.dashboard.BodegueroActivity
 import com.example.movildilo.ui.dashboard.PropietarioActivity
 import com.example.movildilo.ui.dashboard.VendedorActivity

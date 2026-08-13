@@ -10,7 +10,7 @@ data class CuentaPorCobrarResponseDto(
     @SerializedName("estado") val estado: String?,
     @SerializedName("numeroFactura") val numeroFactura: String?,
     @SerializedName("factura") val factura: FacturaDto?,
-    @SerializedName("clienteNombre") val clienteNombre: String?,
+    @SerializedName("nombreCliente", alternate = ["clienteNombre"]) val clienteNombre: String?,
     @SerializedName("cuotas") val cuotas: List<CuotaDto>?,
     var isExpanded: Boolean = false
 )
@@ -23,7 +23,10 @@ data class FacturaDto(
 
 data class ClienteDto(
     @SerializedName("primerNombre") val primerNombre: String?,
-    @SerializedName("apellidoPaterno") val apellidoPaterno: String?
+    @SerializedName("apellidoPaterno") val apellidoPaterno: String?,
+    @SerializedName("nombreCompleto") val nombreCompleto: String? = null,
+    @SerializedName("nombre") val nombre: String? = null,
+    @SerializedName("razonSocial") val razonSocial: String? = null
 )
 
 data class CuotaDto(

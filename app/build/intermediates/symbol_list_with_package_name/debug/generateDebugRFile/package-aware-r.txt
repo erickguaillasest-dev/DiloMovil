@@ -313,7 +313,6 @@ id etNuevoStockMinimo
 id etNumeroComprobante
 id etNumeroTarjeta
 id etPassword
-id etPrecioPvp
 id etPrimerNombre
 id etRazonSocial
 id etRuc
@@ -413,6 +412,7 @@ id spProducto
 id spProductoFactura
 id spProveedor
 id spinnerBodega
+id spinnerBodegaDestino
 id spinnerCategoriaFiltro
 id spinnerEstado
 id spinnerFiltroBodega
@@ -426,6 +426,8 @@ id spinnerTipoMovimiento
 id spinnerUnidadMedida
 id tilApellidoMaterno
 id tilApellidoPaterno
+id tilBodega
+id tilBodegaDestino
 id tilBuscar
 id tilCategoria
 id tilCodigoPrincipal
@@ -443,7 +445,6 @@ id tilNombreProducto
 id tilNuevaContrasena
 id tilNuevoIva
 id tilParroquia
-id tilPrecioPvp
 id tilPrimerNombre
 id tilRazonSocial
 id tilRuc

@@ -139,7 +139,7 @@
             android:windowSoftInputMode="adjustResize"/>
 
         <activity
-            android:name=".ui.admin.AdminActivity"
+            android:name=".ui.dashboard.AdminActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize"/>
 

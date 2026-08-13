@@ -199,7 +199,7 @@
                         </com.google.android.material.textfield.TextInputLayout>
                     </LinearLayout>
 
-                    <!-- FILA 2: PRECIO (PVP) Y CATEGORÍA -->
+                    <!-- FILA 2: CATEGORÍA Y UNIDAD DE MEDIDA -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -208,39 +208,11 @@
                         android:weightSum="2">
 
                         <com.google.android.material.textfield.TextInputLayout
-                            android:id="@+id/tilPrecioPvp"
-                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginEnd="4dp"
-                            android:layout_weight="1"
-                            android:hint="Precio (PVP) *"
-                            android:textColorHint="#64748B"
-                            app:boxCornerRadiusBottomEnd="10dp"
-                            app:boxCornerRadiusBottomStart="10dp"
-                            app:boxCornerRadiusTopEnd="10dp"
-                            app:boxCornerRadiusTopStart="10dp"
-                            app:boxStrokeColor="#CBD5E1"
-                            app:boxStrokeWidth="1dp"
-                            app:hintTextColor="#EA580C"
-                            app:prefixText="$ ">
-
-                            <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/etPrecioPvp"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:inputType="numberDecimal"
-                                android:paddingVertical="10dp"
-                                android:textColor="#0F172A"
-                                android:textSize="13sp" />
-                        </com.google.android.material.textfield.TextInputLayout>
-
-                        <com.google.android.material.textfield.TextInputLayout
                             android:id="@+id/tilCategoria"
                             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
+                            android:layout_marginEnd="4dp"
                             android:layout_weight="1"
                             android:hint="Categoría *"
                             android:textColorHint="#64748B"
@@ -263,36 +235,36 @@
                                 android:textColor="#0F172A"
                                 android:textSize="13sp" />
                         </com.google.android.material.textfield.TextInputLayout>
-                    </LinearLayout>
 
-                    <!-- UNIDAD DE MEDIDA -->
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/tilUnidadMedida"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="14dp"
-                        android:hint="Unidad de Medida *"
-                        android:textColorHint="#64748B"
-                        app:boxCornerRadiusBottomEnd="10dp"
-                        app:boxCornerRadiusBottomStart="10dp"
-                        app:boxCornerRadiusTopEnd="10dp"
-                        app:boxCornerRadiusTopStart="10dp"
-                        app:boxStrokeColor="#CBD5E1"
-                        app:boxStrokeWidth="1dp"
-                        app:hintTextColor="#EA580C">
-
-                        <AutoCompleteTextView
-                            android:id="@+id/spinnerUnidadMedida"
-                            android:layout_width="match_parent"
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/tilUnidadMedida"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:cursorVisible="false"
-                            android:focusable="false"
-                            android:inputType="none"
-                            android:paddingVertical="10dp"
-                            android:textColor="#0F172A"
-                            android:textSize="13sp" />
-                    </com.google.android.material.textfield.TextInputLayout>
+                            android:layout_marginStart="4dp"
+                            android:layout_weight="1"
+                            android:hint="Unidad Medida *"
+                            android:textColorHint="#64748B"
+                            app:boxCornerRadiusBottomEnd="10dp"
+                            app:boxCornerRadiusBottomStart="10dp"
+                            app:boxCornerRadiusTopEnd="10dp"
+                            app:boxCornerRadiusTopStart="10dp"
+                            app:boxStrokeColor="#CBD5E1"
+                            app:boxStrokeWidth="1dp"
+                            app:hintTextColor="#EA580C">
+
+                            <AutoCompleteTextView
+                                android:id="@+id/spinnerUnidadMedida"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:cursorVisible="false"
+                                android:focusable="false"
+                                android:inputType="none"
+                                android:paddingVertical="10dp"
+                                android:textColor="#0F172A"
+                                android:textSize="13sp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+                    </LinearLayout>
 
                     <!-- CONFIGURACIONES ESPECIALES -->
                     <com.google.android.material.card.MaterialCardView
@@ -346,42 +318,42 @@
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
 
-                    <!-- BOTONES DE ACCIÓN FINALES -->
+                    <!-- BOTONES DE ACCIÓN -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal">
+                        android:layout_marginTop="4dp"
+                        android:orientation="horizontal"
+                        android:weightSum="2">
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnCancelar"
                             style="@style/Widget.Material3.Button.OutlinedButton"
                             android:layout_width="0dp"
-                            android:layout_height="44dp"
-                            android:layout_marginEnd="6dp"
+                            android:layout_height="48dp"
+                            android:layout_marginEnd="4dp"
                             android:layout_weight="1"
                             android:text="Cancelar"
-                            android:textColor="#475569"
+                            android:textColor="#64748B"
                             android:textSize="13sp"
-                            app:cornerRadius="10dp"
+                            app:cornerRadius="12dp"
                             app:strokeColor="#CBD5E1" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnGuardarProducto"
                             android:layout_width="0dp"
-                            android:layout_height="44dp"
-                            android:layout_marginStart="6dp"
+                            android:layout_height="48dp"
+                            android:layout_marginStart="4dp"
                             android:layout_weight="1"
                             android:backgroundTint="#EA580C"
-                            android:text="Guardar"
-                            android:textColor="@android:color/white"
+                            android:text="Guardar Producto"
+                            android:textColor="#FFFFFF"
                             android:textSize="13sp"
-                            app:cornerRadius="10dp" />
+                            app:cornerRadius="12dp" />
                     </LinearLayout>
 
                 </LinearLayout>
-
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
-
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

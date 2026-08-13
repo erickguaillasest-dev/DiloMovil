@@ -152,7 +152,7 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity
-            android:name="com.example.movildilo.ui.admin.AdminActivity"
+            android:name="com.example.movildilo.ui.dashboard.AdminActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity

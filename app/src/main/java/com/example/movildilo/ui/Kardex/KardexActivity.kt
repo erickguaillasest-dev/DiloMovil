@@ -16,12 +16,12 @@ import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
 import com.example.movildilo.data.model.dto.BodegaDto
+import com.example.movildilo.data.model.dto.InventarioResponseDto
 import com.example.movildilo.data.model.dto.KardexMovimientoDto
 import com.example.movildilo.data.model.dto.NuevoAjusteRequestDto
 import com.example.movildilo.data.model.dto.ProductoDto
 import com.example.movildilo.data.model.dto.toProductoDtoList
 import com.example.movildilo.ui.adapters.KardexAdapter
-import com.example.movildilo.ui.propietario.AjusteManualDialog
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
@@ -49,6 +49,7 @@ class KardexActivity : AppCompatActivity() {
 
     private val listaProductosBD = mutableListOf<ProductoDto>()
     private val listaBodegasBD = mutableListOf<BodegaDto>()
+    private val inventarioTotal = mutableListOf<InventarioResponseDto>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -181,10 +182,11 @@ class KardexActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                val (respProductos, respBodegas) = withContext(Dispatchers.IO) {
+                val (respProductos, respBodegas, respInventario) = withContext(Dispatchers.IO) {
                     val p = RetrofitClient.apiService.getCatalogo(authHeader, negocioId)
                     val b = RetrofitClient.apiService.getBodegas(authHeader, negocioId)
-                    Pair(p, b)
+                    val i = RetrofitClient.apiService.getInventario(authHeader, negocioId)
+                    Triple(p, b, i)
                 }
 
                 if (respProductos.isSuccessful) {
@@ -196,6 +198,11 @@ class KardexActivity : AppCompatActivity() {
                     listaBodegasBD.clear()
                     listaBodegasBD.addAll(respBodegas.body() ?: emptyList())
                     poblarSpinnerBodegas()
+                }
+
+                if (respInventario.isSuccessful) {
+                    inventarioTotal.clear()
+                    inventarioTotal.addAll(respInventario.body() ?: emptyList())
                 }
             } catch (e: Exception) {
                 Toast.makeText(
@@ -340,6 +347,7 @@ class KardexActivity : AppCompatActivity() {
         val dialog = AjusteManualDialog(
             listaProductosBD = listaProductosBD,
             listaBodegasBD = listaBodegasBD,
+            inventarioTotal = inventarioTotal,
             onAjusteRegistradoListener = { dto ->
                 registrarAjusteEnBackend(dto)
             }
@@ -361,9 +369,21 @@ class KardexActivity : AppCompatActivity() {
             return false
         }
 
-        if (dto.bodegaOrigenId == null || dto.bodegaDestinoId!! <= 0L) {
-            Toast.makeText(this, "Debes seleccionar una bodega válida.", Toast.LENGTH_SHORT).show()
-            return false
+        if (dto.tipo == "TRANSFERENCIA") {
+            if (dto.bodegaOrigenId == null || dto.bodegaDestinoId == null) {
+                Toast.makeText(this, "La transferencia requiere bodega de origen y de destino.", Toast.LENGTH_SHORT).show()
+                return false
+            }
+            if (dto.bodegaOrigenId == dto.bodegaDestinoId) {
+                Toast.makeText(this, "No puedes transferir a la misma bodega.", Toast.LENGTH_SHORT).show()
+                return false
+            }
+        } else {
+            val bodegaId = dto.bodegaOrigenId ?: dto.bodegaDestinoId
+            if (bodegaId == null || bodegaId <= 0L) {
+                Toast.makeText(this, "Debes seleccionar una bodega válida.", Toast.LENGTH_SHORT).show()
+                return false
+            }
         }
 
         if (dto.cantidad == null || dto.cantidad == 0) {
@@ -419,6 +439,7 @@ class KardexActivity : AppCompatActivity() {
                         Toast.LENGTH_SHORT
                     ).show()
                     cargarKardexDesdeApi()
+                    cargarCatalogosAuxiliares()
                 } else if (response.code() == 401) {
                     mostrarAlertaSesionExpirada()
                 } else {

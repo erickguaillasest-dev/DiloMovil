@@ -16,23 +16,36 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Cabecera: Avatar, Nombre y Acciones -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/tvAvatarInicial"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="@android:color/holo_orange_dark"
-                android:gravity="center"
-                android:text="C"
-                android:textColor="@color/white"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+
+            <FrameLayout
+                android:layout_width="44dp"
+                android:layout_height="44dp">
+
+                <com.google.android.material.imageview.ShapeableImageView
+                    android:id="@+id/ivAvatar"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
+
+                <TextView
+                    android:id="@+id/tvAvatarInicial"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_avatar_circulo"
+                    android:gravity="center"
+                    android:text="C"
+                    android:textColor="@color/white"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -78,7 +91,6 @@
                 app:tint="#EF4444" />
         </LinearLayout>
 
-        <!-- Datos Adicionales -->
         <TextView
             android:id="@+id/tvDireccion"
             android:layout_width="wrap_content"

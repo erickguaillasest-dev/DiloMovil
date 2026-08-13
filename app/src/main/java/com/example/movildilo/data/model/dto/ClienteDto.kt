@@ -12,5 +12,8 @@ data class ClienteResponseDto(
     val fechaNacimiento: String? = null,
     val telefono: String? = null,
     val direccion: String? = null,
-    val nombreCompleto: String? = null
+    val nombreCompleto: String? = null,
+    val fotoPerfil: String? = null,
+    val rutaImagen: String? = null,
+    val fotoUrl: String? = null
 )

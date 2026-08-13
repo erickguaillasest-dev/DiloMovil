@@ -12,6 +12,7 @@ import com.example.movildilo.R
 import com.example.movildilo.data.model.dto.CuentaPorCobrarResponseDto
 import com.example.movildilo.data.model.dto.CuotaDto
 import com.google.android.material.button.MaterialButton
+import java.text.SimpleDateFormat
 import java.util.Locale
 
 class CuentasPorCobrarAdapter(
@@ -41,14 +42,11 @@ class CuentasPorCobrarAdapter(
         val cuenta = listaCuentas[position]
 
         val numero = cuenta.numeroFactura ?: cuenta.factura?.numeroFactura ?: "S/N"
-        val cliente = cuenta.clienteNombre ?: run {
-            val c = cuenta.factura?.cliente
-            if (c != null) "${c.primerNombre ?: ""} ${c.apellidoPaterno ?: ""}".trim() else "Consumidor Final"
-        }
+        val cliente = obtenerNombreCliente(cuenta)
 
         holder.tvNumeroFactura.text = numero
         holder.tvClienteNombre.text = cliente
-        holder.tvVencimientoGlobal.text = "Vence: ${cuenta.fechaVencimiento ?: "N/A"}"
+        holder.tvVencimientoGlobal.text = "Vence: ${formatearFecha(cuenta.fechaVencimiento)}"
 
         val montoTotal = cuenta.montoTotal ?: 0.0
         val saldoPendiente = cuenta.saldoPendiente ?: 0.0
@@ -60,7 +58,6 @@ class CuentasPorCobrarAdapter(
         holder.tvEstado.text = estado.uppercase(Locale.ROOT)
         configurarBadgeEstado(holder.tvEstado, estado)
 
-        // Botón Abonar / Completado
         if (saldoPendiente <= 0) {
             holder.btnAccionAbonar.text = "Completado"
             holder.btnAccionAbonar.isEnabled = false
@@ -97,6 +94,19 @@ class CuentasPorCobrarAdapter(
         }
     }
 
+    private fun obtenerNombreCliente(cuenta: CuentaPorCobrarResponseDto): String {
+        val directo = cuenta.clienteNombre?.trim()
+        if (!directo.isNullOrEmpty()) return directo
+
+        val c = cuenta.factura?.cliente
+        val nombre = c?.nombreCompleto?.trim()?.takeIf { it.isNotEmpty() }
+            ?: c?.nombre?.trim()?.takeIf { it.isNotEmpty() }
+            ?: c?.razonSocial?.trim()?.takeIf { it.isNotEmpty() }
+            ?: c?.let { "${it.primerNombre ?: ""} ${it.apellidoPaterno ?: ""}".trim() }?.takeIf { it.isNotEmpty() }
+
+        return nombre ?: "Consumidor Final"
+    }
+
     private fun renderizarCuotas(parent: LinearLayout, cuotas: List<CuotaDto>) {
         parent.removeAllViews()
         val inflater = LayoutInflater.from(parent.context)
@@ -110,7 +120,7 @@ class CuentasPorCobrarAdapter(
             val tvEstadoCuota = view.findViewById<TextView>(R.id.tvEstadoCuota)
 
             tvNum.text = "Cuota #${cuota.numeroCuota ?: 1}"
-            tvVenc.text = cuota.fechaVencimiento ?: ""
+            tvVenc.text = formatearFecha(cuota.fechaVencimiento)
             tvMonto.text = String.format(Locale.US, "$%.2f", cuota.montoCuota ?: 0.0)
             tvSaldo.text = "Pend: " + String.format(Locale.US, "$%.2f", cuota.saldoPendienteCuota ?: 0.0)
 
@@ -120,6 +130,31 @@ class CuentasPorCobrarAdapter(
 
             parent.addView(view)
         }
+    }
+
+    private fun formatearFecha(fechaRaw: String?): String {
+        if (fechaRaw.isNullOrBlank()) return "N/A"
+
+        val formatosEntrada = arrayOf(
+            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+            "yyyy-MM-dd'T'HH:mm:ss",
+            "yyyy-MM-dd",
+            "dd/MM/yyyy"
+        )
+        // Formato legibles: Ej. "12 de ago., 2026"
+        val formatoSalida = SimpleDateFormat("dd 'de' MMM, yyyy", Locale("es", "ES"))
+
+        for (formato in formatosEntrada) {
+            try {
+                val date = SimpleDateFormat(formato, Locale.getDefault()).parse(fechaRaw)
+                if (date != null) {
+                    return formatoSalida.format(date)
+                }
+            } catch (_: Exception) {
+                // Continúa con el siguiente formato
+            }
+        }
+        return fechaRaw
     }
 
     private fun configurarBadgeEstado(textView: TextView, estado: String) {
@@ -137,7 +172,7 @@ class CuentasPorCobrarAdapter(
                 bgDrawable.setColor(Color.parseColor("#FEE2E2"))
                 bgDrawable.setStroke(1, Color.parseColor("#FECACA"))
             }
-            else -> { // PENDIENTE
+            else -> {
                 textView.setTextColor(Color.parseColor("#B45309"))
                 bgDrawable.setColor(Color.parseColor("#FEF3C7"))
                 bgDrawable.setStroke(1, Color.parseColor("#FDE68A"))

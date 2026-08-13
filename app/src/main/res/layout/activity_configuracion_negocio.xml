@@ -2,22 +2,25 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="#F8FAFC"
+    android:fitsSystemWindows="true">
 
     <androidx.core.widget.NestedScrollView
         android:id="@+id/main"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#F8FAFC"
+        android:clipToPadding="false"
         android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:paddingHorizontal="16dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="24dp">
 
-            <!-- TARJETA CONTENEDORA PRINCIPAL CON BORDES REDONDEADOS -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -32,7 +35,6 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
 
-                    <!-- ENCABEZADO OSCURO CON BOTÓN REGRESAR -->
                     <FrameLayout
                         android:layout_width="match_parent"
                         android:layout_height="140dp"
@@ -43,7 +45,7 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:layout_gravity="start|top"
-                            android:layout_margin="8dp"
+                            android:layout_margin="12dp"
                             android:background="?attr/selectableItemBackgroundBorderless"
                             android:contentDescription="Regresar"
                             android:padding="12dp"
@@ -54,14 +56,13 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_gravity="center_horizontal|top"
-                            android:layout_marginTop="20dp"
+                            android:layout_marginTop="24dp"
                             android:text="Configuración del Negocio"
                             android:textColor="#FFFFFF"
                             android:textSize="18sp"
                             android:textStyle="bold" />
                     </FrameLayout>
 
-                    <!-- LOGO CENTRADO CON BOTÓN EDITABLE DE CÁMARA -->
                     <FrameLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -78,7 +79,6 @@
                             app:strokeColor="#FFFFFF"
                             app:strokeWidth="4dp" />
 
-                        <!-- BOTÓN FLOTANTE DE CÁMARA -->
                         <com.google.android.material.card.MaterialCardView
                             android:id="@+id/btnSubirLogo"
                             android:layout_width="34dp"
@@ -102,14 +102,31 @@
                         </com.google.android.material.card.MaterialCardView>
                     </FrameLayout>
 
-                    <!-- CONTENIDO DEL FORMULARIO -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:padding="20dp">
 
-                        <!-- BLOQUE 1: RUC Y NOMBRE COMERCIAL -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="16dp"
+                            app:cardBackgroundColor="#EFF6FF"
+                            app:cardCornerRadius="12dp"
+                            app:cardElevation="0dp"
+                            app:strokeColor="#BFDBFE"
+                            app:strokeWidth="1dp">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:padding="12dp"
+                                android:text="ℹ️ Ajustes Generales: Los datos registrados aquí aparecerán en tus comprobantes y reportes. Recuerda que el Método de Costeo define cómo el sistema calcula el valor de tu inventario y tus márgenes de ganancia."
+                                android:textColor="#1E40AF"
+                                android:textSize="12sp" />
+                        </com.google.android.material.card.MaterialCardView>
+
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -171,7 +188,6 @@
                             </com.google.android.material.textfield.TextInputLayout>
                         </LinearLayout>
 
-                        <!-- RAZÓN SOCIAL -->
                         <com.google.android.material.textfield.TextInputLayout
                             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                             android:layout_width="match_parent"
@@ -197,7 +213,6 @@
                                 android:textSize="13sp" />
                         </com.google.android.material.textfield.TextInputLayout>
 
-                        <!-- DIRECCIÓN MATRIZ -->
                         <com.google.android.material.textfield.TextInputLayout
                             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                             android:layout_width="match_parent"
@@ -223,33 +238,36 @@
                                 android:textSize="13sp" />
                         </com.google.android.material.textfield.TextInputLayout>
 
-                        <!-- MÉTODO DE COSTEO (DESPLEGABLE DINÁMICO DESDE BASE DE DATOS) -->
                         <com.google.android.material.textfield.TextInputLayout
                             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="16dp"
                             android:hint="Método Valoración Inventario *"
-                            android:textColorHint="#64748B"
+                            android:textColorHint="#EA580C"
+                            app:boxBackgroundColor="#FEFCE8"
                             app:boxCornerRadiusBottomEnd="10dp"
                             app:boxCornerRadiusBottomStart="10dp"
                             app:boxCornerRadiusTopEnd="10dp"
                             app:boxCornerRadiusTopStart="10dp"
-                            app:boxStrokeColor="#CBD5E1"
+                            app:boxStrokeColor="#FEF08A"
                             app:boxStrokeWidth="1dp"
+                            app:helperText="Este método es strictly contable y se aplicará automáticamente a todas las salidas de bodega (ventas o egresos)."
+                            app:helperTextTextColor="#64748B"
                             app:hintTextColor="#EA580C">
 
                             <AutoCompleteTextView
                                 android:id="@+id/spinnerMetodoCosteo"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
+                                android:cursorVisible="false"
+                                android:focusable="false"
                                 android:inputType="none"
                                 android:paddingVertical="10dp"
                                 android:textColor="#0F172A"
                                 android:textSize="13sp" />
                         </com.google.android.material.textfield.TextInputLayout>
 
-                        <!-- TARJETA: OBLIGADO A LLEVAR CONTABILIDAD -->
                         <com.google.android.material.card.MaterialCardView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -273,7 +291,6 @@
                                 app:buttonTint="#EA580C" />
                         </com.google.android.material.card.MaterialCardView>
 
-                        <!-- BOTÓN GUARDAR CONFIGURACIÓN -->
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnGuardarConfiguracion"
                             android:layout_width="match_parent"
@@ -284,7 +301,11 @@
                             android:textSize="14sp"
                             android:textStyle="bold"
                             app:cornerRadius="14dp"
-                            app:elevation="2dp" />
+                            app:elevation="2dp"
+                            app:icon="@android:drawable/ic_menu_save"
+                            app:iconGravity="textStart"
+                            app:iconPadding="8dp"
+                            app:iconTint="#FFFFFF" />
 
                     </LinearLayout>
                 </LinearLayout>
@@ -292,7 +313,6 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- SPINNER DE CARGA (OVERLAY) -->
     <FrameLayout
         android:id="@+id/layoutLoading"
         android:layout_width="match_parent"
