@@ -3345,7 +3345,6 @@ int id btnAgregarAlCarrito 0x7f09006d
 int id btnAgregarDetalle 0x7f09006e
 int id btnAprobar 0x7f09006f
 int id btnCambiarFoto 0x7f090070
-int id btnCambiarVoz 0x7f090071
 int id btnCancelar 0x7f090072
 int id btnCancelarAjuste 0x7f090073
 int id btnCancelarCompra 0x7f090074
@@ -3369,6 +3368,7 @@ int id btnCopiarCodigo 0x7f090085
 int id btnCreateAccount 0x7f090086
 int id btnDesactivar 0x7f090087
 int id btnDescargarPdf 0x7f090088
+int id btnDialogAccion 0x7f09040e
 int id btnDialogCancelar 0x7f090089
 int id btnDialogConfirmar 0x7f09008a
 int id btnDlgCambiarFoto 0x7f09008b
@@ -3608,6 +3608,7 @@ int id etDescripcionCategoria 0x7f090174
 int id etDescuentoGlobalFactura 0x7f090175
 int id etDescuentoItemFactura 0x7f090176
 int id etDialogDireccion 0x7f090177
+int id etDialogInput 0x7f09040f
 int id etDialogNombre 0x7f090178
 int id etDireccion 0x7f090179
 int id etDni 0x7f09017a
@@ -4105,6 +4106,9 @@ int id tvDescuentoDetalle 0x7f090364
 int id tvDescuentoGlobalMonto 0x7f090365
 int id tvDetalleTempInfo 0x7f090366
 int id tvDetalleTempSubtotal 0x7f090367
+int id tvDialogCancelar 0x7f090410
+int id tvDialogError 0x7f090411
+int id tvDialogSubtitulo 0x7f090412
 int id tvDialogTitle 0x7f090368
 int id tvDialogTitulo 0x7f090369
 int id tvDireccion 0x7f09036a
@@ -4446,6 +4450,7 @@ int layout dialog_nuevo_ajuste_manual 0x7f0c0055
 int layout dialog_parroquia_form 0x7f0c0056
 int layout dialog_producto 0x7f0c0057
 int layout dialog_proveedor 0x7f0c0058
+int layout dialog_recuperar_password 0x7f0c00b5
 int layout dialog_registrar_compra 0x7f0c0059
 int layout dialog_registrar_pago 0x7f0c005a
 int layout dialog_solicitud_pendiente 0x7f0c005b

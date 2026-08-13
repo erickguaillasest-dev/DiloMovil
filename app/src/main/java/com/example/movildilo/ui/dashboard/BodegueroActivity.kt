@@ -8,8 +8,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.example.movildilo.R
@@ -18,6 +16,7 @@ import com.example.movildilo.data.local.SessionManager
 import com.example.movildilo.data.model.dto.CategoriaDto
 import com.example.movildilo.data.model.dto.InventarioResponseDto
 import com.example.movildilo.data.model.dto.ProductoResponseDto
+import com.example.movildilo.ia.ZoeBottomSheetDialog
 import com.example.movildilo.ui.auth.LoginActivity
 import com.example.movildilo.ui.bodegas.BodegasActivity
 import com.example.movildilo.ui.propietario.*

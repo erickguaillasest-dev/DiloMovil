@@ -18,7 +18,7 @@ import com.example.movildilo.ui.auth.LoginActivity
 import com.example.movildilo.ui.propietario.ClientesActivity
 import com.example.movildilo.ui.propietario.CuentasPorCobrarActivity
 import com.example.movildilo.ui.facturas.HistorialFacturasActivity
-import com.example.movildilo.ui.propietario.ZoeBottomSheetDialog
+import com.example.movildilo.ia.ZoeBottomSheetDialog
 import com.example.movildilo.utils.Constants
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView

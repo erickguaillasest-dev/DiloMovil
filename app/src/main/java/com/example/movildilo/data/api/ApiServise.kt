@@ -25,6 +25,8 @@ import com.example.movildilo.data.model.dto.ParroquiaResponseDto
 import com.example.movildilo.data.model.dto.ProductoResponseDto
 import com.example.movildilo.data.model.dto.ProveedorRequestDto
 import com.example.movildilo.data.model.dto.ProveedorResponseDto
+import com.example.movildilo.data.model.dto.ForgotPasswordRequestDto
+import com.example.movildilo.data.model.dto.ResetPasswordRequestDto
 import com.example.movildilo.data.model.dto.UnirseNegocioRequestDto
 import com.example.movildilo.data.model.dto.UsuarioMeDto
 import okhttp3.MultipartBody
@@ -57,6 +59,12 @@ interface ApiService {
         @Part("datos") datosUsuario: RequestBody,
         @Part foto: MultipartBody.Part? = null
     ): Response<ResponseBody>
+
+    @POST("api/v1/auth/forgot-password")
+    suspend fun forgotPassword(@Body request: ForgotPasswordRequestDto): Response<ResponseBody>
+
+    @POST("api/v1/auth/reset-password")
+    suspend fun resetPassword(@Body request: ResetPasswordRequestDto): Response<ResponseBody>
 
     @GET("api/v1/usuarios/verificar-estado")
     suspend fun verificarEstado(

@@ -108,7 +108,6 @@ id btnAgregarAlCarrito
 id btnAgregarDetalle
 id btnAprobar
 id btnCambiarFoto
-id btnCambiarVoz
 id btnCancelar
 id btnCancelarAjuste
 id btnCancelarCompra
@@ -132,6 +131,7 @@ id btnCopiarCodigo
 id btnCreateAccount
 id btnDesactivar
 id btnDescargarPdf
+id btnDialogAccion
 id btnDialogCancelar
 id btnDialogConfirmar
 id btnDlgCambiarFoto
@@ -289,6 +289,7 @@ id etDescripcionCategoria
 id etDescuentoGlobalFactura
 id etDescuentoItemFactura
 id etDialogDireccion
+id etDialogInput
 id etDialogNombre
 id etDireccion
 id etDni
@@ -481,6 +482,9 @@ id tvDescuentoDetalle
 id tvDescuentoGlobalMonto
 id tvDetalleTempInfo
 id tvDetalleTempSubtotal
+id tvDialogCancelar
+id tvDialogError
+id tvDialogSubtitulo
 id tvDialogTitle
 id tvDialogTitulo
 id tvDireccion
@@ -668,6 +672,7 @@ layout dialog_nuevo_ajuste_manual
 layout dialog_parroquia_form
 layout dialog_producto
 layout dialog_proveedor
+layout dialog_recuperar_password
 layout dialog_registrar_compra
 layout dialog_registrar_pago
 layout dialog_solicitud_pendiente

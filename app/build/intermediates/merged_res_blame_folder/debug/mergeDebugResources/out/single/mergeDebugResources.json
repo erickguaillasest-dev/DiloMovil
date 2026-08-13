@@ -408,6 +408,10 @@
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\mipmap-xxhdpi\\ic_launcher.webp"
     },
     {
+        "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\layout_dialog_recuperar_password.xml.flat",
+        "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\layout\\dialog_recuperar_password.xml"
+    },
+    {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\layout_item_kardex_movimiento.xml.flat",
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\layout\\item_kardex_movimiento.xml"
     },
@@ -488,6 +492,10 @@
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\layout\\activity_categorias.xml"
     },
     {
+        "merged": "com.example.movildilo.app-debug-47:/layout_bottom_sheet_zoe_chat.xml.flat",
+        "source": "com.example.movildilo.app-main-49:/layout/bottom_sheet_zoe_chat.xml"
+    },
+    {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\layout_activity_login.xml.flat",
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\layout\\activity_login.xml"
     },
@@ -550,10 +558,6 @@
     {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\mipmap-mdpi_ic_launcher_round.webp.flat",
         "source": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-main-49:\\mipmap-mdpi\\ic_launcher_round.webp"
-    },
-    {
-        "merged": "com.example.movildilo.app-debug-47:/layout_activity_propietario.xml.flat",
-        "source": "com.example.movildilo.app-main-49:/layout/activity_propietario.xml"
     },
     {
         "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.5.0\\com.example.movildilo.app-debug-47:\\drawable_bg_gradient_navy.xml.flat",

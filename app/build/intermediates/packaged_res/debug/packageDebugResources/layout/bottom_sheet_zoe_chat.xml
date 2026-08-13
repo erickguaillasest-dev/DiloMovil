@@ -5,7 +5,6 @@
     android:layout_height="wrap_content"
     android:padding="16dp">
 
-    <!-- TARJETA CENTRADA CON BORDES REDONDEADOS -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="520dp"
@@ -20,7 +19,6 @@
             android:layout_height="match_parent"
             android:orientation="vertical">
 
-            <!-- CABECERA OSCURA: marca + cerrar -->
             <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -36,7 +34,6 @@
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
 
-                    <!-- Avatar Header -->
                     <com.google.android.material.imageview.ShapeableImageView
                         android:layout_width="36dp"
                         android:layout_height="36dp"
@@ -67,8 +64,6 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- Único botón arriba: cerrar el chat. Bien grande y solo, para que no
-                     se confunda con ninguna otra acción. -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnCerrarChat"
                     style="@style/Widget.Material3.Button.IconButton"
@@ -85,8 +80,6 @@
                     app:iconTint="@color/white" />
             </RelativeLayout>
 
-            <!-- BARRA DE ACCIONES: cada botón lleva su nombre debajo del ícono,
-                 para que se entienda de un vistazo qué hace sin necesidad de adivinar. -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -95,7 +88,6 @@
                 android:orientation="horizontal"
                 android:paddingVertical="8dp">
 
-                <!-- Guía de bienvenida -->
                 <LinearLayout
                     android:id="@+id/btnIniciarGuia"
                     android:layout_width="0dp"
@@ -131,7 +123,6 @@
                     android:layout_height="28dp"
                     android:background="#2B354A" />
 
-                <!-- Activar/silenciar voz -->
                 <LinearLayout
                     android:id="@+id/btnToggleVozChat"
                     android:layout_width="0dp"
@@ -169,45 +160,13 @@
                     android:layout_height="28dp"
                     android:background="#2B354A" />
 
-                <!-- Cambiar el tono/perfil de voz -->
-                <LinearLayout
-                    android:id="@+id/btnCambiarVoz"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:background="?attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:contentDescription="Cambiar el tono de voz de Zoe"
-                    android:focusable="true"
-                    android:gravity="center"
-                    android:orientation="vertical"
-                    android:paddingVertical="4dp">
-
-                    <ImageView
-                        android:layout_width="18dp"
-                        android:layout_height="18dp"
-                        android:contentDescription="@null"
-                        android:src="@android:drawable/ic_popup_sync"
-                        app:tint="#EA580C" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="Tono"
-                        android:textColor="@color/white"
-                        android:textSize="11sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
             </LinearLayout>
 
-            <!-- LÍNEA NARANJA DE SEPARACIÓN -->
             <View
                 android:layout_width="match_parent"
                 android:layout_height="3dp"
                 android:background="#EA580C" />
 
-            <!-- HISTORIAL DE MENSAJES -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvChatMensajes"
                 android:layout_width="match_parent"
@@ -216,7 +175,6 @@
                 android:clipToPadding="false"
                 android:padding="16dp" />
 
-            <!-- BARRA INFERIOR DE ENTRADA -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

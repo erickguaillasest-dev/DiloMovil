@@ -1,8 +1,10 @@
-package com.example.movildilo.ui.propietario
+package com.example.movildilo.ia
 
 import android.Manifest
+import android.app.Activity
 import android.app.Dialog
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
@@ -14,20 +16,17 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.movildilo.R
 import com.example.movildilo.data.api.GroqApiClient
 import com.example.movildilo.data.model.dto.ChatItem
 import com.example.movildilo.data.model.dto.GroqMessage
 import com.example.movildilo.data.model.dto.GroqRequest
-import com.example.movildilo.ia.ZoeActionRouter
-import com.example.movildilo.ia.ZoeKnowledgeBase
-import com.example.movildilo.ia.ZoeOnboardingManager
-import com.example.movildilo.ia.ZoeSpeechHelper
 import com.example.movildilo.ui.adapters.ChatAdapter
+import com.google.android.material.R
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
@@ -54,14 +53,12 @@ class ZoeBottomSheetDialog(
     private lateinit var ivIconoVoz: ImageView
     private lateinit var tvEstadoVoz: TextView
     private lateinit var btnIniciarGuia: View
-    private lateinit var btnCambiarVoz: View
 
     private val listaHistorialDto = mutableListOf<GroqMessage>()
     private val listaChatUi = mutableListOf<ChatItem>()
     private lateinit var adapter: ChatAdapter
 
     private lateinit var voz: ZoeSpeechHelper
-    /** Si está activo, Zoe lee en voz alta cada respuesta que da (además de mostrarla en texto). Activo por defecto. */
     private var vozActivada: Boolean = true
 
     /**
@@ -86,7 +83,7 @@ class ZoeBottomSheetDialog(
         val dialog = super.onCreateDialog(savedInstanceState) as BottomSheetDialog
         dialog.setOnShowListener { dialogInterface ->
             val bottomSheet = (dialogInterface as BottomSheetDialog)
-                .findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
+                .findViewById<View>(R.id.design_bottom_sheet)
             bottomSheet?.let {
                 val behavior = BottomSheetBehavior.from(it)
                 behavior.state = BottomSheetBehavior.STATE_EXPANDED
@@ -108,22 +105,21 @@ class ZoeBottomSheetDialog(
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        return inflater.inflate(R.layout.bottom_sheet_zoe_chat, container, false)
+        return inflater.inflate(com.example.movildilo.R.layout.bottom_sheet_zoe_chat, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        rvChatMensajes = view.findViewById(R.id.rvChatMensajes)
-        etMensajeChat = view.findViewById(R.id.etMensajeChat)
-        btnEnviarMensaje = view.findViewById(R.id.btnEnviarMensaje)
-        btnCerrarChat = view.findViewById(R.id.btnCerrarChat)
-        btnMicChat = view.findViewById(R.id.btnMicChat)
-        btnToggleVozChat = view.findViewById(R.id.btnToggleVozChat)
-        ivIconoVoz = view.findViewById(R.id.ivIconoVoz)
-        tvEstadoVoz = view.findViewById(R.id.tvEstadoVoz)
-        btnIniciarGuia = view.findViewById(R.id.btnIniciarGuia)
-        btnCambiarVoz = view.findViewById(R.id.btnCambiarVoz)
+        rvChatMensajes = view.findViewById(com.example.movildilo.R.id.rvChatMensajes)
+        etMensajeChat = view.findViewById(com.example.movildilo.R.id.etMensajeChat)
+        btnEnviarMensaje = view.findViewById(com.example.movildilo.R.id.btnEnviarMensaje)
+        btnCerrarChat = view.findViewById(com.example.movildilo.R.id.btnCerrarChat)
+        btnMicChat = view.findViewById(com.example.movildilo.R.id.btnMicChat)
+        btnToggleVozChat = view.findViewById(com.example.movildilo.R.id.btnToggleVozChat)
+        ivIconoVoz = view.findViewById(com.example.movildilo.R.id.ivIconoVoz)
+        tvEstadoVoz = view.findViewById(com.example.movildilo.R.id.tvEstadoVoz)
+        btnIniciarGuia = view.findViewById(com.example.movildilo.R.id.btnIniciarGuia)
 
         adapter = ChatAdapter(listaChatUi)
         rvChatMensajes.layoutManager = LinearLayoutManager(requireContext())
@@ -184,12 +180,8 @@ class ZoeBottomSheetDialog(
             iniciarGuiaDeBienvenida()
         }
 
-        btnCambiarVoz.setOnClickListener {
-            cambiarVozDeZoe()
-        }
     }
 
-    /** Refleja en el ícono y en el texto ("Voz: ON"/"Voz: OFF") si Zoe está leyendo sus respuestas. */
     private fun actualizarEstadoVoz() {
         ivIconoVoz.setImageResource(
             if (vozActivada) android.R.drawable.ic_lock_silent_mode
@@ -253,22 +245,20 @@ class ZoeBottomSheetDialog(
     private fun iniciarGuiaDeBienvenida() {
         escuchaContinuaActiva = false
         agregarMensajeUi("assistant", "¡Vamos! Te voy guiando pantalla por pantalla. Di \"detente\" cuando quieras que pare.")
-        val activityActual = activity as? androidx.appcompat.app.AppCompatActivity
+        val activityActual = activity as? AppCompatActivity
         if (activityActual != null) {
             ZoeOnboardingManager.iniciar(activityActual, rolUsuario)
             dismiss()
         }
     }
 
-    /** Lleva al usuario directo a la pantalla y abre el diálogo para crear [nombreLegible]. */
-    private fun irADialogoDeCreacion(destino: Class<out android.app.Activity>, accion: String, nombreLegible: String) {
+    private fun irADialogoDeCreacion(destino: Class<out Activity>, accion: String, nombreLegible: String) {
         agregarMensajeUi("assistant", "¡Vamos! Te llevo a la pantalla para crear $nombreLegible ahora mismo.")
         val activityActual = activity ?: return
         cerrarConPequenaDemora { ZoeActionRouter.navegar(activityActual, destino, accion) }
     }
 
-    /** Lleva al usuario a la pantalla donde puede hacer el cambio que pidió. */
-    private fun irAPantallaDeCambio(destino: Class<out android.app.Activity>, accion: String) {
+    private fun irAPantallaDeCambio(destino: Class<out Activity>, accion: String) {
         agregarMensajeUi("assistant", "Claro, te llevo a esa pantalla para que hagas el cambio.")
         val activityActual = activity ?: return
         cerrarConPequenaDemora { ZoeActionRouter.navegar(activityActual, destino, accion) }
@@ -287,10 +277,6 @@ class ZoeBottomSheetDialog(
         }, 500)
     }
 
-    private fun cambiarVozDeZoe() {
-        val nombrePerfil = voz.cambiarVoz()
-        agregarMensajeUi("assistant", "Listo, ahora hablo con: **$nombrePerfil**. ¿Cómo se escucha?")
-    }
 
     private fun pedirPermisoYEscuchar() {
         val permisoConcedido = ContextCompat.checkSelfPermission(
@@ -340,11 +326,11 @@ class ZoeBottomSheetDialog(
     private fun actualizarIconoMic() {
         if (!::btnMicChat.isInitialized) return
         if (escuchaContinuaActiva) {
-            btnMicChat.setIconResource(R.drawable.ic_mic)
-            btnMicChat.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#EA580C"))
+            btnMicChat.setIconResource(com.example.movildilo.R.drawable.ic_mic)
+            btnMicChat.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#EA580C"))
             btnMicChat.contentDescription = "Detener la escucha de Zoe"
         } else {
-            btnMicChat.setIconResource(R.drawable.ic_mic)
+            btnMicChat.setIconResource(com.example.movildilo.R.drawable.ic_mic)
             btnMicChat.backgroundTintList = null
             btnMicChat.contentDescription = "Hablarle a Zoe"
         }
@@ -418,7 +404,11 @@ class ZoeBottomSheetDialog(
                             "Uy, me hiciste pensar demasiado rápido y me quedé sin aire. Espera unos segundos, por favor. 😅"
                         )
                     } else {
-                        Toast.makeText(requireContext(), "Error en el servidor de IA: ${response.code()}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            requireContext(),
+                            "Error en el servidor de IA: ${response.code()}",
+                            Toast.LENGTH_SHORT
+                        ).show()
                         if (escuchaContinuaActiva) cicloEscuchaContinua()
                     }
                 }
@@ -426,7 +416,11 @@ class ZoeBottomSheetDialog(
                 withContext(Dispatchers.Main) {
                     btnEnviarMensaje.isEnabled = true
                     if (!isAdded) return@withContext
-                    Toast.makeText(requireContext(), "Fallo de conexión: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        requireContext(),
+                        "Fallo de conexión: ${e.localizedMessage}",
+                        Toast.LENGTH_SHORT
+                    ).show()
                     if (escuchaContinuaActiva) cicloEscuchaContinua()
                 }
             }

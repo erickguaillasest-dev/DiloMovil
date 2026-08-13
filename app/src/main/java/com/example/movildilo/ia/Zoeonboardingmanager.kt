@@ -24,11 +24,9 @@ import com.example.movildilo.ui.propietario.Mi_equipo
 import com.example.movildilo.ui.propietario.Perfil
 import com.example.movildilo.ui.propietario.ProveedoresActivity
 
-/** Un paso de la guía: qué pantalla mostrar/abrir y qué le explica Zoe en voz alta al usuario. */
 data class GuiaPaso(
     val tituloPantalla: String,
     val explicacion: String,
-    /** Clase de la Activity que representa esta pantalla, o null si es la pantalla actual (inicio). */
     val activityDestino: Class<out Activity>? = null
 )
 

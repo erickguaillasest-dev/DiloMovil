@@ -15,7 +15,9 @@ import androidx.lifecycle.lifecycleScope
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
+import com.example.movildilo.data.model.dto.ForgotPasswordRequestDto
 import com.example.movildilo.data.model.dto.LoginRequestDto
+import com.example.movildilo.data.model.dto.ResetPasswordRequestDto
 import com.example.movildilo.ui.admin.AdminActivity
 import com.example.movildilo.ui.dashboard.BodegueroActivity
 import com.example.movildilo.ui.dashboard.PropietarioActivity
@@ -76,8 +78,162 @@ class LoginActivity : AppCompatActivity() {
         }
 
         tvForgotPassword.setOnClickListener {
-            Toast.makeText(this, "Contacta al administrador para restablecer tu contraseña", Toast.LENGTH_LONG).show()
+            mostrarDialogoRecuperarPassword()
         }
+    }
+
+    private fun mostrarDialogoRecuperarPassword() {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_recuperar_password, null)
+        val dialog = AlertDialog.Builder(this).setView(dialogView).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val tvError = dialogView.findViewById<TextView>(R.id.tvDialogError)
+        val etInput = dialogView.findViewById<EditText>(R.id.etDialogInput)
+        val btnAccion = dialogView.findViewById<MaterialButton>(R.id.btnDialogAccion)
+        val tvCancelar = dialogView.findViewById<TextView>(R.id.tvDialogCancelar)
+
+        etInput.hint = "correo@ejemplo.com"
+        etInput.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+        btnAccion.text = "Enviar código"
+
+        btnAccion.setOnClickListener {
+            val email = etInput.text.toString().trim()
+            tvError.visibility = android.view.View.GONE
+
+            if (email.isEmpty() || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                tvError.text = "Debes ingresar un correo válido"
+                tvError.visibility = android.view.View.VISIBLE
+                return@setOnClickListener
+            }
+
+            btnAccion.isEnabled = false
+            btnAccion.text = "Enviando..."
+
+            lifecycleScope.launch {
+                try {
+                    val response = RetrofitClient.apiService.forgotPassword(ForgotPasswordRequestDto(email))
+                    if (response.isSuccessful) {
+                        dialog.dismiss()
+                        mostrarDialogoCodigo(email)
+                    } else {
+                        val mensaje = response.errorBody()?.string()?.takeIf { it.isNotBlank() }
+                            ?: "No pudimos encontrar ese correo."
+                        tvError.text = mensaje
+                        tvError.visibility = android.view.View.VISIBLE
+                        btnAccion.isEnabled = true
+                        btnAccion.text = "Enviar código"
+                    }
+                } catch (e: Exception) {
+                    tvError.text = "No se pudo conectar al servidor. Revisa tu conexión."
+                    tvError.visibility = android.view.View.VISIBLE
+                    btnAccion.isEnabled = true
+                    btnAccion.text = "Enviar código"
+                }
+            }
+        }
+
+        tvCancelar.setOnClickListener { dialog.dismiss() }
+        dialog.show()
+    }
+
+    private fun mostrarDialogoCodigo(email: String) {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_recuperar_password, null)
+        val dialog = AlertDialog.Builder(this).setView(dialogView).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        dialogView.findViewById<TextView>(R.id.tvDialogTitulo).text = "Verifica tu correo"
+        dialogView.findViewById<TextView>(R.id.tvDialogSubtitulo).text =
+            "Hemos enviado un código de 6 dígitos a $email.\nRevísalo e ingrésalo aquí:"
+
+        val tvError = dialogView.findViewById<TextView>(R.id.tvDialogError)
+        val etInput = dialogView.findViewById<EditText>(R.id.etDialogInput)
+        val btnAccion = dialogView.findViewById<MaterialButton>(R.id.btnDialogAccion)
+        val tvCancelar = dialogView.findViewById<TextView>(R.id.tvDialogCancelar)
+
+        etInput.hint = "Ej: 123456"
+        etInput.inputType = InputType.TYPE_CLASS_NUMBER
+        etInput.filters = arrayOf(android.text.InputFilter.LengthFilter(6))
+        btnAccion.text = "Verificar código"
+
+        btnAccion.setOnClickListener {
+            val codigo = etInput.text.toString().trim()
+            tvError.visibility = android.view.View.GONE
+
+            if (codigo.length < 6) {
+                tvError.text = "El código debe tener 6 dígitos"
+                tvError.visibility = android.view.View.VISIBLE
+                return@setOnClickListener
+            }
+
+            dialog.dismiss()
+            mostrarDialogoNuevaPassword(email, codigo)
+        }
+
+        tvCancelar.setOnClickListener { dialog.dismiss() }
+        dialog.show()
+    }
+
+    private fun mostrarDialogoNuevaPassword(email: String, codigo: String) {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_recuperar_password, null)
+        val dialog = AlertDialog.Builder(this).setView(dialogView).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        dialogView.findViewById<TextView>(R.id.tvDialogTitulo).text = "Nueva Contraseña"
+        dialogView.findViewById<TextView>(R.id.tvDialogSubtitulo).text = "Crea tu nueva contraseña segura."
+
+        val tvError = dialogView.findViewById<TextView>(R.id.tvDialogError)
+        val etInput = dialogView.findViewById<EditText>(R.id.etDialogInput)
+        val btnAccion = dialogView.findViewById<MaterialButton>(R.id.btnDialogAccion)
+        val tvCancelar = dialogView.findViewById<TextView>(R.id.tvDialogCancelar)
+
+        etInput.hint = "Mínimo 8 caracteres"
+        etInput.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+        btnAccion.text = "Guardar cambios"
+
+        btnAccion.setOnClickListener {
+            val nuevaPassword = etInput.text.toString()
+            tvError.visibility = android.view.View.GONE
+
+            if (nuevaPassword.length < 6) {
+                tvError.text = "La contraseña debe tener al menos 6 caracteres"
+                tvError.visibility = android.view.View.VISIBLE
+                return@setOnClickListener
+            }
+
+            btnAccion.isEnabled = false
+            btnAccion.text = "Guardando..."
+
+            lifecycleScope.launch {
+                try {
+                    val response = RetrofitClient.apiService.resetPassword(
+                        ResetPasswordRequestDto(email = email, codigo = codigo, nuevaPassword = nuevaPassword)
+                    )
+                    if (response.isSuccessful) {
+                        dialog.dismiss()
+                        Toast.makeText(
+                            this@LoginActivity,
+                            "¡Contraseña actualizada! Ya puedes iniciar sesión con tu nueva contraseña.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    } else {
+                        val mensaje = response.errorBody()?.string()?.takeIf { it.isNotBlank() }
+                            ?: "El código es inválido o ha expirado."
+                        tvError.text = mensaje
+                        tvError.visibility = android.view.View.VISIBLE
+                        btnAccion.isEnabled = true
+                        btnAccion.text = "Guardar cambios"
+                    }
+                } catch (e: Exception) {
+                    tvError.text = "No se pudo conectar al servidor. Revisa tu conexión."
+                    tvError.visibility = android.view.View.VISIBLE
+                    btnAccion.isEnabled = true
+                    btnAccion.text = "Guardar cambios"
+                }
+            }
+        }
+
+        tvCancelar.setOnClickListener { dialog.dismiss() }
+        dialog.show()
     }
 
     private fun togglePasswordVisibility() {

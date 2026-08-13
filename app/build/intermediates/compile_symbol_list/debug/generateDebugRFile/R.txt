@@ -107,7 +107,6 @@ int id btnAgregarAlCarrito 0x0
 int id btnAgregarDetalle 0x0
 int id btnAprobar 0x0
 int id btnCambiarFoto 0x0
-int id btnCambiarVoz 0x0
 int id btnCancelar 0x0
 int id btnCancelarAjuste 0x0
 int id btnCancelarCompra 0x0
@@ -131,6 +130,7 @@ int id btnCopiarCodigo 0x0
 int id btnCreateAccount 0x0
 int id btnDesactivar 0x0
 int id btnDescargarPdf 0x0
+int id btnDialogAccion 0x0
 int id btnDialogCancelar 0x0
 int id btnDialogConfirmar 0x0
 int id btnDlgCambiarFoto 0x0
@@ -288,6 +288,7 @@ int id etDescripcionCategoria 0x0
 int id etDescuentoGlobalFactura 0x0
 int id etDescuentoItemFactura 0x0
 int id etDialogDireccion 0x0
+int id etDialogInput 0x0
 int id etDialogNombre 0x0
 int id etDireccion 0x0
 int id etDni 0x0
@@ -480,6 +481,9 @@ int id tvDescuentoDetalle 0x0
 int id tvDescuentoGlobalMonto 0x0
 int id tvDetalleTempInfo 0x0
 int id tvDetalleTempSubtotal 0x0
+int id tvDialogCancelar 0x0
+int id tvDialogError 0x0
+int id tvDialogSubtitulo 0x0
 int id tvDialogTitle 0x0
 int id tvDialogTitulo 0x0
 int id tvDireccion 0x0
@@ -667,6 +671,7 @@ int layout dialog_nuevo_ajuste_manual 0x0
 int layout dialog_parroquia_form 0x0
 int layout dialog_producto 0x0
 int layout dialog_proveedor 0x0
+int layout dialog_recuperar_password 0x0
 int layout dialog_registrar_compra 0x0
 int layout dialog_registrar_pago 0x0
 int layout dialog_solicitud_pendiente 0x0
