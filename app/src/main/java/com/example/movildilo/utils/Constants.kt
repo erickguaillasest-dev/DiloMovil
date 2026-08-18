@@ -1,5 +1,7 @@
 package com.example.movildilo.utils
 
+import com.example.movildilo.BuildConfig
+
 object Constants {
-    const val GROQ_API_KEY = "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"
+    val GROQ_API_KEY = BuildConfig.GROQ_API_KEY
 }
