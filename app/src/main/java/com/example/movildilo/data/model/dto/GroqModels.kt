@@ -1,7 +1,7 @@
 package com.example.movildilo.data.model.dto
 
 data class GroqRequest(
-    val model: String = "llama-3.1-8b-instant",
+    val model: String = "llama-3.3-70b-versatile",
     val messages: List<GroqMessage>,
     val temperature: Double = 0.5,
     val max_tokens: Int = 500

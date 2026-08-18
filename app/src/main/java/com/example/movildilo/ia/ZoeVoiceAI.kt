@@ -25,8 +25,6 @@ data class ResultadoVozFactura(
     val bodega: String? = null,
     val items: List<ItemVozIA> = emptyList(),
     val eliminarProducto: String? = null,
-    /** Cantidad puntual a quitar de ese producto (ej. "elimina 2 panes" -> 2).
-     *  Si es null, significa eliminar el producto por completo del ticket. */
     val eliminarCantidad: Int? = null,
     val descuentoGlobalPorcentaje: Int? = null,
     val emitirFactura: Boolean = false,
@@ -37,11 +35,8 @@ object ZoeVoiceAI {
 
     private const val GROQ_API_KEY = "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"
     private const val GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
-    private const val MODELO = "llama-3.1-8b-instant"
+    private const val MODELO = "llama-3.3-70b-versatile"
 
-    /** Motivo del último fallo al llamar a la IA, para poder mostrarlo/depurarlo
-     *  (por ejemplo "SIN_INTERNET", "HTTP_401", "HTTP_429", "JSON_INVALIDO"). Null si el
-     *  último intento fue exitoso. */
     @Volatile var ultimoError: String? = null
         private set
 

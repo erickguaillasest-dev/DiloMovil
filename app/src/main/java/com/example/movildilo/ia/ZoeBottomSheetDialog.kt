@@ -378,7 +378,7 @@ class ZoeBottomSheetDialog(
         mensajesParaApi.addAll(listaHistorialDto)
 
         val request = GroqRequest(
-            model = "llama-3.1-8b-instant",
+            model = "llama-3.3-70b-versatile",
             messages = mensajesParaApi,
             temperature = 0.3,
             max_tokens = 500
