@@ -230,14 +230,12 @@ class PropietarioActivity : AppCompatActivity() {
                 val equipo = reqEquipo.await()?.body() ?: emptyList()
                 val alertas = reqAlertas.await()?.body() ?: emptyList()
 
-                // 1. Obtener la foto de perfil del USUARIO
                 var fotoUsuarioApi: String? = null
                 if (resMiPerfil?.isSuccessful == true && resMiPerfil.body() != null) {
                     val perfil = resMiPerfil.body()!!
                     fotoUsuarioApi = perfil.fotoPerfil
                 }
 
-                // 2. Nombre del Negocio y su logo
                 var logoNegocioUrl: String? = null
                 if (resNegocio?.isSuccessful == true && resNegocio.body() != null) {
                     val n = resNegocio.body()!!
@@ -245,12 +243,10 @@ class PropietarioActivity : AppCompatActivity() {
                     logoNegocioUrl = n.rutaImagen
                 }
 
-                // 3. Resumen para Zoe
                 contextoNegocioTexto = construirResumenDelNegocio(
                     productos, categorias, clientes, inventario, facturas
                 )
 
-                // 4. Alertas de caducidad
                 alertasTexto = if (alertas.isNotEmpty()) {
                     alertas.take(15).joinToString("; ") { a ->
                         "${a.productoNombre ?: "Producto"} caduca el ${a.fechaCaducidad ?: "N/D"}"
@@ -262,7 +258,6 @@ class PropietarioActivity : AppCompatActivity() {
                 val totalVentas = facturas.sumOf { it.totalCalculado }
                 val itemsBajoStock = inventario.filter { (it.cantidadActual ?: 0) <= (it.stockMinimo ?: 5) }
 
-                // 5. Filtrar equipo: OMITIR solicitudes pendientes únicamente para esta vista
                 val equipoSinPendientes = equipo.filter { miembro ->
                     val estado = miembro.estadoInvitacion?.uppercase(Locale.ROOT) ?: ""
                     val estadoSolicitud = miembro.estadoLaboral?.uppercase(Locale.ROOT) ?: ""
@@ -276,7 +271,6 @@ class PropietarioActivity : AppCompatActivity() {
                     tvClientesActivos.text = "${clientes.size} activos"
                     cardAlert.visibility = if (itemsBajoStock.isNotEmpty()) View.VISIBLE else View.GONE
 
-                    // Se asigna la lista filtrada
                     miembrosAdapter.actualizarLista(equipoSinPendientes)
 
                     val imagenAMostrarEnHeader = logoNegocioUrl?.takeIf { it.isNotBlank() }

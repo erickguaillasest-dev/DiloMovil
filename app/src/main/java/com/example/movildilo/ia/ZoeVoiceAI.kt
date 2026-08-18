@@ -9,6 +9,7 @@ import okhttp3.RequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
+import com.example.movildilo.utils.Constants
 
 /** Un producto que la IA entendió que el usuario quiere agregar (o modificar) en el carrito. */
 data class ItemVozIA(
@@ -17,7 +18,6 @@ data class ItemVozIA(
     val descuentoPorcentaje: Int? = null
 )
 
-/** Todo lo que la IA logró extraer de una frase libre del usuario. */
 data class ResultadoVozFactura(
     val cliente: String? = null,
     val metodoPago: String? = null,
@@ -33,9 +33,9 @@ data class ResultadoVozFactura(
 
 object ZoeVoiceAI {
 
-    private const val GROQ_API_KEY = "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"
+    private val GROQ_API_KEY = Constants.GROQ_API_KEY
     private const val GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
-    private const val MODELO = "llama-3.3-70b-versatile"
+    private const val MODELO = "openai/gpt-oss-120b"
 
     @Volatile var ultimoError: String? = null
         private set
@@ -220,7 +220,6 @@ object ZoeVoiceAI {
             f.contains("efectivo") -> "EFECTIVO"
             else -> null
         }.let { metodo ->
-            // Regla de negocio: Consumidor Final nunca puede pagar con tarjeta de crédito.
             val pideConsumidorFinal = cliente == "CONSUMIDOR_FINAL"
             if (metodo == "TARJETA_CREDITO" && pideConsumidorFinal) "EFECTIVO" else metodo
         }
@@ -236,7 +235,6 @@ object ZoeVoiceAI {
         var eliminarCantidad: Int? = null
         val items = mutableListOf<ItemVozIA>()
 
-        // Palabras sin valor para identificar un producto (verbos, artículos, conectores, etc).
         val stopWordsProducto = setOf(
             "agrega", "agregue", "agregar", "agregame", "anade", "anadir",
             "pon", "ponme", "poner", "mete", "meteme", "meter", "incluye", "incluyeme", "incluir",
@@ -249,17 +247,13 @@ object ZoeVoiceAI {
             "centavos", "tambien"
         )
 
-        // Caso normal: el nombre completo del producto aparece dentro de la frase
-        // (ej. usuario dice "quiero pan", producto "Pan").
+
         val nombresOrdenados = nombresProductos.filter { it.isNotBlank() }
             .map { normalizar(it) to it }
             .filter { (n, _) -> n.length >= 3 && f.contains(n) }
             .toMutableList()
 
-        // Caso inverso: el usuario solo dijo UNA PARTE del nombre real del producto
-        // (ej. dice "máscara" y el catálogo tiene "Zen Máscara Facial 50ml"). Se busca por
-        // cada palabra significativa que dijo el usuario (sin verbos/artículos) contra cada
-        // palabra del nombre del producto, para no depender de que diga el nombre completo.
+
         val tokensFrase = f.split(Regex("\\s+"))
             .filter { it.length >= 3 && it !in stopWordsProducto && it.toIntOrNull() == null }
         for (tok in tokensFrase) {
@@ -307,7 +301,6 @@ object ZoeVoiceAI {
         )
     }
 
-    /** True si el resultado no tiene absolutamente ninguna información útil (ni de la IA ni local). */
     fun estaVacio(r: ResultadoVozFactura): Boolean {
         return r.cliente == null && r.metodoPago == null && r.cuotas == null && r.bodega == null &&
                 r.items.isEmpty() && r.eliminarProducto == null && r.descuentoGlobalPorcentaje == null &&

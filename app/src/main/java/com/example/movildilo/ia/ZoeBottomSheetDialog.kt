@@ -378,10 +378,10 @@ class ZoeBottomSheetDialog(
         mensajesParaApi.addAll(listaHistorialDto)
 
         val request = GroqRequest(
-            model = "llama-3.3-70b-versatile",
+            model = "openai/gpt-oss-120b",
             messages = mensajesParaApi,
-            temperature = 0.3,
-            max_tokens = 500
+            temperature = 1,
+            max_tokens = 1000
         )
 
         lifecycleScope.launch(Dispatchers.IO) {

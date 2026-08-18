@@ -1,10 +1,10 @@
 package com.example.movildilo.data.model.dto
 
 data class GroqRequest(
-    val model: String = "llama-3.3-70b-versatile",
+    val model: String = "openai/gpt-oss-120b",
     val messages: List<GroqMessage>,
-    val temperature: Double = 0.5,
-    val max_tokens: Int = 500
+    val temperature: Int = 1,
+    val max_tokens: Int = 2048
 )
 
 data class GroqMessage(
