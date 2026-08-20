@@ -210,7 +210,6 @@ class BodegueroActivity : AppCompatActivity() {
 
                     cardAlert.visibility = if (itemsBajoStock.isNotEmpty()) View.VISIBLE else View.GONE
 
-                    // Cargar estrictamente la imagen del negocio
                     if (!logoNegocioUrl.isNullOrBlank()) {
                         cargarImagenNegocio(logoNegocioUrl)
                     }
@@ -267,7 +266,7 @@ class BodegueroActivity : AppCompatActivity() {
             negocioNombre = negocioNombreReal,
             contextoNegocioTexto = contextoNegocioTexto,
             alertasTexto = alertasTexto,
-            groqApiKey = Constants.GROQ_API_KEY,
+            groqApiKey = Constants.GROQ_API_KEY_CHAT,
             rolUsuario = "BODEGUERO"
         )
         dialogZoe.show(supportFragmentManager, "ZoeChatBottomSheet")

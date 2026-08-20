@@ -81,8 +81,6 @@ class RendimientoComercialActivity : AppCompatActivity() {
     private var negocioNombre: String = "Mi Negocio"
     private var isLoading = true
     private var exportandoPdf = false
-
-    // ---------- Estado / periodo ----------
     private var periodoDias = 30
     private var facturasRaw: List<FacturaResponseDto> = emptyList()
 

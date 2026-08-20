@@ -60,13 +60,6 @@ class ZoeBottomSheetDialog(
 
     private lateinit var voz: ZoeSpeechHelper
     private var vozActivada: Boolean = true
-
-    /**
-     * 🎙️ Escucha continua "manos libres", igual que `keepListeningActive` en la web: un solo
-     * toque en el micrófono la activa, y desde ahí el ciclo es solo: escuchar → procesar →
-     * Zoe responde por voz → en cuanto termina de hablar, vuelve a escuchar sola, sin que el
-     * usuario tenga que tocar el botón cada vez. Un segundo toque (o decir "detente") la apaga.
-     */
     private var escuchaContinuaActiva: Boolean = false
 
     private val requestPermissionLauncher = registerForActivityResult(
@@ -127,12 +120,19 @@ class ZoeBottomSheetDialog(
 
         voz = ZoeSpeechHelper(requireContext())
 
-
-        val bienvenida = "¡Hola!  Soy **Zoe**, tu asistente inteligente en **Dilo Móvil**. Tengo acceso a la información en tiempo real de **$negocioNombre**. Pregúntame lo que sea sobre la app, dime \"crea un producto\"  y te llevo directo al formulario, o \"cambia mi contraseña\" para ir a tu perfil. También puedo guiarte por toda la app: toca la brújula de arriba o dime \"guíame\"."
-
+        val bienvenida = "¡Hola! Soy **Zoe**, tu asistente en **$negocioNombre**.\n\n" +
+                "¿En qué te puedo ayudar hoy?\n" +
+                "* **Consultar datos:** Ventas, inventario o alertas.\n" +
+                "* **Acciones rápidas:** Di *\"crea un producto\"* o *\"cambia mi contraseña\"*.\n" +
+                "* **Guía interactiva:** Di *\"guíame\"* para dar un recorrido por la app."
 
         voz.inicializar(
-            onListo = { if (vozActivada) voz.hablar(bienvenida) },
+            onListo = {
+                ZoeSpeechHelper.detectarAcentoPedido("acento argentino")?.let { acento ->
+                    voz.activarAcento(acento)
+                }
+                if (vozActivada) voz.hablar("¡Hola! Soy Zoe, tu asistente en $negocioNombre. ¿En qué te puedo ayudar hoy?")
+            },
             onFallo = { mensaje -> Toast.makeText(requireContext(), mensaje, Toast.LENGTH_LONG).show() }
         )
 
@@ -146,8 +146,7 @@ class ZoeBottomSheetDialog(
             dismiss()
         }
 
-
-        agregarMensajeUi("assistant", bienvenida)
+        agregarMensajeUi("assistant", bienvenida, "¡Hola! Soy Zoe, tu asistente en $negocioNombre. ¿En qué te puedo ayudar hoy?")
 
         btnEnviarMensaje.setOnClickListener {
             val texto = etMensajeChat.text.toString().trim()
@@ -163,7 +162,7 @@ class ZoeBottomSheetDialog(
             actualizarEstadoVoz()
             Toast.makeText(
                 requireContext(),
-                if (vozActivada) "Zoe leerá sus respuestas en voz alta" else "Zoe ya no leerá sus respuestas",
+                if (vozActivada) "Voz activada" else "Voz desactivada",
                 Toast.LENGTH_SHORT
             ).show()
         }
@@ -179,7 +178,6 @@ class ZoeBottomSheetDialog(
         btnIniciarGuia.setOnClickListener {
             iniciarGuiaDeBienvenida()
         }
-
     }
 
     private fun actualizarEstadoVoz() {
@@ -190,24 +188,20 @@ class ZoeBottomSheetDialog(
         tvEstadoVoz.text = if (vozActivada) "Voz: ON" else "Voz: OFF"
     }
 
-    /**
-     * Procesa lo que dijo o escribió el usuario. Puede ser, en este orden de prioridad:
-     * 1) Una orden de parar la voz.
-     * 2) Un pedido de guía de bienvenida.
-     * 3) Un pedido de CREAR algo (producto, cliente, factura, etc.) → la lleva directo al
-     *    diálogo de creación correspondiente.
-     * 4) Un pedido de CAMBIAR algo de perfil, equipo o configuración → la lleva a esa pantalla.
-     * 5) Cualquier otra pregunta → se la manda a la IA con el manual completo de la app.
-     */
     private fun procesarMensajeUsuario(texto: String) {
         val creacion = ZoeActionRouter.detectarCreacion(texto)
         val cambio = ZoeActionRouter.detectarCambio(texto)
+        val acentoPedido = ZoeSpeechHelper.detectarAcentoPedido(texto)
         when {
             ZoeSpeechHelper.esComandoDeParada(texto) -> {
                 escuchaContinuaActiva = false
                 actualizarIconoMic()
                 voz.detenerHabla()
-                agregarMensajeUi("assistant", "Listo, me detengo. 🙂")
+                agregarMensajeUi("assistant", "Listo, me detengo.")
+            }
+            acentoPedido != null -> {
+                val respuestaAcento = voz.activarAcento(acentoPedido)
+                agregarMensajeUi("assistant", respuestaAcento)
             }
             esPedidoDeGuia(texto) -> iniciarGuiaDeBienvenida()
             creacion != null -> {
@@ -216,7 +210,7 @@ class ZoeBottomSheetDialog(
                 } else {
                     agregarMensajeUi(
                         "assistant",
-                        "Esa función no está disponible para tu rol (**$rolUsuario**). Consulta con el propietario del negocio si la necesitas."
+                        "Esa función no está disponible para tu rol (**$rolUsuario**)."
                     )
                 }
             }
@@ -226,7 +220,7 @@ class ZoeBottomSheetDialog(
                 } else {
                     agregarMensajeUi(
                         "assistant",
-                        "Ese cambio no está disponible para tu rol (**$rolUsuario**). Consulta con el propietario del negocio si lo necesitas."
+                        "Ese cambio no está disponible para tu rol (**$rolUsuario**)."
                     )
                 }
             }
@@ -244,7 +238,7 @@ class ZoeBottomSheetDialog(
 
     private fun iniciarGuiaDeBienvenida() {
         escuchaContinuaActiva = false
-        agregarMensajeUi("assistant", "¡Vamos! Te voy guiando pantalla por pantalla. Di \"detente\" cuando quieras que pare.")
+        agregarMensajeUi("assistant", "¡Perfecto! Te voy guiando pantalla por pantalla.")
         val activityActual = activity as? AppCompatActivity
         if (activityActual != null) {
             ZoeOnboardingManager.iniciar(activityActual, rolUsuario)
@@ -253,13 +247,13 @@ class ZoeBottomSheetDialog(
     }
 
     private fun irADialogoDeCreacion(destino: Class<out Activity>, accion: String, nombreLegible: String) {
-        agregarMensajeUi("assistant", "¡Vamos! Te llevo a la pantalla para crear $nombreLegible ahora mismo.")
+        agregarMensajeUi("assistant", "Te llevo al formulario de **$nombreLegible**.")
         val activityActual = activity ?: return
         cerrarConPequenaDemora { ZoeActionRouter.navegar(activityActual, destino, accion) }
     }
 
     private fun irAPantallaDeCambio(destino: Class<out Activity>, accion: String) {
-        agregarMensajeUi("assistant", "Claro, te llevo a esa pantalla para que hagas el cambio.")
+        agregarMensajeUi("assistant", "Abriendo la pantalla de configuración.")
         val activityActual = activity ?: return
         cerrarConPequenaDemora { ZoeActionRouter.navegar(activityActual, destino, accion) }
     }
@@ -277,7 +271,6 @@ class ZoeBottomSheetDialog(
         }, 500)
     }
 
-
     private fun pedirPermisoYEscuchar() {
         val permisoConcedido = ContextCompat.checkSelfPermission(
             requireContext(), Manifest.permission.RECORD_AUDIO
@@ -293,10 +286,9 @@ class ZoeBottomSheetDialog(
     private fun iniciarEscuchaContinua() {
         escuchaContinuaActiva = true
         actualizarIconoMic()
-        Toast.makeText(requireContext(), "Te escucho...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), "Escuchando...", Toast.LENGTH_SHORT).show()
         cicloEscuchaContinua()
     }
-
 
     private fun cicloEscuchaContinua() {
         if (!escuchaContinuaActiva || !isAdded) return
@@ -316,7 +308,6 @@ class ZoeBottomSheetDialog(
         )
     }
 
-
     private fun detenerEscuchaContinua() {
         escuchaContinuaActiva = false
         voz.detenerEscucha()
@@ -328,11 +319,11 @@ class ZoeBottomSheetDialog(
         if (escuchaContinuaActiva) {
             btnMicChat.setIconResource(com.example.movildilo.R.drawable.ic_mic)
             btnMicChat.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#EA580C"))
-            btnMicChat.contentDescription = "Detener la escucha de Zoe"
+            btnMicChat.contentDescription = "Detener micrófono"
         } else {
             btnMicChat.setIconResource(com.example.movildilo.R.drawable.ic_mic)
             btnMicChat.backgroundTintList = null
-            btnMicChat.contentDescription = "Hablarle a Zoe"
+            btnMicChat.contentDescription = "Activar micrófono"
         }
     }
 
@@ -342,7 +333,7 @@ class ZoeBottomSheetDialog(
         super.onDestroyView()
     }
 
-    private fun agregarMensajeUi(role: String, text: String) {
+    private fun agregarMensajeUi(role: String, text: String, textoVoz: String? = null) {
         adapter.agregarMensaje(ChatItem(role, text))
         if (listaChatUi.isNotEmpty()) {
             rvChatMensajes.smoothScrollToPosition(listaChatUi.size - 1)
@@ -352,11 +343,10 @@ class ZoeBottomSheetDialog(
         }
 
         if (role == "assistant" && vozActivada) {
-            voz.hablar(text) {
+            voz.hablar(textoVoz ?: text) {
                 if (escuchaContinuaActiva && isAdded) cicloEscuchaContinua()
             }
         } else if (role == "assistant" && escuchaContinuaActiva && isAdded) {
-
             cicloEscuchaContinua()
         }
     }
@@ -365,23 +355,29 @@ class ZoeBottomSheetDialog(
         agregarMensajeUi("user", preguntaUsuario)
         btnEnviarMensaje.isEnabled = false
 
+        val instruccionEstructura = "\n\nREGLAS DE FORMATO OBLIGATORIAS:\n" +
+                "1. Organiza la respuesta visual usando Markdown estructurado (negritas, viñetas '*' y listas).\n" +
+                "2. Sé ultra conciso. Evita introducciones o comentarios redundantes.\n" +
+                "3. Incluye AL FINAL la etiqueta <voz>texto fluido y natural para hablar sin símbolos ni markdown</voz>."
+
         val manualDelSistema = ZoeKnowledgeBase.construirManualCompleto(
             usuarioNombre = usuarioNombre,
             negocioNombre = negocioNombre,
             rolUsuario = rolUsuario,
             contextoNegocioTexto = contextoNegocioTexto,
             alertasTexto = alertasTexto
-        )
+        ) + instruccionEstructura
 
         val mensajesParaApi = mutableListOf<GroqMessage>()
         mensajesParaApi.add(GroqMessage(role = "system", content = manualDelSistema))
         mensajesParaApi.addAll(listaHistorialDto)
+        mensajesParaApi.addAll(listaHistorialDto.takeLast(6))
 
         val request = GroqRequest(
             model = "openai/gpt-oss-120b",
             messages = mensajesParaApi,
             temperature = 1,
-            max_tokens = 1000
+            max_tokens = 400
         )
 
         lifecycleScope.launch(Dispatchers.IO) {
@@ -392,21 +388,25 @@ class ZoeBottomSheetDialog(
                     if (!isAdded) return@withContext
 
                     if (response.isSuccessful) {
-                        val respuestaBot = response.body()?.choices?.firstOrNull()?.message?.content
-                            ?: "No dispongo de esa información en este momento. Te sugiero consultar en la **plataforma Web de Dilo**."
-                        agregarMensajeUi("assistant", respuestaBot)
-                    } else if (response.code() == 429) {
+                        val respuestaCruda = response.body()?.choices?.firstOrNull()?.message?.content
+                            ?: "No dispongo de esa información. Te sugiero consultar en la plataforma web."
 
+                        val vozMatch = Regex("<voz>([\\s\\S]*?)</voz>", RegexOption.IGNORE_CASE).find(respuestaCruda)
+                        val textoVoz = vozMatch?.groupValues?.get(1)?.trim()
+                        val textoPantalla = respuestaCruda.replace(Regex("<voz>[\\s\\S]*?</voz>", RegexOption.IGNORE_CASE), "").trim()
+
+                        agregarMensajeUi("assistant", textoPantalla.ifBlank { respuestaCruda }, textoVoz)
+                    } else if (response.code() == 429) {
                         escuchaContinuaActiva = false
                         actualizarIconoMic()
                         agregarMensajeUi(
                             "assistant",
-                            "Uy, me hiciste pensar demasiado rápido y me quedé sin aire. Espera unos segundos, por favor. 😅"
+                            "Por favor espera unos segundos antes de realizar otra consulta."
                         )
                     } else {
                         Toast.makeText(
                             requireContext(),
-                            "Error en el servidor de IA: ${response.code()}",
+                            "Error del servidor: ${response.code()}",
                             Toast.LENGTH_SHORT
                         ).show()
                         if (escuchaContinuaActiva) cicloEscuchaContinua()

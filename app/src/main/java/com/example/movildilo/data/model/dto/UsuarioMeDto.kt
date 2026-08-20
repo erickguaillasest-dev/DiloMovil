@@ -14,7 +14,9 @@ data class UsuarioMeDto(
     @SerializedName("direccion") val direccion: String? = null,
     @SerializedName("fechaNacimiento") val fechaNacimiento: String? = null,
     @SerializedName("fotoPerfil") val fotoPerfil: String? = null,
-    @SerializedName("nameParroquia") val nameParroquia: String? = null
+    @SerializedName("nameParroquia") val nameParroquia: String? = null,
+    @SerializedName("idParroquia", alternate = ["id_parroquia"]) val idParroquia: Long? = null,
+    @SerializedName("parroquia") val parroquia: ParroquiaResponseDto? = null
 )
 
 
@@ -26,5 +28,6 @@ data class EditarPerfilRequestDto(
     val telefono: String? = null,
     val direccion: String? = null,
     val fechaNacimiento: String? = null,
+    @SerializedName("idParroquia") val idParroquia: Long? = null,
     val password: String? = null
 )

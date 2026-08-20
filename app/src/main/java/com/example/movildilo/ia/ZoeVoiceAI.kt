@@ -11,7 +11,6 @@ import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 import com.example.movildilo.utils.Constants
 
-/** Un producto que la IA entendió que el usuario quiere agregar (o modificar) en el carrito. */
 data class ItemVozIA(
     val producto: String,
     val cantidad: Int?,
@@ -33,7 +32,6 @@ data class ResultadoVozFactura(
 
 object ZoeVoiceAI {
 
-    private val GROQ_API_KEY = Constants.GROQ_API_KEY
     private const val GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
     private const val MODELO = "openai/gpt-oss-120b"
 
@@ -45,9 +43,6 @@ object ZoeVoiceAI {
         .readTimeout(15, TimeUnit.SECONDS)
         .build()
 
-    /**
-     * Procesa la frase del usuario en un hilo secundario de I/O para evitar bloqueos en la interfaz.
-     */
     suspend fun interpretar(
         fraseUsuario: String,
         nombresClientes: List<String>,
@@ -72,43 +67,72 @@ object ZoeVoiceAI {
         val mediaType = MediaType.parse("application/json; charset=utf-8")
         val requestBody = RequestBody.create(mediaType, cuerpo.toString())
 
-        val request = Request.Builder()
-            .url(GROQ_URL)
-            .addHeader("Authorization", "Bearer $GROQ_API_KEY")
-            .addHeader("Content-Type", "application/json")
-            .post(requestBody)
-            .build()
+        var exito = false
+        var intentos = 0
+        val maxIntentos = if (Constants.totalClavesFacturas() > 0) Constants.totalClavesFacturas() else 1
+        var resultadoFinal: ResultadoVozFactura? = null
 
-        try {
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    ultimoError = "HTTP_${response.code()}"
+        while (!exito && intentos < maxIntentos) {
+            val apiKeyActual = Constants.obtenerClaveFacturasActual()
+
+            val request = Request.Builder()
+                .url(GROQ_URL)
+                .addHeader("Authorization", "Bearer $apiKeyActual")
+                .addHeader("Content-Type", "application/json")
+                .post(requestBody)
+                .build()
+
+            try {
+                client.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        val cuerpoTexto = response.body()?.string()
+                        if (cuerpoTexto == null) {
+                            ultimoError = "RESPUESTA_VACIA"
+                            return@withContext null
+                        }
+                        val contenido = JSONObject(cuerpoTexto)
+                            .getJSONArray("choices")
+                            .getJSONObject(0)
+                            .getJSONObject("message")
+                            .getString("content")
+                        resultadoFinal = parsearRespuesta(contenido)
+                        if (resultadoFinal == null) {
+                            ultimoError = "JSON_INVALIDO"
+                        }
+                        exito = true
+                    } else if (response.code() == 429 || response.code() == 401 || response.code() == 403) {
+                        Constants.rotarClaveFacturas()
+                        intentos++
+                    } else {
+                        ultimoError = "HTTP_${response.code()}"
+                        return@withContext null
+                    }
+                }
+            } catch (e: java.net.UnknownHostException) {
+                Constants.rotarClaveFacturas()
+                intentos++
+                if (intentos >= maxIntentos) {
+                    ultimoError = "SIN_INTERNET"
                     return@withContext null
                 }
-                val cuerpoTexto = response.body()?.string()
-                if (cuerpoTexto == null) {
-                    ultimoError = "RESPUESTA_VACIA"
+            } catch (e: java.net.SocketTimeoutException) {
+                Constants.rotarClaveFacturas()
+                intentos++
+                if (intentos >= maxIntentos) {
+                    ultimoError = "TIEMPO_AGOTADO"
                     return@withContext null
                 }
-                val contenido = JSONObject(cuerpoTexto)
-                    .getJSONArray("choices")
-                    .getJSONObject(0)
-                    .getJSONObject("message")
-                    .getString("content")
-                val resultado = parsearRespuesta(contenido)
-                if (resultado == null) ultimoError = "JSON_INVALIDO"
-                resultado
+            } catch (e: Exception) {
+                Constants.rotarClaveFacturas()
+                intentos++
+                if (intentos >= maxIntentos) {
+                    ultimoError = "EXCEPCION_${e.javaClass.simpleName}"
+                    return@withContext null
+                }
             }
-        } catch (e: java.net.UnknownHostException) {
-            ultimoError = "SIN_INTERNET"
-            null
-        } catch (e: java.net.SocketTimeoutException) {
-            ultimoError = "TIEMPO_AGOTADO"
-            null
-        } catch (e: Exception) {
-            ultimoError = "EXCEPCION_${e.javaClass.simpleName}"
-            null
         }
+
+        resultadoFinal
     }
 
     private fun construirPrompt(
@@ -157,12 +181,14 @@ object ZoeVoiceAI {
             5b. REGLA DE NEGOCIO OBLIGATORIA: Consumidor Final NUNCA puede pagar con TARJETA_CREDITO (es una regla del negocio, no una preferencia). Si la frase pide "consumidor final" (o "cliente" ya es Consumidor Final) Y AL MISMO TIEMPO pide tarjeta/crédito, pon "metodoPago": "EFECTIVO" (nunca TARJETA_CREDITO) y "cuotas": null. No expliques la regla en el JSON, solo aplícala.
             6. El usuario puede mencionar VARIOS campos en la misma frase (por ejemplo: cliente, método de pago y bodega juntos, y luego cantidad y producto). Extrae absolutamente todos los que encuentres, no solo el primero.
             7. Si no menciona algún campo, ese campo va en null (o "items": [] si no menciona ningún producto).
-            8. PRODUCTOS: solo agrega un producto a "items" si el usuario lo nombró explícitamente pidiendo agregarlo. Reconoce CUALQUIER verbo o frase que signifique "agregar al ticket/factura/carrito", entre otros: "agrégame", "agrega", "ponme", "pon en el ticket", "mete", "métele", "incluye", "carga", "anota", "manda", "quiero", "dame", "necesito", "sube" (ej. "ponme dos cocas", "agrégame una leche", "mete tres panes al ticket", "incluye una máscara", "quiero tres panes", "cambia a la bodega norte y agrégame dos panes"). NUNCA inventes ni supongas un producto que el usuario no mencionó. Cada frase se interpreta sola, solo con lo que esa frase dice. Si la frase solo da el cliente, la forma de pago, la bodega o una palabra de confirmación, "items" va vacío.
+            8. PRODUCTOS: solo agrega un producto a "items" si el usuario lo nombró explílicamente pidiendo agregarlo. Reconoce CUALQUIER verbo o frase que signifique "agregar al ticket/factura/carrito", entre otros: "agrégame", "agrega", "ponme", "pon en el ticket", "mete", "métele", "incluye", "carga", "anota", "manda", "quiero", "dame", "necesito", "sube" (ej. "ponme dos cocas", "agrégame una leche", "mete tres panes al ticket", "incluye una máscara", "quiero tres panes", "cambia a la bodega norte y agrégame dos panes"). NUNCA inventes ni supongas un producto que el usuario no mencionó. Cada frase se interpreta sola, solo con lo que esa frase dice. Si la frase solo da el cliente, la forma de pago, la bodega o una palabra de confirmación, "items" va vacío.
             8b. NOMBRE DEL PRODUCTO: en "producto" pon el nombre o palabra clave del producto tal como lo dijo el usuario, SIN el verbo ni palabras sueltas como "el", "la", "producto", "al ticket", "por favor" (ej. si dice "agrégame el producto máscara" pon "producto": "mascara", no "el producto mascara"). El usuario puede decir solo una PARTE del nombre real del producto (ej. dice "máscara" y el catálogo tiene "Zen Máscara Facial 50ml"): eso es válido y esperado, no hace falta que coincida exacto ni completo con la lista de Productos — el sistema se encarga de buscar la coincidencia más parecida.
             9. DESCUENTOS: si el usuario pide un descuento para UN producto puntual (ej. "2 coca colas con 10% de descuento", "la leche con un 5 por ciento menos"), pon ese número entero (0-100, sin el símbolo %) en "descuentoPorcentaje" DENTRO de ese item. Si pide un descuento para TODA la factura o el ticket completo (ej. "aplícale un 15% de descuento a todo", "dale un 10 por ciento de descuento general"), pon ese número entero en "descuentoGlobalPorcentaje" (a nivel raíz, no dentro de items). Si no menciona ningún descuento, ambos van en null.
             10. NO devuelvas texto fuera del JSON. No expliques nada. No uses ```.
             11. Si pide vaciar todo el ticket o borrar todos los productos (ej. "borra todo", "elimina los productos del ticket", "vaciar carrito", "limpiar ticket"), pon "vaciarCarrito": true.
             12. BODEGA: si el usuario pide cambiar de bodega/almacén (ej. "cambia a la bodega norte", "usa la bodega centro", "de la bodega dos"), extrae el nombre en "bodega" aunque no agregue ningún producto en esa misma frase.
+            13. Si el usuario NO menciona ninguna bodega en la frase, deja "bodega": null (NO inventes ni asumas una bodega). El sistema ya se encarga de elegir automáticamente la bodega correcta según el stock disponible del producto cuando el usuario no la dice.
+            14. ROBUSTEZ CON FRASES LARGAS: el usuario suele decir varios datos seguidos en una sola frase (cliente, pago, cuotas, bodega, y uno o varios productos con cantidad). Extrae CADA dato que sí reconozcas con confianza, aunque otra parte de la frase sea confusa, esté mal dicha o no la entiendas del todo. Nunca dejes de extraer un dato claro solo porque otro dato de la misma frase sea dudoso: cada campo del JSON se decide de forma independiente con lo que sí quedó claro. Si una palabra suelta no encaja en ningún campo, simplemente ignórala.
         """.trimIndent()
     }
 
@@ -177,12 +203,6 @@ object ZoeVoiceAI {
         return nfd.replace(Regex("\\p{Mn}+"), "").lowercase().trim()
     }
 
-    /**
-     * Interpretación local, sin red y sin IA, por coincidencia de palabras clave contra los
-     * catálogos reales del negocio. Se usa como respaldo cuando falla la llamada a Groq (sin
-     * internet, clave inválida, límite de la API, etc.) para que la app SIGA funcionando y
-     * llenando campos básicos en vez de quedarse "muda".
-     */
     fun interpretarLocal(
         fraseUsuario: String,
         nombresClientes: List<String>,
@@ -247,12 +267,10 @@ object ZoeVoiceAI {
             "centavos", "tambien"
         )
 
-
         val nombresOrdenados = nombresProductos.filter { it.isNotBlank() }
             .map { normalizar(it) to it }
             .filter { (n, _) -> n.length >= 3 && f.contains(n) }
             .toMutableList()
-
 
         val tokensFrase = f.split(Regex("\\s+"))
             .filter { it.length >= 3 && it !in stopWordsProducto && it.toIntOrNull() == null }

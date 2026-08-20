@@ -7,6 +7,8 @@ import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import android.widget.ArrayAdapter
+import android.widget.AutoCompleteTextView
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -20,6 +22,7 @@ import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
 import com.example.movildilo.data.model.dto.CambiarPasswordRequestDto
 import com.example.movildilo.data.model.dto.EditarPerfilRequestDto
+import com.example.movildilo.data.model.dto.ParroquiaResponseDto
 import com.example.movildilo.data.model.dto.UsuarioMeDto
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.imageview.ShapeableImageView
@@ -72,10 +75,12 @@ class Perfil : AppCompatActivity() {
     private lateinit var tilDireccion: TextInputLayout
     private lateinit var etDireccion: TextInputEditText
 
+    private lateinit var tilParroquia: TextInputLayout
+    private lateinit var spParroquia: AutoCompleteTextView
+
     private lateinit var btnCancelarEdicion: MaterialButton
     private lateinit var btnGuardarCambios: MaterialButton
 
-    // Contraseña
     private lateinit var btnTogglePassword: MaterialButton
     private lateinit var containerFormularioPassword: View
     private lateinit var etNuevaContrasena: TextInputEditText
@@ -86,6 +91,9 @@ class Perfil : AppCompatActivity() {
     private var isEditing = false
     private var isChangingPassword = false
     private var fotoSeleccionadaUri: Uri? = null
+
+    private var parroquiasList: List<ParroquiaResponseDto> = emptyList()
+    private var parroquiaSeleccionadaId: Long? = null
 
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
@@ -106,6 +114,7 @@ class Perfil : AppCompatActivity() {
         initViews()
         setupListeners()
         cargarMiPerfil()
+        cargarParroquias()
     }
 
     private fun initViews() {
@@ -138,6 +147,9 @@ class Perfil : AppCompatActivity() {
 
         tilDireccion = findViewById(R.id.tilDireccion)
         etDireccion = findViewById(R.id.etDireccion)
+
+        tilParroquia = findViewById(R.id.tilParroquia)
+        spParroquia = findViewById(R.id.spParroquia)
 
         btnCancelarEdicion = findViewById(R.id.btnCancelarEdicion)
         btnGuardarCambios = findViewById(R.id.btnGuardarCambios)
@@ -227,6 +239,30 @@ class Perfil : AppCompatActivity() {
         }
     }
 
+    private fun cargarParroquias() {
+        val authHeader = sessionManager.getAuthHeader()
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.apiService.getParroquias(authHeader)
+                if (response.isSuccessful) {
+                    parroquiasList = response.body() ?: emptyList()
+                    configurarDropdownParroquias()
+                }
+            } catch (e: Exception) {
+            }
+        }
+    }
+
+    private fun configurarDropdownParroquias() {
+        val nombres = parroquiasList.map { it.nombre }
+        spParroquia.setAdapter(ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, nombres))
+        spParroquia.threshold = 0
+        spParroquia.setOnClickListener { spParroquia.showDropDown() }
+        spParroquia.setOnItemClickListener { _, _, position, _ ->
+            parroquiasList.getOrNull(position)?.let { parroquiaSeleccionadaId = it.id }
+        }
+    }
+
     private fun pintarUsuario(usuario: UsuarioMeDto) {
         usuarioActual = usuario
 
@@ -288,6 +324,11 @@ class Perfil : AppCompatActivity() {
         etTelefono.setText(usuario.telefono)
         etFechaNacimiento.setText(usuario.fechaNacimiento)
         etDireccion.setText(usuario.direccion)
+        parroquiaSeleccionadaId = usuario.idParroquia ?: usuario.parroquia?.id
+        if (parroquiasList.isNotEmpty()) configurarDropdownParroquias()
+        val nombreParroquiaActual = parroquiasList.find { it.id == parroquiaSeleccionadaId }?.nombre
+            ?: usuario.nameParroquia.orEmpty()
+        spParroquia.setText(nombreParroquiaActual, false)
 
         btnEditarPerfil.visibility = View.GONE
         containerNombreLectura.visibility = View.GONE
@@ -303,6 +344,9 @@ class Perfil : AppCompatActivity() {
 
         tvDireccion.visibility = View.GONE
         tilDireccion.visibility = View.VISIBLE
+
+        tvParroquia.visibility = View.GONE
+        tilParroquia.visibility = View.VISIBLE
     }
 
     private fun desactivarModoEdicion() {
@@ -323,6 +367,9 @@ class Perfil : AppCompatActivity() {
 
         tvDireccion.visibility = View.VISIBLE
         tilDireccion.visibility = View.GONE
+
+        tvParroquia.visibility = View.VISIBLE
+        tilParroquia.visibility = View.GONE
 
         etPrimerNombre.error = null
         etApellidoPaterno.error = null
@@ -382,7 +429,8 @@ class Perfil : AppCompatActivity() {
             apellidoMaterno = apellidoMaterno,
             telefono = telefono,
             direccion = direccion,
-            fechaNacimiento = fechaNacimiento
+            fechaNacimiento = fechaNacimiento,
+            idParroquia = parroquiaSeleccionadaId
         )
 
         val jsonBody = gson.toJson(datos)

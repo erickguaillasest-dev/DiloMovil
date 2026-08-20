@@ -25,8 +25,13 @@ android {
 
         buildConfigField(
             "String",
-            "GROQ_API_KEY",
-            "\"${localProperties.getProperty("GROQ_API_KEY", "")}\""
+            "GROQ_API_KEY_CHAT",
+            "\"${localProperties.getProperty("GROQ_API_KEY_CHAT", "")}\""
+        )
+        buildConfigField(
+            "String",
+            "GROQ_API_KEY_FACTURAS",
+            "\"${localProperties.getProperty("GROQ_API_KEY_FACTURAS", "")}\""
         )
     }
 

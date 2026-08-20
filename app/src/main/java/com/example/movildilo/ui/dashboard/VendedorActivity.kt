@@ -139,7 +139,7 @@ class VendedorActivity : AppCompatActivity() {
             negocioNombre = negocioNombreReal,
             contextoNegocioTexto = contextoNegocioTexto,
             alertasTexto = alertasTexto,
-            groqApiKey = Constants.GROQ_API_KEY,
+            groqApiKey = Constants.GROQ_API_KEY_CHAT,
             rolUsuario = "VENDEDOR"
         )
         dialogZoe.show(supportFragmentManager, "ZoeChatBottomSheet")

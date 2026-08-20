@@ -197,7 +197,6 @@
                                 android:weightSum="2">
 
                                 <com.google.android.material.textfield.TextInputLayout
-                                    android:id="@+id/tilPrimerNombre"
                                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                                     android:layout_width="0dp"
                                     android:layout_height="wrap_content"
@@ -243,7 +242,6 @@
                                 android:weightSum="2">
 
                                 <com.google.android.material.textfield.TextInputLayout
-                                    android:id="@+id/tilApellidoPaterno"
                                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                                     android:layout_width="0dp"
                                     android:layout_height="wrap_content"
@@ -453,6 +451,28 @@
                                 android:text="No registrada"
                                 android:textColor="#0F172A"
                                 android:textSize="13sp" />
+
+                            <com.google.android.material.textfield.TextInputLayout
+                                android:id="@+id/tilParroquia"
+                                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:visibility="gone"
+                                app:boxCornerRadiusBottomEnd="10dp"
+                                app:boxCornerRadiusBottomStart="10dp"
+                                app:boxCornerRadiusTopEnd="10dp"
+                                app:boxCornerRadiusTopStart="10dp"
+                                app:hintEnabled="false">
+
+                                <AutoCompleteTextView
+                                    android:id="@+id/spParroquia"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:hint="Seleccionar parroquia"
+                                    android:inputType="none"
+                                    android:textSize="13sp" />
+                            </com.google.android.material.textfield.TextInputLayout>
                         </LinearLayout>
 
                         <!-- BOTONES GUARDAR / CANCELAR EDICIÓN -->
@@ -567,7 +587,6 @@
 
                         <!-- Nueva Contraseña -->
                         <com.google.android.material.textfield.TextInputLayout
-                            android:id="@+id/tilNuevaContrasena"
                             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -590,11 +609,9 @@
 
                         <!-- Confirmar Contraseña -->
                         <com.google.android.material.textfield.TextInputLayout
-                            android:id="@+id/tilConfirmarContrasena"
                             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginBottom="16dp"
                             android:hint="Confirmar Contraseña"
                             app:boxCornerRadiusBottomEnd="10dp"
                             app:boxCornerRadiusBottomStart="10dp"
@@ -614,12 +631,12 @@
                             android:id="@+id/btnGuardarContrasena"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:backgroundTint="#121D33"
-                            android:text="Guardar Contraseña"
+                            android:layout_marginTop="12dp"
+                            android:backgroundTint="#EA580C"
+                            android:text="Actualizar Contraseña"
                             android:textAllCaps="false"
                             android:textColor="#FFFFFF"
                             app:cornerRadius="10dp" />
-
                     </LinearLayout>
 
                 </LinearLayout>
@@ -628,5 +645,4 @@
         </LinearLayout>
 
     </LinearLayout>
-
 </androidx.core.widget.NestedScrollView>
