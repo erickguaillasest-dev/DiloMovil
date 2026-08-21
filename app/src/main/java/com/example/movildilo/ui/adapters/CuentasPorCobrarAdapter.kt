@@ -72,7 +72,8 @@ class CuentasPorCobrarAdapter(
             holder.btnAccionAbonar.setOnClickListener { onAbonarClick(cuenta) }
         }
 
-        val cuotas = cuenta.cuotas ?: emptyList()
+        val cuotas = cuenta.cuotas?.sortedBy { it.numeroCuota ?: 0 } ?: emptyList()
+
         if (cuotas.isNotEmpty()) {
             holder.btnToggleCuotas.visibility = View.VISIBLE
             holder.btnToggleCuotas.text = if (cuenta.isExpanded) "Ocultar" else "Ver (${cuotas.size})"
