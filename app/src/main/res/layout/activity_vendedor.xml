@@ -182,7 +182,7 @@
         android:layout_height="match_parent"
         android:layout_below="@id/cardAlert"
         android:layout_alignParentBottom="true"
-        app:cardBackgroundColor="#F8FAFC"
+        app:cardBackgroundColor="#f6eee3"
         app:cardElevation="8dp"
         app:shapeAppearanceOverlay="@style/ShapeAppearance.BottomRoundedPanel"
         app:strokeWidth="0dp">
@@ -250,8 +250,8 @@
 
                             <TextView
                                 android:id="@+id/tvVentasContado"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
+                                android:layout_width="73dp"
+                                android:layout_height="25dp"
                                 android:layout_marginTop="2dp"
                                 android:text="$0.00"
                                 android:textColor="#0F172A"

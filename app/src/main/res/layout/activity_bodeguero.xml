@@ -180,7 +180,7 @@
         android:layout_height="match_parent"
         android:layout_below="@id/cardAlert"
         android:layout_alignParentBottom="true"
-        app:cardBackgroundColor="#F8FAFC"
+        app:cardBackgroundColor="#f6eee3"
         app:cardElevation="8dp"
         app:shapeAppearanceOverlay="@style/ShapeAppearance.BottomRoundedPanel"
         app:strokeWidth="0dp">

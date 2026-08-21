@@ -17,7 +17,8 @@ import java.util.Locale
 
 class CuentasPorCobrarAdapter(
     private var listaCuentas: List<CuentaPorCobrarResponseDto>,
-    private val onAbonarClick: (CuentaPorCobrarResponseDto) -> Unit
+    private val onAbonarClick: (CuentaPorCobrarResponseDto) -> Unit,
+    private val onAbonarCuotaClick: (CuentaPorCobrarResponseDto, CuotaDto) -> Unit
 ) : RecyclerView.Adapter<CuentasPorCobrarAdapter.CuentaViewHolder>() {
 
     class CuentaViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -71,7 +72,6 @@ class CuentasPorCobrarAdapter(
             holder.btnAccionAbonar.setOnClickListener { onAbonarClick(cuenta) }
         }
 
-        // Lógica de Acordeón para Cuotas
         val cuotas = cuenta.cuotas ?: emptyList()
         if (cuotas.isNotEmpty()) {
             holder.btnToggleCuotas.visibility = View.VISIBLE
@@ -84,7 +84,7 @@ class CuentasPorCobrarAdapter(
 
             if (cuenta.isExpanded) {
                 holder.containerCuotas.visibility = View.VISIBLE
-                renderizarCuotas(holder.layoutListaCuotas, cuotas)
+                renderizarCuotas(holder.layoutListaCuotas, cuenta, cuotas)
             } else {
                 holder.containerCuotas.visibility = View.GONE
             }
@@ -107,7 +107,7 @@ class CuentasPorCobrarAdapter(
         return nombre ?: "Consumidor Final"
     }
 
-    private fun renderizarCuotas(parent: LinearLayout, cuotas: List<CuotaDto>) {
+    private fun renderizarCuotas(parent: LinearLayout, cuenta: CuentaPorCobrarResponseDto, cuotas: List<CuotaDto>) {
         parent.removeAllViews()
         val inflater = LayoutInflater.from(parent.context)
 
@@ -118,15 +118,27 @@ class CuentasPorCobrarAdapter(
             val tvMonto = view.findViewById<TextView>(R.id.tvMontoCuota)
             val tvSaldo = view.findViewById<TextView>(R.id.tvSaldoCuota)
             val tvEstadoCuota = view.findViewById<TextView>(R.id.tvEstadoCuota)
+            val btnAbonar = view.findViewById<MaterialButton>(R.id.btnAbonar)
 
             tvNum.text = "Cuota #${cuota.numeroCuota ?: 1}"
             tvVenc.text = formatearFecha(cuota.fechaVencimiento)
             tvMonto.text = String.format(Locale.US, "$%.2f", cuota.montoCuota ?: 0.0)
-            tvSaldo.text = "Pend: " + String.format(Locale.US, "$%.2f", cuota.saldoPendienteCuota ?: 0.0)
 
-            val st = cuota.estado ?: "PENDIENTE"
+            val saldoCuota = cuota.saldoPendienteCuota ?: 0.0
+            tvSaldo.text = "Pend: " + String.format(Locale.US, "$%.2f", saldoCuota)
+
+            val st = cuota.estado ?: if (saldoCuota <= 0) "PAGADA" else "PENDIENTE"
             tvEstadoCuota.text = st.uppercase(Locale.ROOT)
             configurarBadgeEstado(tvEstadoCuota, st)
+
+            if (st.equals("PAGADA", ignoreCase = true) || saldoCuota <= 0) {
+                btnAbonar.visibility = View.GONE
+            } else {
+                btnAbonar.visibility = View.VISIBLE
+                btnAbonar.setOnClickListener {
+                    onAbonarCuotaClick(cuenta, cuota)
+                }
+            }
 
             parent.addView(view)
         }
@@ -141,7 +153,6 @@ class CuentasPorCobrarAdapter(
             "yyyy-MM-dd",
             "dd/MM/yyyy"
         )
-        // Formato legibles: Ej. "12 de ago., 2026"
         val formatoSalida = SimpleDateFormat("dd 'de' MMM, yyyy", Locale("es", "ES"))
 
         for (formato in formatosEntrada) {
@@ -151,7 +162,6 @@ class CuentasPorCobrarAdapter(
                     return formatoSalida.format(date)
                 }
             } catch (_: Exception) {
-                // Continúa con el siguiente formato
             }
         }
         return fechaRaw

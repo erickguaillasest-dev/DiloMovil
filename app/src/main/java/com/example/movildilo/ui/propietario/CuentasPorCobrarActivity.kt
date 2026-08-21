@@ -20,6 +20,7 @@ import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
 import com.example.movildilo.data.model.dto.CuentaPorCobrarResponseDto
+import com.example.movildilo.data.model.dto.CuotaDto
 import com.example.movildilo.data.model.dto.PagoRequestDto
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -109,9 +110,11 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerView() {
-        adapter = CuentasPorCobrarAdapter(emptyList()) { cuenta ->
-            mostrarModalPago(cuenta)
-        }
+        adapter = CuentasPorCobrarAdapter(
+            emptyList(),
+            { cuenta -> mostrarModalPago(cuenta) },
+            { cuenta, cuota -> mostrarModalPagoCuota(cuenta, cuota) }
+        )
         rvCuentas.layoutManager = LinearLayoutManager(this)
         rvCuentas.adapter = adapter
     }
@@ -209,7 +212,6 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         }
     }
 
-    /** Igual que obtenerNombreCliente() en la web: nombreCliente -> nombreCompleto -> nombre -> razonSocial -> primerNombre+apellidoPaterno */
     private fun obtenerNombreClienteBusqueda(c: CuentaPorCobrarResponseDto): String {
         val directo = c.clienteNombre?.trim()
         if (!directo.isNullOrEmpty()) return directo
@@ -225,14 +227,12 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
     private fun aplicarFiltros() {
         var filtradas = cuentasBase
 
-        // 1. Filtro por Estado
         if (filtroEstado != "TODAS") {
             filtradas = filtradas.filter { c ->
                 c.estado?.equals(filtroEstado, ignoreCase = true) == true
             }
         }
 
-        // 2. Búsqueda por texto (Factura o Cliente, incluye DNI si viene en el nombre)
         val term = terminoBusqueda.trim().lowercase(Locale.getDefault())
         if (term.isNotEmpty()) {
             filtradas = filtradas.filter { c ->
@@ -243,7 +243,6 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
             }
         }
 
-        // 3. Filtro por Rango de Fechas de Vencimiento
         val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
         if (filtroFechaDesde.isNotEmpty()) {
@@ -254,7 +253,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
                         val fvStr = c.fechaVencimiento
                         if (fvStr.isNullOrEmpty()) return@filter false
                         val fv = sdf.parse(fvStr) ?: return@filter false
-                        !fv.before(dateDesde) // fv >= dateDesde
+                        !fv.before(dateDesde)
                     }
                 }
             } catch (ignored: Exception) {}
@@ -268,7 +267,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
                         val fvStr = c.fechaVencimiento
                         if (fvStr.isNullOrEmpty()) return@filter false
                         val fv = sdf.parse(fvStr) ?: return@filter false
-                        !fv.after(dateHasta) // fv <= dateHasta
+                        !fv.after(dateHasta)
                     }
                 }
             } catch (ignored: Exception) {}
@@ -396,6 +395,50 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
 
             if (montoAbono > saldoMaximo) {
                 Toast.makeText(this, "El abono no puede superar el saldo pendiente", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            dialog.dismiss()
+            ejecutarPagoApi(cuenta.id, montoAbono)
+        }
+
+        dialog.show()
+    }
+
+    private fun mostrarModalPagoCuota(cuenta: CuentaPorCobrarResponseDto, cuota: CuotaDto) {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_registrar_pago, null)
+        val tvInfoFactura = dialogView.findViewById<TextView>(R.id.tvInfoFacturaDialog)
+        val tvSaldoMaximo = dialogView.findViewById<TextView>(R.id.tvSaldoMaximoDialog)
+        val etMonto = dialogView.findViewById<TextInputEditText>(R.id.etMontoAbono)
+        val btnCancelar = dialogView.findViewById<MaterialButton>(R.id.btnCancelarDialog)
+        val btnConfirmar = dialogView.findViewById<MaterialButton>(R.id.btnConfirmarPagoDialog)
+
+        val numeroFactura = cuenta.numeroFactura ?: cuenta.factura?.numeroFactura ?: "S/N"
+        val numeroCuota = cuota.numeroCuota ?: 1
+        val saldoMaximoCuota = cuota.saldoPendienteCuota ?: 0.0
+
+        tvInfoFactura.text = "Factura #$numeroFactura - Cuota #$numeroCuota"
+        tvSaldoMaximo.text = String.format(Locale.US, "$%.2f", saldoMaximoCuota)
+        etMonto.setText(String.format(Locale.US, "%.2f", saldoMaximoCuota))
+
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        btnCancelar.setOnClickListener { dialog.dismiss() }
+
+        btnConfirmar.setOnClickListener {
+            val montoText = etMonto.text.toString().trim()
+            val montoAbono = montoText.toDoubleOrNull()
+
+            if (montoAbono == null || montoAbono <= 0) {
+                Toast.makeText(this, "Ingresa un monto válido mayor a 0", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            if (montoAbono > saldoMaximoCuota) {
+                Toast.makeText(this, "El abono no puede superar el saldo de la cuota", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
