@@ -106,3 +106,11 @@ data class ItemCarritoFactura(
     val subtotalConDescuento: Double
         get() = subtotalBruto - descuentoMonto
 }
+
+data class DetalleFacturaResumenDto(
+    val productoNombre: String,
+    val cantidad: Int,
+    val precioUnitario: Double,
+    val descuento: Double,
+    val subtotalItem: Double
+)

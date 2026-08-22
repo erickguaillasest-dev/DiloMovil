@@ -1,5 +1,6 @@
 package com.example.movildilo.ui.propietario
 
+import android.app.Dialog
 import android.content.Intent
 import android.graphics.Canvas
 import android.graphics.Color
@@ -7,16 +8,23 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Typeface
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.pdf.PdfDocument
 import android.net.Uri
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.view.Window
+import android.widget.CheckBox
+import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.GridLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -24,24 +32,38 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
+import com.example.movildilo.data.model.dto.ClienteReporteDto
 import com.example.movildilo.data.model.dto.ClienteTopDto
 import com.example.movildilo.data.model.dto.ComparativaItemDto
+import com.example.movildilo.data.model.dto.CreditoClienteResumenDto
+import com.example.movildilo.data.model.dto.CuentaPorCobrarResponseDto
+import com.example.movildilo.data.model.dto.DetalleFacturaResumenDto
 import com.example.movildilo.data.model.dto.DiaCalorDto
 import com.example.movildilo.data.model.dto.DiaSemanaItemDto
+import com.example.movildilo.data.model.dto.DocumentoUiModel
+import com.example.movildilo.data.model.dto.FacturaClienteResumenDto
 import com.example.movildilo.data.model.dto.FacturaResponseDto
 import com.example.movildilo.data.model.dto.FormaPagoItemDto
 import com.example.movildilo.data.model.dto.HoraItemDto
 import com.example.movildilo.data.model.dto.ProductoDemandaDto
 import com.example.movildilo.data.model.dto.SerieDiariaItemDto
+import com.example.movildilo.ui.adapters.DetalleDocumentoAdapter
+import com.example.movildilo.ui.adapters.ReporteClientesAdapter
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.tabs.TabLayout
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.text.Normalizer
 import java.util.Calendar
 import java.util.Locale
 import kotlin.math.max
@@ -49,11 +71,14 @@ import kotlin.math.round
 
 class RendimientoComercialActivity : AppCompatActivity() {
 
+    private lateinit var tabLayoutRendimiento: TabLayout
+    private lateinit var layoutResumenGeneral: LinearLayout
+    private lateinit var layoutReporteClientes: LinearLayout
 
     private lateinit var chip7: TextView
     private lateinit var chip30: TextView
     private lateinit var chip90: TextView
-    private lateinit var btnExportarPdf: com.google.android.material.button.MaterialButton
+    private lateinit var btnExportarPdf: MaterialButton
     private lateinit var loadingContainer: LinearLayout
     private lateinit var contentContainer: LinearLayout
 
@@ -62,13 +87,10 @@ class RendimientoComercialActivity : AppCompatActivity() {
     private lateinit var rachaFlameCard: MaterialCardView
     private lateinit var tvRachaTitulo: TextView
     private lateinit var tvRachaDesc: TextView
-
     private lateinit var tvComparativaSubtitulo: TextView
     private lateinit var comparativasContainer: LinearLayout
-
     private lateinit var barChartContainer: LinearLayout
     private lateinit var tvBarChartVacio: TextView
-
     private lateinit var heatmapGrid: GridLayout
     private lateinit var weekdayContainer: LinearLayout
     private lateinit var hourGrid: GridLayout
@@ -76,13 +98,25 @@ class RendimientoComercialActivity : AppCompatActivity() {
     private lateinit var clientesContainer: LinearLayout
     private lateinit var pagosContainer: LinearLayout
 
+    private lateinit var tvTotalClientesDir: TextView
+    private lateinit var tvClientesConDeudaDir: TextView
+    private lateinit var tvTotalPorCobrarDir: TextView
+    private lateinit var etBuscarClienteRendimiento: EditText
+    private lateinit var cbSoloDeuda: CheckBox
+    private lateinit var rvClientesReporte: RecyclerView
+    private lateinit var layoutClientesVacio: View
+    private lateinit var reporteAdapter: ReporteClientesAdapter
+
     private lateinit var sessionManager: SessionManager
     private var negocioId: Long = -1L
     private var negocioNombre: String = "Mi Negocio"
     private var isLoading = true
     private var exportandoPdf = false
     private var periodoDias = 30
+
     private var facturasRaw: List<FacturaResponseDto> = emptyList()
+    private var cuentasRaw: List<CuentaPorCobrarResponseDto> = emptyList()
+    private var reporteClientesCompleto: List<ClienteReporteDto> = emptyList()
 
     private var ventasPeriodo = 0.0
     private var facturasPeriodoCount = 0
@@ -110,6 +144,7 @@ class RendimientoComercialActivity : AppCompatActivity() {
 
         initViews()
         setupListeners()
+        setupTabs()
         actualizarChipsActivos()
 
         if (negocioId != -1L) {
@@ -121,6 +156,10 @@ class RendimientoComercialActivity : AppCompatActivity() {
 
     private fun initViews() {
         findViewById<View>(R.id.btnRegresar).setOnClickListener { finish() }
+
+        tabLayoutRendimiento = findViewById(R.id.tabLayoutRendimiento)
+        layoutResumenGeneral = findViewById(R.id.layoutResumenGeneral)
+        layoutReporteClientes = findViewById(R.id.layoutReporteClientes)
 
         chip7 = findViewById(R.id.chip7)
         chip30 = findViewById(R.id.chip30)
@@ -147,6 +186,21 @@ class RendimientoComercialActivity : AppCompatActivity() {
         productosContainer = findViewById(R.id.productosContainer)
         clientesContainer = findViewById(R.id.clientesContainer)
         pagosContainer = findViewById(R.id.pagosContainer)
+
+        tvTotalClientesDir = findViewById(R.id.tvTotalClientesDir)
+        tvClientesConDeudaDir = findViewById(R.id.tvClientesConDeudaDir)
+        tvTotalPorCobrarDir = findViewById(R.id.tvTotalPorCobrarDir)
+        etBuscarClienteRendimiento = findViewById(R.id.etBuscarClienteRendimiento)
+        cbSoloDeuda = findViewById(R.id.cbSoloDeuda)
+
+        rvClientesReporte = findViewById(R.id.rvClientesReporte)
+        layoutClientesVacio = findViewById(R.id.layoutClientesVacio)
+        rvClientesReporte.layoutManager = LinearLayoutManager(this)
+
+        reporteAdapter = ReporteClientesAdapter(emptyList()) { cliente ->
+            abrirModalDetalleCliente(cliente)
+        }
+        rvClientesReporte.adapter = reporteAdapter
     }
 
     private fun setupListeners() {
@@ -154,6 +208,35 @@ class RendimientoComercialActivity : AppCompatActivity() {
         chip30.setOnClickListener { cambiarPeriodo(30) }
         chip90.setOnClickListener { cambiarPeriodo(90) }
         btnExportarPdf.setOnClickListener { exportarPdf() }
+
+        etBuscarClienteRendimiento.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) { aplicarFiltroClientes() }
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+        })
+
+        cbSoloDeuda.setOnCheckedChangeListener { _, _ -> aplicarFiltroClientes() }
+    }
+
+    private fun setupTabs() {
+        tabLayoutRendimiento.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+                when (tab?.position) {
+                    0 -> {
+                        layoutResumenGeneral.visibility = View.VISIBLE
+                        layoutReporteClientes.visibility = View.GONE
+                        btnExportarPdf.visibility = View.VISIBLE
+                    }
+                    1 -> {
+                        layoutResumenGeneral.visibility = View.GONE
+                        layoutReporteClientes.visibility = View.VISIBLE
+                        btnExportarPdf.visibility = View.GONE
+                    }
+                }
+            }
+            override fun onTabUnselected(tab: TabLayout.Tab?) {}
+            override fun onTabReselected(tab: TabLayout.Tab?) {}
+        })
     }
 
     private fun cambiarPeriodo(dias: Int) {
@@ -181,17 +264,20 @@ class RendimientoComercialActivity : AppCompatActivity() {
         }
     }
 
-    // ---------- Carga de datos ----------
     private fun cargarDatos() {
         mostrarLoading(true)
         lifecycleScope.launch(Dispatchers.IO) {
             val api = RetrofitClient.apiService
             val authHeader = sessionManager.getAuthHeader() ?: ""
 
-            val facturas = runCatching { api.getFacturas(authHeader, negocioId) }.getOrNull()?.body() ?: emptyList()
-            val negocio = runCatching { api.getNegocio(authHeader, negocioId) }.getOrNull()?.body()
+            val facturasReq = async { runCatching { api.getFacturas(authHeader, negocioId) }.getOrNull()?.body() ?: emptyList() }
+            val negocioReq = async { runCatching { api.getNegocio(authHeader, negocioId) }.getOrNull()?.body() }
+            val cuentasReq = async { runCatching { api.getCuentasPorCobrar(authHeader, negocioId) }.getOrNull()?.body() ?: emptyList() }
 
-            facturasRaw = facturas
+            facturasRaw = facturasReq.await()
+            cuentasRaw = cuentasReq.await()
+            val negocio = negocioReq.await()
+
             if (negocio != null) {
                 negocioNombre = negocio.nombreComercial ?: negocio.razonSocial ?: "Mi Negocio"
             }
@@ -211,7 +297,239 @@ class RendimientoComercialActivity : AppCompatActivity() {
         contentContainer.visibility = if (loading) View.GONE else View.VISIBLE
     }
 
-    // ---------- Procesamiento de métricas (equivalente a procesarMetricas() del web) ----------
+    private fun normalizarNombreCliente(nombre: String?): String {
+        val str = nombre ?: "Consumidor Final"
+        val normalized = Normalizer.normalize(str, Normalizer.Form.NFD)
+            .replace(Regex("\\p{InCombiningDiacriticalMarks}+"), "")
+        return normalized
+            .replace(Regex("[^a-zA-Z0-9\\s]"), " ")
+            .replace(Regex("\\s+"), " ")
+            .lowercase(Locale.getDefault())
+            .trim()
+    }
+
+    private fun procesarReporteClientes() {
+        val mapClientes = mutableMapOf<String, ClienteReporteDto>()
+
+        facturasRaw.forEach { f ->
+            val nombreCrudo = f.nombreClienteFormateado ?: "Consumidor Final"
+            val key = normalizarNombreCliente(nombreCrudo)
+
+            if (key.contains("consumidor final") || key.contains("consumidorfinal")) return@forEach
+
+            val cliente = mapClientes.getOrPut(key) {
+                ClienteReporteDto().apply {
+                    this.key = key
+                    this.nombre = nombreCrudo
+                    this.identificacion = f.cliente?.dni
+                }
+            }
+            cliente.numFacturas += 1
+            cliente.totalFacturado += f.totalCalculado
+
+            val dets = (f.detalles ?: emptyList()).map { det ->
+                DetalleFacturaResumenDto(
+                    productoNombre = det.nombreProducto ?: "Producto",
+                    cantidad = det.cantidad ?: 0,
+                    precioUnitario = det.precioUnitario ?: 0.0,
+                    descuento = det.descuento ?: 0.0,
+                    subtotalItem = det.subtotalItem ?: 0.0
+                )
+            }
+
+            val cal = parseFecha(f.fechaEmision)
+            val fechaStr = if (cal != null) String.format(Locale.US, "%02d/%02d/%04d", cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.YEAR)) else "—"
+
+            cliente.facturas.add(
+                FacturaClienteResumenDto(
+                    id = f.id,
+                    numero = f.numeroFactura ?: "S/N",
+                    fecha = fechaStr,
+                    tipo = f.metodoPago ?: "OTRO",
+                    monto = f.totalCalculado,
+                    estado = f.estadoFormateado,
+                    detalles = dets,
+                    descuentoGlobal = f.totalDescuento ?: 0.0,
+                    showDetalles = false
+                )
+            )
+        }
+
+        cuentasRaw.forEach { c ->
+            val cliObj = c.factura?.cliente
+            val nombreCrudo = c.clienteNombre ?: cliObj?.nombreCompleto ?: cliObj?.nombre ?: cliObj?.razonSocial ?:
+            (listOfNotNull(cliObj?.primerNombre, cliObj?.apellidoPaterno).joinToString(" ").takeIf { it.isNotBlank() }) ?: "Cliente"
+
+            val key = normalizarNombreCliente(nombreCrudo)
+            if (key.contains("consumidor final") || key.contains("consumidorfinal")) return@forEach
+
+            val cliente = mapClientes.getOrPut(key) {
+                ClienteReporteDto().apply {
+                    this.key = key
+                    this.nombre = nombreCrudo
+                    this.identificacion = c.numeroFactura ?: c.factura?.numeroFactura
+                }
+            }
+
+            val montoTotal = c.montoTotal ?: 0.0
+            val saldoPendiente = c.saldoPendiente ?: 0.0
+
+            cliente.saldoPendiente += saldoPendiente
+            if (saldoPendiente > 0) {
+                cliente.numCuentasCredito += 1
+            }
+
+            val cal = parseFecha(c.fechaVencimiento)
+            val fechaVencStr = if (cal != null) String.format(Locale.US, "%02d/%02d/%04d", cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.YEAR)) else "—"
+
+            cliente.creditos.add(
+                CreditoClienteResumenDto(
+                    id = c.id,
+                    factura = c.numeroFactura ?: c.factura?.numeroFactura ?: "S/N",
+                    montoTotal = montoTotal,
+                    saldoPendiente = saldoPendiente,
+                    fechaVencimiento = fechaVencStr,
+                    estado = c.estado ?: "PENDIENTE",
+                    showDetalles = false
+                )
+            )
+        }
+
+        reporteClientesCompleto = mapClientes.values.sortedWith(
+            compareByDescending<ClienteReporteDto> { it.saldoPendiente }
+                .thenByDescending { it.totalFacturado }
+        )
+
+        val totalCobrar = reporteClientesCompleto.sumOf { it.saldoPendiente }
+        val conDeuda = reporteClientesCompleto.count { it.saldoPendiente > 0 }
+
+        tvTotalClientesDir.text = reporteClientesCompleto.size.toString()
+        tvClientesConDeudaDir.text = conDeuda.toString()
+        tvTotalPorCobrarDir.text = String.format(Locale.US, "$%,.2f", totalCobrar)
+
+        aplicarFiltroClientes()
+    }
+
+    private fun abrirModalDetalleCliente(cliente: ClienteReporteDto) {
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setContentView(R.layout.dialog_detalle_cliente)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.window?.setLayout((resources.displayMetrics.widthPixels * 0.95).toInt(), (resources.displayMetrics.heightPixels * 0.85).toInt())
+
+        val tvModalInicial: TextView = dialog.findViewById(R.id.tvModalInicial)
+        val tvModalNombre: TextView = dialog.findViewById(R.id.tvModalNombre)
+        val tvModalRuc: TextView = dialog.findViewById(R.id.tvModalRuc)
+        val tvModalDeudaBadge: TextView = dialog.findViewById(R.id.tvModalDeudaBadge)
+
+        val tvModalCountFacturas: TextView = dialog.findViewById(R.id.tvModalCountFacturas)
+        val tvModalTotalFacturado: TextView = dialog.findViewById(R.id.tvModalTotalFacturado)
+        val tvModalTotalDeuda: TextView = dialog.findViewById(R.id.tvModalTotalDeuda)
+
+        val tabFacturas: LinearLayout = dialog.findViewById(R.id.tabFacturas)
+        val tvTabFacturasText: TextView = dialog.findViewById(R.id.tvTabFacturasText)
+        val tvTabFacturasBadge: TextView = dialog.findViewById(R.id.tvTabFacturasBadge)
+        val indicatorFacturas: View = dialog.findViewById(R.id.indicatorFacturas)
+
+        val tabCreditos: LinearLayout = dialog.findViewById(R.id.tabCreditos)
+        val tvTabCreditosText: TextView = dialog.findViewById(R.id.tvTabCreditosText)
+        val tvTabCreditosBadge: TextView = dialog.findViewById(R.id.tvTabCreditosBadge)
+        val indicatorCreditos: View = dialog.findViewById(R.id.indicatorCreditos)
+
+        val rvModalDocumentos: RecyclerView = dialog.findViewById(R.id.rvModalDocumentos)
+        rvModalDocumentos.layoutManager = LinearLayoutManager(this)
+
+        tvModalNombre.text = cliente.nombre
+        tvModalInicial.text = if (cliente.nombre.isNotEmpty()) cliente.nombre.substring(0, 1).uppercase() else "C"
+        tvModalRuc.text = if (!cliente.identificacion.isNullOrEmpty()) "CI/RUC: ${cliente.identificacion}" else "Sin identificación"
+
+        if (cliente.saldoPendiente > 0) {
+            tvModalDeudaBadge.text = String.format(Locale.US, "Debe $%,.2f", cliente.saldoPendiente)
+            tvModalDeudaBadge.visibility = View.VISIBLE
+        } else {
+            tvModalDeudaBadge.visibility = View.GONE
+        }
+
+        tvModalCountFacturas.text = cliente.numFacturas.toString()
+        tvModalTotalFacturado.text = String.format(Locale.US, "$%,.2f", cliente.totalFacturado)
+        tvModalTotalDeuda.text = String.format(Locale.US, "$%,.2f", cliente.saldoPendiente)
+
+        tvTabFacturasBadge.text = cliente.numFacturas.toString()
+        tvTabCreditosBadge.text = cliente.numCuentasCredito.toString()
+
+        val adapterDoc = DetalleDocumentoAdapter(emptyList())
+        rvModalDocumentos.adapter = adapterDoc
+
+        fun renderTabList(isCredito: Boolean) {
+            if (isCredito) {
+                tvTabCreditosText.setTextColor(Color.parseColor("#3B82F6"))
+                indicatorCreditos.setBackgroundColor(Color.parseColor("#3B82F6"))
+                tvTabFacturasText.setTextColor(Color.parseColor("#64748B"))
+                indicatorFacturas.setBackgroundColor(Color.TRANSPARENT)
+
+                val uiList = cliente.creditos.map {
+                    DocumentoUiModel(
+                        numero = it.factura,
+                        fecha = it.fechaVencimiento,
+                        tipo = "CRÉDITO",
+                        estado = it.estado,
+                        monto = it.montoTotal,
+                        isCredito = true,
+                        saldoPendiente = it.saldoPendiente
+                    )
+                }
+                adapterDoc.actualizarLista(uiList)
+            } else {
+                tvTabFacturasText.setTextColor(Color.parseColor("#3B82F6"))
+                indicatorFacturas.setBackgroundColor(Color.parseColor("#3B82F6"))
+                tvTabCreditosText.setTextColor(Color.parseColor("#64748B"))
+                indicatorCreditos.setBackgroundColor(Color.TRANSPARENT)
+
+                val uiList = cliente.facturas.map {
+                    DocumentoUiModel(
+                        numero = it.numero,
+                        fecha = it.fecha,
+                        tipo = it.tipo,
+                        estado = it.estado,
+                        monto = it.monto,
+                        isCredito = false,
+                        detalles = it.detalles,
+                        descuentoGlobal = it.descuentoGlobal
+                    )
+                }.sortedByDescending { it.fecha }
+                adapterDoc.actualizarLista(uiList)
+            }
+        }
+
+        tabFacturas.setOnClickListener { renderTabList(false) }
+        tabCreditos.setOnClickListener { renderTabList(true) }
+
+        val defaultTabIsCredito = (cliente.saldoPendiente > 0 && cliente.facturas.isEmpty())
+        renderTabList(defaultTabIsCredito)
+
+        dialog.findViewById<ImageView>(R.id.btnModalCloseTop).setOnClickListener { dialog.dismiss() }
+        dialog.findViewById<MaterialButton>(R.id.btnModalCerrar).setOnClickListener { dialog.dismiss() }
+
+        dialog.show()
+    }
+
+    private fun aplicarFiltroClientes() {
+        val term = etBuscarClienteRendimiento.text.toString().lowercase().trim()
+        val soloDeuda = cbSoloDeuda.isChecked
+
+        val listaFiltrada = reporteClientesCompleto.filter { c ->
+            if (soloDeuda && c.saldoPendiente <= 0) return@filter false
+            if (term.isEmpty()) return@filter true
+
+            c.nombre.lowercase().contains(term) || (c.identificacion?.lowercase()?.contains(term) == true)
+        }
+
+        reporteAdapter.actualizarLista(listaFiltrada)
+        val vacio = listaFiltrada.isEmpty()
+        layoutClientesVacio.visibility = if (vacio) View.VISIBLE else View.GONE
+        rvClientesReporte.visibility = if (vacio) View.GONE else View.VISIBLE
+    }
+
     private fun procesarMetricas() {
         val ahora = Calendar.getInstance()
         val inicioPeriodo = inicioDia(restarDias(ahora, periodoDias - 1))
@@ -337,6 +655,8 @@ class RendimientoComercialActivity : AppCompatActivity() {
         porFormaPago = mapPago.entries.map { (nombre, total) ->
             FormaPagoItemDto(nombre, total, round((total / totalPago) * 100).toInt())
         }.sortedByDescending { it.total }
+
+        procesarReporteClientes()
     }
 
     private fun calcularRachas(cantidadPorDia: Map<String, Int>, ahora: Calendar) {
@@ -674,11 +994,7 @@ class RendimientoComercialActivity : AppCompatActivity() {
                 }
                 layoutParams = params
                 setOnClickListener {
-                    Toast.makeText(
-                        this@RendimientoComercialActivity,
-                        "${dia.diaSemana} ${dia.label}: $${fmtMoney(dia.total)} (${dia.cantidad} facturas)",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Toast.makeText(this@RendimientoComercialActivity, "${dia.diaSemana} ${dia.label}: $${fmtMoney(dia.total)} (${dia.cantidad} facturas)", Toast.LENGTH_SHORT).show()
                 }
             }
             heatmapGrid.addView(cell)
@@ -926,33 +1242,27 @@ class RendimientoComercialActivity : AppCompatActivity() {
         val margin = 28f
         val contentWidth = pageWidth - margin * 2
 
-        // Paleta de colores (misma que la UI de la app)
         val cNavy = Color.parseColor("#0F172A")
         val cNavySubtitle = Color.parseColor("#CBD5E1")
         val cBorder = Color.parseColor("#E2E8F0")
         val cMuted = Color.parseColor("#64748B")
         val cMutedLight = Color.parseColor("#94A3B8")
         val cDark = Color.parseColor("#0F172A")
-
         val cOrange = Color.parseColor("#F97316")
         val cOrangeBg = Color.parseColor("#FFF7ED")
         val cOrangeText = Color.parseColor("#9A3412")
-
         val cBlue = Color.parseColor("#3B82F6")
         val cBlueBg = Color.parseColor("#EFF6FF")
         val cBlueText = Color.parseColor("#1E40AF")
-
         val cPurple = Color.parseColor("#8B5CF6")
         val cPurpleBg = Color.parseColor("#F5F3FF")
         val cPurpleText = Color.parseColor("#5B21B6")
-
         val cGreen = Color.parseColor("#10B981")
         val cGreenBg = Color.parseColor("#DCFCE7")
         val cGreenText = Color.parseColor("#166534")
         val cRedBg = Color.parseColor("#FEE2E2")
         val cRedText = Color.parseColor("#B91C1C")
         val cNeutralBg = Color.parseColor("#F1F5F9")
-
         val cFlame = Color.parseColor("#EA580C")
         val cRachaBg = Color.parseColor("#FFF7ED")
         val cRachaBorder = Color.parseColor("#FED7AA")

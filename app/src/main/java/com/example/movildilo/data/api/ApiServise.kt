@@ -180,6 +180,14 @@ interface ApiService {
         @Query("dias") dias: Int = 30
     ): Response<List<AlertaCaducidadDto>>
 
+
+    @GET("api/v1/negocios/{negocioId}/kardex/producto/{productoId}")
+    suspend fun getKardexPorProducto(
+        @Header("Authorization") token: String,
+        @Path("negocioId") negocioId: Long,
+        @Path("productoId") productoId: Long
+    ): Response<List<KardexMovimientoDto>>
+
     // MIEMBROS DE EQUIPO
     @Headers("Cache-Control: no-cache")
     @GET("api/v1/negocios/{negocioId}/miembros")
