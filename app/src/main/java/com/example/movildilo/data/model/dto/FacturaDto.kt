@@ -1,5 +1,6 @@
 package com.example.movildilo.data.model.dto
 
+import com.example.movildilo.ui.facturas.DetalleFacturaDialogHelper.ItemLinea
 import com.google.gson.annotations.SerializedName
 
 data class FacturaRequestDto(

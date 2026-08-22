@@ -13,6 +13,7 @@ import android.graphics.drawable.GradientDrawable
 import android.graphics.pdf.PdfDocument
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.TypedValue
@@ -54,6 +55,7 @@ import com.example.movildilo.data.model.dto.ProductoDemandaDto
 import com.example.movildilo.data.model.dto.SerieDiariaItemDto
 import com.example.movildilo.ui.adapters.DetalleDocumentoAdapter
 import com.example.movildilo.ui.adapters.ReporteClientesAdapter
+import com.example.movildilo.ui.facturas.DetalleFacturaDialogHelper
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.tabs.TabLayout
@@ -382,14 +384,31 @@ class RendimientoComercialActivity : AppCompatActivity() {
             val cal = parseFecha(c.fechaVencimiento)
             val fechaVencStr = if (cal != null) String.format(Locale.US, "%02d/%02d/%04d", cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.YEAR)) else "—"
 
+            val numeroFacturaCredito = c.numeroFactura ?: c.factura?.numeroFactura ?: "S/N"
+            val facturaIdCredito = c.factura?.id
+            val facturaRelacionada = cliente.facturas.find { facturaIdCredito != null && it.id == facturaIdCredito }
+                ?: cliente.facturas.find { it.numero == numeroFacturaCredito }
+
+            if (facturaRelacionada == null) {
+                Log.w(
+                    "RendimientoComercial",
+                    "Sin factura relacionada para crédito id=${c.id} numeroFactura=$numeroFacturaCredito " +
+                            "facturaIdCredito=$facturaIdCredito. Facturas disponibles del cliente: " +
+                            cliente.facturas.joinToString { "(id=${it.id}, numero=${it.numero})" }
+                )
+            }
+
             cliente.creditos.add(
                 CreditoClienteResumenDto(
                     id = c.id,
-                    factura = c.numeroFactura ?: c.factura?.numeroFactura ?: "S/N",
+                    factura = numeroFacturaCredito,
                     montoTotal = montoTotal,
                     saldoPendiente = saldoPendiente,
                     fechaVencimiento = fechaVencStr,
                     estado = c.estado ?: "PENDIENTE",
+                    detalles = facturaRelacionada?.detalles ?: emptyList(),
+                    descuentoGlobal = facturaRelacionada?.descuentoGlobal ?: 0.0,
+                    metodoPago = facturaRelacionada?.tipo,
                     showDetalles = false
                 )
             )
@@ -457,7 +476,55 @@ class RendimientoComercialActivity : AppCompatActivity() {
         tvTabFacturasBadge.text = cliente.numFacturas.toString()
         tvTabCreditosBadge.text = cliente.numCuentasCredito.toString()
 
-        val adapterDoc = DetalleDocumentoAdapter(emptyList())
+        val adapterDoc = DetalleDocumentoAdapter(emptyList()) { doc ->
+            val facturaEncontrada = cliente.facturas.find { it.numero == doc.numero }
+            val creditoEncontrado = cliente.creditos.find { it.factura == doc.numero }
+
+            val detallesOrigen = when {
+                doc.detalles.isNotEmpty() -> doc.detalles
+                facturaEncontrada != null && facturaEncontrada.detalles.isNotEmpty() -> facturaEncontrada.detalles
+                creditoEncontrado != null && creditoEncontrado.detalles.isNotEmpty() -> creditoEncontrado.detalles
+                else -> {
+                    val facturaPorId = facturasRaw.find { f -> f.id == creditoEncontrado?.id || f.numeroFactura == doc.numero }
+                    facturaPorId?.detalles?.map { det ->
+                        DetalleFacturaResumenDto(
+                            productoNombre = det.nombreProducto ?: "Producto",
+                            cantidad = det.cantidad ?: 0,
+                            precioUnitario = det.precioUnitario ?: 0.0,
+                            descuento = det.descuento ?: 0.0,
+                            subtotalItem = det.subtotalItem ?: 0.0
+                        )
+                    } ?: emptyList()
+                }
+            }
+
+            val metodoPagoOrigen = when {
+                !doc.metodoPago.isNullOrBlank() && doc.metodoPago != "N/D" && doc.metodoPago != "CRÉDITO" -> doc.metodoPago
+                facturaEncontrada != null && !facturaEncontrada.tipo.isNullOrBlank() -> facturaEncontrada.tipo
+                else -> "CRÉDITO"
+            }
+
+            val items = detallesOrigen.map {
+                DetalleFacturaDialogHelper.ItemLinea(
+                    nombre = it.productoNombre,
+                    cantidad = it.cantidad,
+                    precioUnitario = it.precioUnitario,
+                    descuento = it.descuento,
+                    subtotal = it.subtotalItem
+                )
+            }
+            val datos = DetalleFacturaDialogHelper.DatosFactura(
+                numero = doc.numero,
+                fecha = doc.fecha,
+                clienteNombre = cliente.nombre,
+                metodoPago = metodoPagoOrigen,
+                estado = doc.estado,
+                total = doc.monto,
+                descuentoGlobal = doc.descuentoGlobal,
+                items = items
+            )
+            DetalleFacturaDialogHelper.mostrar(this, datos)
+        }
         rvModalDocumentos.adapter = adapterDoc
 
         fun renderTabList(isCredito: Boolean) {
@@ -467,15 +534,36 @@ class RendimientoComercialActivity : AppCompatActivity() {
                 tvTabFacturasText.setTextColor(Color.parseColor("#64748B"))
                 indicatorFacturas.setBackgroundColor(Color.TRANSPARENT)
 
-                val uiList = cliente.creditos.map {
+                val uiList = cliente.creditos.map { c ->
+                    val facturaEncontrada = cliente.facturas.find { f -> f.id == c.id || f.numero == c.factura }
+                    val facturaCruda = facturasRaw.find { f -> f.id == c.id || f.numeroFactura == c.factura }
+
+                    val detallesFinales = when {
+                        c.detalles.isNotEmpty() -> c.detalles
+                        facturaEncontrada != null && facturaEncontrada.detalles.isNotEmpty() -> facturaEncontrada.detalles
+                        facturaCruda != null -> facturaCruda.detalles?.map { det ->
+                            DetalleFacturaResumenDto(
+                                productoNombre = det.nombreProducto ?: "Producto",
+                                cantidad = det.cantidad ?: 0,
+                                precioUnitario = det.precioUnitario ?: 0.0,
+                                descuento = det.descuento ?: 0.0,
+                                subtotalItem = det.subtotalItem ?: 0.0
+                            )
+                        } ?: emptyList()
+                        else -> emptyList()
+                    }
+
                     DocumentoUiModel(
-                        numero = it.factura,
-                        fecha = it.fechaVencimiento,
+                        numero = c.factura,
+                        fecha = c.fechaVencimiento,
                         tipo = "CRÉDITO",
-                        estado = it.estado,
-                        monto = it.montoTotal,
+                        estado = c.estado,
+                        monto = c.montoTotal,
                         isCredito = true,
-                        saldoPendiente = it.saldoPendiente
+                        detalles = detallesFinales,
+                        descuentoGlobal = facturaEncontrada?.descuentoGlobal ?: facturaCruda?.totalDescuento ?: 0.0,
+                        metodoPago = c.metodoPago ?: facturaEncontrada?.tipo ?: facturaCruda?.metodoPago ?: "CRÉDITO",
+                        saldoPendiente = c.saldoPendiente
                     )
                 }
                 adapterDoc.actualizarLista(uiList)
@@ -485,16 +573,17 @@ class RendimientoComercialActivity : AppCompatActivity() {
                 tvTabCreditosText.setTextColor(Color.parseColor("#64748B"))
                 indicatorCreditos.setBackgroundColor(Color.TRANSPARENT)
 
-                val uiList = cliente.facturas.map {
+                val uiList = cliente.facturas.map { f ->
                     DocumentoUiModel(
-                        numero = it.numero,
-                        fecha = it.fecha,
-                        tipo = it.tipo,
-                        estado = it.estado,
-                        monto = it.monto,
+                        numero = f.numero,
+                        fecha = f.fecha,
+                        tipo = f.tipo,
+                        estado = f.estado,
+                        monto = f.monto,
                         isCredito = false,
-                        detalles = it.detalles,
-                        descuentoGlobal = it.descuentoGlobal
+                        detalles = f.detalles,
+                        descuentoGlobal = f.descuentoGlobal,
+                        metodoPago = f.tipo
                     )
                 }.sortedByDescending { it.fecha }
                 adapterDoc.actualizarLista(uiList)

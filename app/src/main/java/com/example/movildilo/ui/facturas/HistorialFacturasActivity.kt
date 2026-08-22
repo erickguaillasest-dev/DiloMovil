@@ -1636,138 +1636,35 @@ class HistorialFacturasActivity : AppCompatActivity() {
     }
 
     private fun mostrarDetalleFacturaDialog(fac: FacturaResponseDto) {
-        val view = layoutInflater.inflate(R.layout.dialog_detalle_factura, null)
-
-        val tvNumero = view.findViewById<TextView>(R.id.tvNumeroFacturaDetalle)
-        val tvFecha = view.findViewById<TextView>(R.id.tvFechaFacturaDetalle)
-        val tvCliente = view.findViewById<TextView>(R.id.tvClienteNombreDetalle)
-        val tvMetodoPago = view.findViewById<TextView>(R.id.tvMetodoPagoDetalle)
-        val tvEstadoBadge = view.findViewById<TextView>(R.id.tvEstadoBadge)
-        val containerProductos = view.findViewById<LinearLayout>(R.id.containerProductosDetalle)
-        val tvSubtotal = view.findViewById<TextView>(R.id.tvSubtotalDetalle)
-        val tvIva = view.findViewById<TextView>(R.id.tvIvaDetalle)
-        val rowDescuento = view.findViewById<View>(R.id.rowDescuentoDetalle)
-        val tvDescuento = view.findViewById<TextView>(R.id.tvDescuentoDetalle)
-        val tvTotal = view.findViewById<TextView>(R.id.tvTotalDetalle)
-        val btnCerrarIcon = view.findViewById<ImageView>(R.id.btnCerrarDetalleModal)
-        val btnCerrar = view.findViewById<MaterialButton>(R.id.btnCerrarDetalle)
-        val btnImprimir = view.findViewById<MaterialButton>(R.id.btnImprimirPdfDetalle)
-
-        tvNumero.text = "Nº ${fac.numeroFactura ?: "S/N"}"
-        tvFecha.text = fac.fechaFormateada
-        tvCliente.text = fac.nombreClienteFormateado
-        tvMetodoPago.text = fac.metodoPago ?: "EFECTIVO"
-        tvEstadoBadge.text = fac.estadoFormateado
-
-        val total = fac.totalCalculado
-        val subtotal = total / 1.15
-        val iva = total - subtotal
-        val descuentoGlobal = fac.totalDescuento ?: 0.0
-
-        tvSubtotal.text = String.format(Locale.US, "$%.2f", subtotal)
-        tvIva.text = String.format(Locale.US, "$%.2f", iva)
-        tvTotal.text = String.format(Locale.US, "$%.2f", total)
-
-        if (descuentoGlobal > 0.0) {
-            rowDescuento.visibility = View.VISIBLE
-            tvDescuento.text = "-${String.format(Locale.US, "$%.2f", descuentoGlobal)}"
-        } else {
-            rowDescuento.visibility = View.GONE
-        }
-
         val detalles = fac.detalles ?: emptyList()
-        containerProductos.removeAllViews()
 
-        if (detalles.isNotEmpty()) {
-            detalles.forEachIndexed { index, item ->
-                val cant = item.cantidad ?: 1
-                val pUnit = item.precioUnitario ?: 0.0
-                val subItem = item.subtotalItem ?: (cant * pUnit)
-                val nombreProducto = obtenerNombreProducto(item, index)
-
-                val itemLayout = LinearLayout(this).apply {
-                    orientation = LinearLayout.HORIZONTAL
-                    setPadding(0, 12, 0, 12)
-                    gravity = Gravity.CENTER_VERTICAL
-                }
-
-                val infoLayout = LinearLayout(this).apply {
-                    orientation = LinearLayout.VERTICAL
-                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                }
-
-                val tvNombre = TextView(this).apply {
-                    text = nombreProducto
-                    textSize = 13f
-                    typeface = Typeface.DEFAULT_BOLD
-                    setTextColor(0xFF0F172A.toInt())
-                }
-
-                val tvDetallePrecio = TextView(this).apply {
-                    text = "$cant unit. x $${String.format(Locale.US, "%.2f", pUnit)}"
-                    textSize = 11f
-                    setTextColor(0xFF64748B.toInt())
-                }
-
-                infoLayout.addView(tvNombre)
-                infoLayout.addView(tvDetallePrecio)
-
-                val descuentoItem = item.descuento ?: 0.0
-                if (descuentoItem > 0.0) {
-                    val tvDescuentoItem = TextView(this).apply {
-                        text = "Descuento: -$${String.format(Locale.US, "%.2f", descuentoItem)}"
-                        textSize = 10f
-                        typeface = Typeface.DEFAULT_BOLD
-                        setTextColor(0xFFEA580C.toInt())
-                    }
-                    infoLayout.addView(tvDescuentoItem)
-                }
-
-                val tvSubtotalItem = TextView(this).apply {
-                    text = "$${String.format(Locale.US, "%.2f", subItem)}"
-                    textSize = 13f
-                    typeface = Typeface.DEFAULT_BOLD
-                    setTextColor(0xFF0F172A.toInt())
-                }
-
-                itemLayout.addView(infoLayout)
-                itemLayout.addView(tvSubtotalItem)
-                containerProductos.addView(itemLayout)
-
-                if (index < detalles.size - 1) {
-                    val divider = View(this).apply {
-                        layoutParams = LinearLayout.LayoutParams(
-                            LinearLayout.LayoutParams.MATCH_PARENT, 1
-                        )
-                        setBackgroundColor(0xFFE2E8F0.toInt())
-                    }
-                    containerProductos.addView(divider)
-                }
-            }
-        } else {
-            val tvVacio = TextView(this).apply {
-                text = "Sin detalles registrados"
-                textSize = 13f
-                setTextColor(0xFF64748B.toInt())
-                setPadding(0, 12, 0, 12)
-            }
-            containerProductos.addView(tvVacio)
+        val items = detalles.mapIndexed { index, item ->
+            val cant = item.cantidad ?: 1
+            val pUnit = item.precioUnitario ?: 0.0
+            val subItem = item.subtotalItem ?: (cant * pUnit)
+            DetalleFacturaDialogHelper.ItemLinea(
+                nombre = obtenerNombreProducto(item, index),
+                cantidad = cant,
+                precioUnitario = pUnit,
+                descuento = item.descuento ?: 0.0,
+                subtotal = subItem
+            )
         }
 
-        val dialog = MaterialAlertDialogBuilder(this)
-            .setView(view)
-            .create()
+        val datos = DetalleFacturaDialogHelper.DatosFactura(
+            numero = fac.numeroFactura ?: "S/N",
+            fecha = fac.fechaFormateada,
+            clienteNombre = fac.nombreClienteFormateado,
+            metodoPago = fac.metodoPago ?: "EFECTIVO",
+            estado = fac.estadoFormateado,
+            total = fac.totalCalculado,
+            descuentoGlobal = fac.totalDescuento ?: 0.0,
+            items = items,
+            mostrarBotonImprimir = true,
+            onImprimir = { prepararGeneracionPDF(fac) }
+        )
 
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-
-        btnCerrarIcon.setOnClickListener { dialog.dismiss() }
-        btnCerrar.setOnClickListener { dialog.dismiss() }
-        btnImprimir.setOnClickListener {
-            dialog.dismiss()
-            prepararGeneracionPDF(fac)
-        }
-
-        dialog.show()
+        DetalleFacturaDialogHelper.mostrar(this, datos)
     }
 
     private fun cargarFacturas() {

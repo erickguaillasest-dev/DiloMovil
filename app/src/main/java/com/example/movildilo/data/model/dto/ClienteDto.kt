@@ -37,6 +37,9 @@ data class CreditoClienteResumenDto(
     val saldoPendiente: Double,
     val fechaVencimiento: String,
     val estado: String,
+    val detalles: List<DetalleFacturaResumenDto> = emptyList(),
+    val descuentoGlobal: Double = 0.0,
+    val metodoPago: String? = null,
     var showDetalles: Boolean = false
 )
 
@@ -64,5 +67,6 @@ data class DocumentoUiModel(
     val detalles: List<DetalleFacturaResumenDto> = emptyList(),
     val descuentoGlobal: Double = 0.0,
     val saldoPendiente: Double = 0.0,
+    val metodoPago: String? = null,
     var expandido: Boolean = false
 )
