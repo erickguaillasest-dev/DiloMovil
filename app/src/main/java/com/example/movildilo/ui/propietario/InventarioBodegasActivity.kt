@@ -98,10 +98,8 @@ class InventarioBodegasActivity : AppCompatActivity() {
     }
 
     private fun setupFiltros() {
-        // Listener cuando el usuario selecciona un ítem del menú desplegable
         spinnerFiltroBodega.setOnItemClickListener { _, _, _, _ -> aplicarFiltros() }
 
-        // Listener para detectar cambios manuales o borrado de texto en la bodega
         spinnerFiltroBodega.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -110,7 +108,6 @@ class InventarioBodegasActivity : AppCompatActivity() {
             override fun afterTextChanged(s: Editable?) {}
         })
 
-        // Listener para el buscador por texto de productos/códigos
         etBuscarInventario.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -196,13 +193,11 @@ class InventarioBodegasActivity : AppCompatActivity() {
             val cod2 = item.productoCodigo?.lowercase(Locale.ROOT) ?: ""
             val bodega = item.bodegaNombre?.trim() ?: ""
 
-            // 1. Filtro de búsqueda por nombre o código
             val coincideTexto = textoBusqueda.isEmpty() ||
                     nombre.contains(textoBusqueda) ||
                     cod1.contains(textoBusqueda) ||
                     cod2.contains(textoBusqueda)
 
-            // 2. Filtro de bodega activa (tolera diferencias de minúsculas/mayúsculas)
             val coincideBodega = bodegaSeleccionada.isEmpty() ||
                     bodegaSeleccionada.equals("Todas las ubicaciones", ignoreCase = true) ||
                     bodega.equals(bodegaSeleccionada, ignoreCase = true)
@@ -210,7 +205,6 @@ class InventarioBodegasActivity : AppCompatActivity() {
             coincideTexto && coincideBodega
         }
 
-        // Actualizamos la lista del adapter y recalculamos los KPIs en tiempo real
         adapter.actualizarLista(resultado.toList())
         calcularResumenKpis(resultado)
     }
@@ -303,7 +297,13 @@ class InventarioBodegasActivity : AppCompatActivity() {
         val productoId = item.productoId ?: return
         val authHeader = sessionManager.getAuthHeader() ?: return
 
-        val dialogCargando = LotesBottomSheetDialog(item.productoNombre ?: "Producto", emptyList(), true)
+        val dialogCargando = LotesBottomSheetDialog(
+            productoNombre = item.productoNombre ?: "Producto",
+            listaLotes = emptyList(),
+            isLoading = true,
+            negocioId = negocioId,
+            productoId = productoId
+        )
         dialogCargando.show(supportFragmentManager, "LotesBottomSheetDialog")
 
         lifecycleScope.launch(Dispatchers.IO) {
@@ -319,7 +319,13 @@ class InventarioBodegasActivity : AppCompatActivity() {
                     dialogCargando.dismiss()
                     if (response.isSuccessful) {
                         val lotes = response.body() ?: emptyList()
-                        val dialogConLotes = LotesBottomSheetDialog(item.productoNombre ?: "Producto", lotes, false)
+                        val dialogConLotes = LotesBottomSheetDialog(
+                            productoNombre = item.productoNombre ?: "Producto",
+                            listaLotes = lotes,
+                            isLoading = false,
+                            negocioId = negocioId,
+                            productoId = productoId
+                        )
                         dialogConLotes.show(supportFragmentManager, "LotesBottomSheetDialog")
                     } else {
                         Toast.makeText(this@InventarioBodegasActivity, "Error al consultar lotes del producto", Toast.LENGTH_SHORT).show()

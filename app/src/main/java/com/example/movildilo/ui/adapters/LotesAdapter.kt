@@ -21,8 +21,8 @@ class LotesAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val lote = lotes[position]
         holder.tvCodigoLote.text = "Lote: ${lote.codigoLote ?: "S/N"}"
-        holder.tvVencimiento.text = "Vence: ${lote.fechaVencimiento ?: "N/A"}"
-        holder.tvCantidad.text = "${lote.cantidad ?: 0} uds."
+        holder.tvVencimiento.text = "Vence: ${lote.fechaCaducidad ?: "N/A"}"
+        holder.tvCantidad.text = "${lote.cantidadDisponible ?: 0} uds."
     }
 
     override fun getItemCount(): Int = lotes.size

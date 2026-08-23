@@ -35,6 +35,7 @@ class Mi_equipo : AppCompatActivity() {
     private lateinit var btnRegresar: ImageView
     private lateinit var btnNotificaciones: ImageView
     private lateinit var btnCopiarCodigo: ImageView
+    private lateinit var btnRegenerarCodigo: ImageView
     private lateinit var tvCodigoAcceso: TextView
     private lateinit var tvBadgeCantidadSolicitudes: TextView
 
@@ -102,6 +103,7 @@ class Mi_equipo : AppCompatActivity() {
         btnRegresar = findViewById(R.id.btnRegresar)
         btnNotificaciones = findViewById(R.id.btnNotificaciones)
         btnCopiarCodigo = findViewById(R.id.btnCopiarCodigo)
+        btnRegenerarCodigo = findViewById(R.id.btnRegenerarCodigo)
         tvCodigoAcceso = findViewById(R.id.tvCodigoAcceso)
         tvBadgeCantidadSolicitudes = findViewById(R.id.tvCantidadSolicitudes)
         tvHeaderIniciales = findViewById(R.id.tvHeaderIniciales)
@@ -115,6 +117,7 @@ class Mi_equipo : AppCompatActivity() {
         btnRegresar.setOnClickListener { finish() }
         btnNotificaciones.setOnClickListener { view -> mostrarPopupAlertas(view) }
         btnCopiarCodigo.setOnClickListener { copiarCodigo() }
+        btnRegenerarCodigo.setOnClickListener { regenerarCodigo() }
     }
 
     private fun setupRecyclerViews() {
@@ -332,6 +335,36 @@ class Mi_equipo : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    private fun regenerarCodigo() {
+        val authHeader = sessionManager.getAuthHeader() ?: return
+        if (negocioId == -1L) return
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle("¿Generar nuevo código?")
+            .setMessage("El código actual dejará de funcionar inmediatamente.")
+            .setNegativeButton("Cancelar", null)
+            .setPositiveButton("Sí, generar") { _, _ ->
+                lifecycleScope.launch {
+                    try {
+                        val response = RetrofitClient.apiService.regenerarCodigoInvitacion(authHeader, negocioId)
+                        if (response.isSuccessful && response.body() != null) {
+                            val res = response.body()!!
+                            val nuevoCodigo = res.codigoInvitacion ?: res.codigo ?: "NO-DISPONIBLE"
+                            tvCodigoAcceso.text = nuevoCodigo
+                            Toast.makeText(this@Mi_equipo, "¡Actualizado! Se ha generado un nuevo código de acceso.", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Log.e("Equipo", "Error regenerarCodigo (${response.code()})")
+                            Toast.makeText(this@Mi_equipo, "Error: No se pudo generar el nuevo código.", Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) {
+                        Log.e("Equipo", "Excepción regenerarCodigo", e)
+                        Toast.makeText(this@Mi_equipo, "Error de conexión: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+            .show()
     }
 
     private fun obtenerTimestampFecha(fechaStr: String?): Long {

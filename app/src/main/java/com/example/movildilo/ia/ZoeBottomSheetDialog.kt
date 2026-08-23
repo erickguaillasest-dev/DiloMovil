@@ -356,9 +356,10 @@ class ZoeBottomSheetDialog(
         btnEnviarMensaje.isEnabled = false
 
         val instruccionEstructura = "\n\nREGLAS DE FORMATO OBLIGATORIAS:\n" +
-                "1. Organiza la respuesta visual usando Markdown estructurado (negritas, viñetas '*' y listas).\n" +
-                "2. Sé ultra conciso. Evita introducciones o comentarios redundantes.\n" +
-                "3. Incluye AL FINAL la etiqueta <voz>texto fluido y natural para hablar sin símbolos ni markdown</voz>."
+                "1. Ve directo a la respuesta puntual, sin saludos ni introducciones tipo 'claro, con gusto...'.\n" +
+                "2. Organiza la respuesta visual usando Markdown estructurado (negritas, viñetas '*' y listas) SOLO cuando aporte claridad, no por defecto.\n" +
+                "3. Sé ultra conciso: cero relleno, cero repetición de lo ya dicho antes en el chat.\n" +
+                "4. Incluye AL FINAL la etiqueta <voz>texto fluido y natural para hablar sin símbolos ni markdown</voz>."
 
         val manualDelSistema = ZoeKnowledgeBase.construirManualCompleto(
             usuarioNombre = usuarioNombre,
@@ -370,8 +371,7 @@ class ZoeBottomSheetDialog(
 
         val mensajesParaApi = mutableListOf<GroqMessage>()
         mensajesParaApi.add(GroqMessage(role = "system", content = manualDelSistema))
-        mensajesParaApi.addAll(listaHistorialDto)
-        mensajesParaApi.addAll(listaHistorialDto.takeLast(6))
+        mensajesParaApi.addAll(listaHistorialDto.takeLast(12))
 
         val request = GroqRequest(
             model = "openai/gpt-oss-120b",

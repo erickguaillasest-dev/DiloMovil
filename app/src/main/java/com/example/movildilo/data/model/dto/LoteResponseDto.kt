@@ -6,12 +6,21 @@ data class LoteResponseDto(
     @SerializedName("id")
     val id: Long?,
 
-    @SerializedName("codigoLote")
+    @SerializedName("codigoLote", alternate = ["numeroLote", "codigo"])
     val codigoLote: String?,
 
-    @SerializedName("fechaVencimiento")
-    val fechaVencimiento: String?,
+    @SerializedName("fechaCaducidad", alternate = ["fechaVencimiento"])
+    val fechaCaducidad: String?,
 
-    @SerializedName("cantidad")
-    val cantidad: Int?
+    @SerializedName("cantidadDisponible", alternate = ["cantidad"])
+    val cantidadDisponible: Int?,
+
+    @SerializedName("cantidadInicial")
+    val cantidadInicial: Int?,
+
+    @SerializedName("costoUnitario")
+    val costoUnitario: Double?,
+
+    @SerializedName("estado")
+    val estado: String?
 )

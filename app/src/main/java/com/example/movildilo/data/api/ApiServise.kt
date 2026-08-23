@@ -7,6 +7,7 @@ import com.example.movildilo.data.model.dto.BodegaRequest
 import com.example.movildilo.data.model.dto.CambiarPasswordRequestDto
 import com.example.movildilo.data.model.dto.CategoriaDto
 import com.example.movildilo.data.model.dto.ClienteResponseDto
+import com.example.movildilo.data.model.dto.CodigoInvitacionResponseDto
 import com.example.movildilo.data.model.dto.CompraRequestDto
 import com.example.movildilo.data.model.dto.CompraResponseDto
 import com.example.movildilo.data.model.dto.CuentaPorCobrarResponseDto
@@ -496,4 +497,10 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Body request: IvaRequestDto
     ): Response<Map<String, String>>
+
+    @PUT("api/v1/negocios/{id}/codigo/regenerar")
+    suspend fun regenerarCodigoInvitacion(
+        @Header("Authorization") token: String,
+        @Path("id") negocioId: Long
+    ): Response<CodigoInvitacionResponseDto>
 }

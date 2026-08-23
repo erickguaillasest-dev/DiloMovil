@@ -32,28 +32,90 @@
             app:tint="#64748B" />
     </LinearLayout>
 
-    <ProgressBar
-        android:id="@+id/progressLotes"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginVertical="20dp"
-        android:visibility="gone" />
-
-    <TextView
-        android:id="@+id/tvSinLotes"
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tabLayoutLotesKardex"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginVertical="20dp"
-        android:gravity="center"
-        android:text="No hay lotes disponibles para este producto."
-        android:textColor="#64748B"
-        android:visibility="gone" />
+        android:layout_marginTop="12dp"
+        android:background="#F8FAFC"
+        app:tabIndicatorColor="#0F172A"
+        app:tabSelectedTextColor="#0F172A"
+        app:tabTextColor="#64748B">
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvLotes"
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Lotes" />
+
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Kardex" />
+    </com.google.android.material.tabs.TabLayout>
+
+    <LinearLayout
+        android:id="@+id/layoutContenidoLotes"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp" />
+        android:orientation="vertical">
+
+        <ProgressBar
+            android:id="@+id/progressLotes"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginVertical="20dp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tvSinLotes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginVertical="20dp"
+            android:gravity="center"
+            android:text="No hay lotes disponibles para este producto."
+            android:textColor="#64748B"
+            android:visibility="gone" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvLotes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:nestedScrollingEnabled="false" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/layoutContenidoKardex"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <ProgressBar
+            android:id="@+id/progressKardexProducto"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginVertical="20dp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tvSinKardexProducto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginVertical="20dp"
+            android:gravity="center"
+            android:text="Aún no hay movimientos registrados para este producto."
+            android:textColor="#64748B"
+            android:visibility="gone" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvKardexProducto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:nestedScrollingEnabled="false" />
+    </LinearLayout>
 
 </LinearLayout>
