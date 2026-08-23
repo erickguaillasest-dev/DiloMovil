@@ -4,20 +4,16 @@ import android.content.Intent
 import android.os.Bundle
 import android.text.InputType
 import android.util.Patterns
-import android.view.LayoutInflater
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
-import com.example.movildilo.data.model.dto.ForgotPasswordRequestDto
 import com.example.movildilo.data.model.dto.LoginRequestDto
-import com.example.movildilo.data.model.dto.ResetPasswordRequestDto
 import com.example.movildilo.ui.dashboard.AdminActivity
 import com.example.movildilo.ui.dashboard.BodegueroActivity
 import com.example.movildilo.ui.dashboard.PropietarioActivity
@@ -50,7 +46,6 @@ class LoginActivity : AppCompatActivity() {
 
         sessionManager = SessionManager(this)
 
-        // Si ya hay sesión iniciada, redirige usando el rol guardado
         if (sessionManager.isLoggedIn()) {
             redirigirSegunRolGuardado()
             return
@@ -64,9 +59,6 @@ class LoginActivity : AppCompatActivity() {
         btnTogglePassword = findViewById(R.id.btnTogglePassword)
         tvEmailError = findViewById(R.id.tvEmailError)
         tvPasswordError = findViewById(R.id.tvPasswordError)
-
-        // Limpia el error de cada campo apenas el usuario empieza a corregirlo, para que
-        // el mensaje no se quede pegado en pantalla aunque ya haya escrito algo válido.
         etEmail.setOnFocusChangeListener { _, tieneFoco -> if (tieneFoco) FormValidator.marcarErrorSimple(etEmail, tvEmailError, null) }
         etPassword.setOnFocusChangeListener { _, tieneFoco -> if (tieneFoco) FormValidator.marcarErrorSimple(etPassword, tvPasswordError, null) }
 
@@ -78,162 +70,18 @@ class LoginActivity : AppCompatActivity() {
         }
 
         tvForgotPassword.setOnClickListener {
-            mostrarDialogoRecuperarPassword()
-        }
-    }
-
-    private fun mostrarDialogoRecuperarPassword() {
-        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_recuperar_password, null)
-        val dialog = AlertDialog.Builder(this).setView(dialogView).create()
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-
-        val tvError = dialogView.findViewById<TextView>(R.id.tvDialogError)
-        val etInput = dialogView.findViewById<EditText>(R.id.etDialogInput)
-        val btnAccion = dialogView.findViewById<MaterialButton>(R.id.btnDialogAccion)
-        val tvCancelar = dialogView.findViewById<TextView>(R.id.tvDialogCancelar)
-
-        etInput.hint = "correo@ejemplo.com"
-        etInput.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
-        btnAccion.text = "Enviar código"
-
-        btnAccion.setOnClickListener {
-            val email = etInput.text.toString().trim()
-            tvError.visibility = android.view.View.GONE
-
-            if (email.isEmpty() || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                tvError.text = "Debes ingresar un correo válido"
-                tvError.visibility = android.view.View.VISIBLE
-                return@setOnClickListener
-            }
-
-            btnAccion.isEnabled = false
-            btnAccion.text = "Enviando..."
-
-            lifecycleScope.launch {
-                try {
-                    val response = RetrofitClient.apiService.forgotPassword(ForgotPasswordRequestDto(email))
-                    if (response.isSuccessful) {
-                        dialog.dismiss()
-                        mostrarDialogoCodigo(email)
-                    } else {
-                        val mensaje = response.errorBody()?.string()?.takeIf { it.isNotBlank() }
-                            ?: "No pudimos encontrar ese correo."
-                        tvError.text = mensaje
-                        tvError.visibility = android.view.View.VISIBLE
-                        btnAccion.isEnabled = true
-                        btnAccion.text = "Enviar código"
-                    }
-                } catch (e: Exception) {
-                    tvError.text = "No se pudo conectar al servidor. Revisa tu conexión."
-                    tvError.visibility = android.view.View.VISIBLE
-                    btnAccion.isEnabled = true
-                    btnAccion.text = "Enviar código"
-                }
-            }
-        }
-
-        tvCancelar.setOnClickListener { dialog.dismiss() }
-        dialog.show()
-    }
-
-    private fun mostrarDialogoCodigo(email: String) {
-        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_recuperar_password, null)
-        val dialog = AlertDialog.Builder(this).setView(dialogView).create()
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-
-        dialogView.findViewById<TextView>(R.id.tvDialogTitulo).text = "Verifica tu correo"
-        dialogView.findViewById<TextView>(R.id.tvDialogSubtitulo).text =
-            "Hemos enviado un código de 6 dígitos a $email.\nRevísalo e ingrésalo aquí:"
-
-        val tvError = dialogView.findViewById<TextView>(R.id.tvDialogError)
-        val etInput = dialogView.findViewById<EditText>(R.id.etDialogInput)
-        val btnAccion = dialogView.findViewById<MaterialButton>(R.id.btnDialogAccion)
-        val tvCancelar = dialogView.findViewById<TextView>(R.id.tvDialogCancelar)
-
-        etInput.hint = "Ej: 123456"
-        etInput.inputType = InputType.TYPE_CLASS_NUMBER
-        etInput.filters = arrayOf(android.text.InputFilter.LengthFilter(6))
-        btnAccion.text = "Verificar código"
-
-        btnAccion.setOnClickListener {
-            val codigo = etInput.text.toString().trim()
-            tvError.visibility = android.view.View.GONE
-
-            if (codigo.length < 6) {
-                tvError.text = "El código debe tener 6 dígitos"
-                tvError.visibility = android.view.View.VISIBLE
-                return@setOnClickListener
-            }
-
-            dialog.dismiss()
-            mostrarDialogoNuevaPassword(email, codigo)
-        }
-
-        tvCancelar.setOnClickListener { dialog.dismiss() }
-        dialog.show()
-    }
-
-    private fun mostrarDialogoNuevaPassword(email: String, codigo: String) {
-        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_recuperar_password, null)
-        val dialog = AlertDialog.Builder(this).setView(dialogView).create()
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-
-        dialogView.findViewById<TextView>(R.id.tvDialogTitulo).text = "Nueva Contraseña"
-        dialogView.findViewById<TextView>(R.id.tvDialogSubtitulo).text = "Crea tu nueva contraseña segura."
-
-        val tvError = dialogView.findViewById<TextView>(R.id.tvDialogError)
-        val etInput = dialogView.findViewById<EditText>(R.id.etDialogInput)
-        val btnAccion = dialogView.findViewById<MaterialButton>(R.id.btnDialogAccion)
-        val tvCancelar = dialogView.findViewById<TextView>(R.id.tvDialogCancelar)
-
-        etInput.hint = "Mínimo 8 caracteres"
-        etInput.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-        btnAccion.text = "Guardar cambios"
-
-        btnAccion.setOnClickListener {
-            val nuevaPassword = etInput.text.toString()
-            tvError.visibility = android.view.View.GONE
-
-            if (nuevaPassword.length < 6) {
-                tvError.text = "La contraseña debe tener al menos 6 caracteres"
-                tvError.visibility = android.view.View.VISIBLE
-                return@setOnClickListener
-            }
-
-            btnAccion.isEnabled = false
-            btnAccion.text = "Guardando..."
-
-            lifecycleScope.launch {
-                try {
-                    val response = RetrofitClient.apiService.resetPassword(
-                        ResetPasswordRequestDto(email = email, codigo = codigo, nuevaPassword = nuevaPassword)
-                    )
-                    if (response.isSuccessful) {
-                        dialog.dismiss()
+            RecuperarPasswordDialog(this, lifecycleScope) { email ->
+                CodigoVerificacionDialog(this, email) { emailVerificado, codigo ->
+                    NuevaPasswordDialog(this, lifecycleScope, emailVerificado, codigo) {
                         Toast.makeText(
-                            this@LoginActivity,
+                            this,
                             "¡Contraseña actualizada! Ya puedes iniciar sesión con tu nueva contraseña.",
                             Toast.LENGTH_LONG
                         ).show()
-                    } else {
-                        val mensaje = response.errorBody()?.string()?.takeIf { it.isNotBlank() }
-                            ?: "El código es inválido o ha expirado."
-                        tvError.text = mensaje
-                        tvError.visibility = android.view.View.VISIBLE
-                        btnAccion.isEnabled = true
-                        btnAccion.text = "Guardar cambios"
-                    }
-                } catch (e: Exception) {
-                    tvError.text = "No se pudo conectar al servidor. Revisa tu conexión."
-                    tvError.visibility = android.view.View.VISIBLE
-                    btnAccion.isEnabled = true
-                    btnAccion.text = "Guardar cambios"
-                }
-            }
+                    }.show()
+                }.show()
+            }.show()
         }
-
-        tvCancelar.setOnClickListener { dialog.dismiss() }
-        dialog.show()
     }
 
     private fun togglePasswordVisibility() {
@@ -293,14 +141,13 @@ class LoginActivity : AppCompatActivity() {
                     val body = response.body()
                     if (body != null) {
 
-                        // Guardar datos usando los métodos de SessionManager
                         sessionManager.saveToken(body.token, body.tokenType)
                         sessionManager.saveUserSession(body)
 
                         val estadoUsuario = body.rol ?: ""
                         if (estadoUsuario.equals("PENDIENTE", ignoreCase = true) || estadoUsuario.equals("PENDING", ignoreCase = true)) {
                             sessionManager.logout()
-                            mostrarDialogoSolicitudPendiente()
+                            SolicitudPendienteDialog(this@LoginActivity).show()
                             return@launch
                         }
 
@@ -313,13 +160,13 @@ class LoginActivity : AppCompatActivity() {
                                     val jsonResponse = estadoRes.body()?.string() ?: ""
                                     if (jsonResponse.contains("\"tienePendiente\":true") || jsonResponse.contains("\"tienePendiente\": true")) {
                                         sessionManager.logout()
-                                        mostrarDialogoSolicitudPendiente()
+                                        SolicitudPendienteDialog(this@LoginActivity).show()
                                         return@launch
                                     }
                                 }
                             }
                         } catch (e: Exception) {
-                            // Ignorar error secundario de verificación
+
                         }
 
                         val negocioId = body.selectedBusinessId ?: body.negocioId
@@ -343,7 +190,6 @@ class LoginActivity : AppCompatActivity() {
 
                         Toast.makeText(this@LoginActivity, "¡Hola de nuevo! Iniciando sesión...", Toast.LENGTH_SHORT).show()
 
-                        // Identificación de Administrador igual a Angular Web
                         val rol = body.rol?.uppercase()?.trim() ?: ""
                         val isSuperAdmin = body.superAdmin == true ||
                                 rol == "SUPER_ADMIN" ||
@@ -353,7 +199,6 @@ class LoginActivity : AppCompatActivity() {
 
                         val tieneNegocio = negocioId != null && negocioId != -1L
 
-                        // Prioridad calcada de la web: Admin va primero e ignora verificación de negocio
                         val intent = when {
                             isSuperAdmin -> {
                                 Intent(this@LoginActivity, AdminActivity::class.java)
@@ -394,23 +239,6 @@ class LoginActivity : AppCompatActivity() {
                 setLoading(false)
             }
         }
-    }
-
-    private fun mostrarDialogoSolicitudPendiente() {
-        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_solicitud_pendiente, null)
-        val dialog = AlertDialog.Builder(this)
-            .setView(dialogView)
-            .setCancelable(false)
-            .create()
-
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-
-        val btnEntendido = dialogView.findViewById<MaterialButton>(R.id.btnEntendido)
-        btnEntendido.setOnClickListener {
-            dialog.dismiss()
-        }
-
-        dialog.show()
     }
 
     private fun setLoading(loading: Boolean) {

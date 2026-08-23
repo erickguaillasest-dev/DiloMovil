@@ -2,13 +2,8 @@ package com.example.movildilo.ui.auth
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.ViewGroup
-import android.widget.EditText
-import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -69,41 +64,9 @@ class SelectRoleActivity : AppCompatActivity() {
     }
 
     private fun mostrarModalIngresarCodigo() {
-        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_ingresar_codigo, null)
-
-        val etCode = dialogView.findViewById<EditText>(R.id.etBusinessCode)
-        val btnIngresar = dialogView.findViewById<MaterialButton>(R.id.btnIngresar)
-        val btnVolver = dialogView.findViewById<TextView>(R.id.btnVolverOpciones)
-
-        val dialog = AlertDialog.Builder(this)
-            .setView(dialogView)
-            .create()
-
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-
-        btnIngresar.setOnClickListener {
-            val codigo = etCode.text.toString().trim()
-
-            if (codigo.isEmpty() || codigo.length < 6) {
-                etCode.error = "Ingresa un código de invitación válido (mínimo 6 caracteres)"
-                etCode.requestFocus()
-                return@setOnClickListener
-            }
-
-            dialog.dismiss()
+        IngresarCodigoDialog(this) { codigo ->
             enviarCodigoServidor(codigo)
-        }
-
-        btnVolver.setOnClickListener {
-            dialog.dismiss()
-        }
-
-        dialog.show()
-
-        dialog.window?.setLayout(
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        )
+        }.show()
     }
 
     private fun enviarCodigoServidor(codigo: String) {
@@ -148,21 +111,7 @@ class SelectRoleActivity : AppCompatActivity() {
     }
 
     private fun mostrarModalExitoYSalir() {
-        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_solicitud_pendiente, null)
-        val dialog = AlertDialog.Builder(this)
-            .setView(dialogView)
-            .setCancelable(false)
-            .create()
-
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-
-        val btnEntendido = dialogView.findViewById<MaterialButton>(R.id.btnEntendido)
-        btnEntendido.setOnClickListener {
-            dialog.dismiss()
-            cerrarSesionEIrAlLogin()
-        }
-
-        dialog.show()
+        SolicitudPendienteDialog(this).show()
     }
 
     private fun cerrarSesionEIrAlLogin() {

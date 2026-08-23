@@ -3,12 +3,10 @@ package com.example.movildilo.ui.admin
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.view.LayoutInflater
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -18,7 +16,6 @@ import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
 import com.example.movildilo.data.model.dto.ParroquiaResponseDto
 import com.example.movildilo.ui.adapters.ParroquiaAdapter
-import com.example.movildilo.utils.FormValidator
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -101,58 +98,15 @@ class AdminParroquiasActivity : AppCompatActivity() {
     }
 
     private fun abrirModalCrear() {
-        mostrarDialogoFormulario(null)
+        ParroquiaFormDialog(this, null, parroquiasList) { id, nombre ->
+            guardarParroquia(id, nombre)
+        }.show()
     }
 
     private fun abrirModalEditar(parroquia: ParroquiaResponseDto) {
-        mostrarDialogoFormulario(parroquia)
-    }
-
-    private fun mostrarDialogoFormulario(parroquia: ParroquiaResponseDto?) {
-        val view = LayoutInflater.from(this).inflate(R.layout.dialog_parroquia_form, null)
-        val etNombre = view.findViewById<EditText>(R.id.etNombreParroquiaDialog)
-        val tvTitulo = view.findViewById<TextView>(R.id.tvTituloDialog)
-
-        val esEdicion = parroquia != null
-        tvTitulo.text = if (esEdicion) "Editar Parroquia" else "Nueva Parroquia"
-        if (esEdicion) {
-            etNombre.setText(parroquia?.nombre)
-        }
-
-        val dialog = AlertDialog.Builder(this)
-            .setView(view)
-            .create()
-
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-
-        view.findViewById<MaterialButton>(R.id.btnCancelarDialog).setOnClickListener {
-            dialog.dismiss()
-        }
-
-        view.findViewById<MaterialButton>(R.id.btnGuardarDialog).setOnClickListener {
-            val nombreInput = etNombre.text.toString().trim()
-
-            val errorNombre = FormValidator.requerido(nombreInput, "El nombre de la parroquia")
-                ?: FormValidator.longitudMinima(nombreInput, 3, "El nombre de la parroquia")
-                ?: FormValidator.longitudMaxima(nombreInput, 80, "El nombre de la parroquia")
-                ?: run {
-                    val yaExiste = parroquiasList.any {
-                        FormValidator.normalizar(it.nombre) == FormValidator.normalizar(nombreInput) && it.id != parroquia?.id
-                    }
-                    if (yaExiste) "Ya existe una parroquia registrada con ese nombre." else null
-                }
-
-            if (errorNombre != null) {
-                FormValidator.marcarErrorEditText(etNombre, errorNombre)
-                etNombre.requestFocus()
-                return@setOnClickListener
-            }
-
-            dialog.dismiss()
-            guardarParroquia(parroquia?.id, nombreInput)
-        }
-
-        dialog.show()
+        ParroquiaFormDialog(this, parroquia, parroquiasList) { id, nombre ->
+            guardarParroquia(id, nombre)
+        }.show()
     }
 
     private fun guardarParroquia(id: Long?, nombre: String) {
@@ -185,12 +139,9 @@ class AdminParroquiasActivity : AppCompatActivity() {
     }
 
     private fun confirmarEliminacion(parroquia: ParroquiaResponseDto) {
-        AlertDialog.Builder(this)
-            .setTitle("¿Estás seguro?")
-            .setMessage("Esta acción no se puede deshacer. Se eliminará la parroquia '${parroquia.nombre}'.")
-            .setPositiveButton("Sí, eliminar") { _, _ -> eliminarParroquia(parroquia.id) }
-            .setNegativeButton("Cancelar", null)
-            .show()
+        EliminarParroquiaDialog(this, parroquia) { id ->
+            eliminarParroquia(id)
+        }.show()
     }
 
     private fun eliminarParroquia(id: Long) {
