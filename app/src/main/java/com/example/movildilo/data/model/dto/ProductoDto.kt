@@ -2,7 +2,6 @@ package com.example.movildilo.data.model.dto
 
 import com.google.gson.annotations.SerializedName
 
-
 data class ProductoDto(
     @SerializedName("id")
     val id: Long? = null,
@@ -16,17 +15,20 @@ data class ProductoDto(
     @SerializedName("marca")
     val marca: String? = null,
 
-    @SerializedName("precioUnitario", alternate = ["pvp", "precio"])
-    val precioUnitario: Double? = null,
+    @SerializedName("precioUnitario")
+    val precioUnitario: Double? = 0.0,
 
-    @SerializedName("costoPromedioActual", alternate = ["costoPromedio", "costo"])
-    val costoPromedio: Double? = null,
+    @SerializedName("costoPromedioActual", alternate = ["costoPromedio"])
+    val costoPromedioActual: Double? = 0.0,
 
-    @SerializedName("categoriaId", alternate = ["categoria_id", "idCategoria"])
+    @SerializedName("categoriaId", alternate = ["categoria_id"])
     val categoriaId: Long? = null,
 
-    @SerializedName("categoria", alternate = ["categoriaNombre", "nombreCategoria"])
+    @SerializedName("categoria", alternate = ["categoriaNombre"])
     val categoria: String? = null,
+
+    @SerializedName("negocioId", alternate = ["negocio_id"])
+    val negocioId: Long? = null,
 
     @SerializedName("unidadMedida")
     val unidadMedida: String? = null,
@@ -38,12 +40,8 @@ data class ProductoDto(
     val tieneCaducidad: Boolean? = false,
 
     @SerializedName("imagen")
-    val imagen: String? = null,
-
-    @SerializedName("negocioId", alternate = ["negocio_id"])
-    val negocioId: Long? = null
+    val imagen: String? = null
 )
-
 
 data class ProductoResponseDto(
     @SerializedName("id")
@@ -92,7 +90,6 @@ data class ProductoResponseDto(
     val fechaCreacion: String? = null
 )
 
-
 fun ProductoResponseDto.toProductoDto(): ProductoDto {
     return ProductoDto(
         id = this.id,
@@ -100,7 +97,7 @@ fun ProductoResponseDto.toProductoDto(): ProductoDto {
         nombre = this.nombre,
         marca = this.marca,
         precioUnitario = this.precioUnitario,
-        costoPromedio = this.costoPromedio,
+        costoPromedioActual = this.costoPromedio,
         categoriaId = this.categoriaId,
         categoria = this.categoria,
         unidadMedida = this.unidadMedida,
@@ -122,7 +119,7 @@ fun ProductoDto.toResponseDto(negocioId: Long? = null): ProductoResponseDto {
         nombre = this.nombre,
         marca = this.marca,
         precioUnitario = this.precioUnitario,
-        costoPromedio = this.costoPromedio,
+        costoPromedio = this.costoPromedioActual,
         categoriaId = this.categoriaId,
         categoria = this.categoria,
         unidadMedida = this.unidadMedida,

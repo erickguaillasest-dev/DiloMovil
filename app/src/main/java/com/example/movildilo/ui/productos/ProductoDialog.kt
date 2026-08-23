@@ -40,6 +40,7 @@ import java.io.InputStream
 class ProductoDialog(
     private val productoEditar: ProductoDto? = null,
     private val listaCategoriasBD: List<CategoriaDto> = emptyList(),
+    private val codigosExistentes: List<String> = emptyList(),
     private val listaUnidades: List<String> = listOf("UNIDADES(Cajas,Botellas,Piezas)", "Libras(Peso)", "Litros(Volumen)", "Kilogramos (Peso)"),
     private val onGuardarListener: (ProductoDto, Long?) -> Unit
 ) : DialogFragment() {
@@ -166,6 +167,9 @@ class ProductoDialog(
         spinnerCategoria.setOnItemClickListener { parent, _, position, _ ->
             categoriaSeleccionada = parent.getItemAtPosition(position) as CategoriaDto
         }
+        spinnerCategoria.setOnClickListener {
+            spinnerCategoria.showDropDown()
+        }
 
         val adapterUni = ArrayAdapter(
             requireContext(),
@@ -173,6 +177,9 @@ class ProductoDialog(
             listaUnidades
         )
         spinnerUnidad.setAdapter(adapterUni)
+        spinnerUnidad.setOnClickListener {
+            spinnerUnidad.showDropDown()
+        }
     }
 
     private fun cargarDatosSiEsEdicion() {
@@ -182,7 +189,9 @@ class ProductoDialog(
             etCodigo.setText(productoEditar.codigoPrincipal)
             etMarca.setText(productoEditar.marca)
 
-            val catCoincidente = listaCategoriasBD.find { it.nombre.equals(productoEditar.categoria, ignoreCase = true) }
+            val catCoincidente = listaCategoriasBD.find {
+                it.id == productoEditar.categoriaId || it.nombre.equals(productoEditar.categoria, ignoreCase = true)
+            }
             if (catCoincidente != null) {
                 categoriaSeleccionada = catCoincidente
                 spinnerCategoria.setText(catCoincidente.nombre, false)
@@ -269,8 +278,13 @@ class ProductoDialog(
     private fun guardarProducto() {
         val nombre = etNombre.text.toString().trim()
         val codigo = etCodigo.text.toString().trim()
+        val marca = etMarca.text.toString().trim().ifBlank { null }
         val nombreCategoria = spinnerCategoria.text.toString().trim()
         val unidad = spinnerUnidad.text.toString().trim()
+
+        val yaExisteCodigo = codigosExistentes.any {
+            it.equals(codigo, ignoreCase = true) && !it.equals(productoEditar?.codigoPrincipal?.trim(), ignoreCase = true)
+        }
 
         val ok = FormValidator.validar(
             FormValidator.Campo(tilNombre) {
@@ -279,7 +293,9 @@ class ProductoDialog(
                     ?: FormValidator.longitudMaxima(nombre, 100, "El nombre del producto")
             },
             FormValidator.Campo(tilCodigo) {
-                if (codigo.isNotBlank()) FormValidator.longitudMinima(codigo, 2, "El código principal") else null
+                FormValidator.requerido(codigo, "El código principal")
+                    ?: FormValidator.longitudMinima(codigo, 2, "El código principal")
+                    ?: if (yaExisteCodigo) "El código ya está en uso por otro producto" else null
             },
             FormValidator.Campo(tilCategoria) {
                 FormValidator.requerido(nombreCategoria, "La categoría")
@@ -290,15 +306,23 @@ class ProductoDialog(
         )
         if (!ok) return
 
-        val precio = productoEditar?.precioUnitario ?: 0.0
+        val idCategoriaFinal = listaCategoriasBD.find { it.nombre.equals(nombreCategoria, ignoreCase = true) }?.id ?: categoriaSeleccionada?.id
+
+        if (idCategoriaFinal == null) {
+            Toast.makeText(requireContext(), "Selecciona una categoría válida de la lista", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val precio = if ((productoEditar?.precioUnitario ?: 0.0) > 0) productoEditar!!.precioUnitario else 0.01
 
         val productoGuardado = ProductoDto(
             id = productoEditar?.id,
-            codigoPrincipal = etCodigo.text.toString().trim(),
+            codigoPrincipal = codigo,
             nombre = nombre,
-            marca = etMarca.text.toString().trim(),
+            marca = marca,
             precioUnitario = precio,
-            costoPromedio = productoEditar?.costoPromedio ?: 0.0,
+            costoPromedioActual = productoEditar?.costoPromedioActual ?: 0.0,
+            categoriaId = idCategoriaFinal,
             categoria = nombreCategoria,
             unidadMedida = unidad,
             grabaIva = cbGrabaIva.isChecked,
@@ -306,7 +330,7 @@ class ProductoDialog(
             imagen = imagenBase64Seleccionada
         )
 
-        onGuardarListener(productoGuardado, categoriaSeleccionada?.id)
+        onGuardarListener(productoGuardado, idCategoriaFinal)
         dismiss()
     }
 }

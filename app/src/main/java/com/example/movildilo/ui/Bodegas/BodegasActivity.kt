@@ -164,7 +164,6 @@ class BodegasActivity : AppCompatActivity() {
         tvTitle.text = "Nueva Bodega"
         btnConfirmar.text = "Crear Bodega"
 
-        // Ajusta el padding inferior cuando sale el teclado (Compatible con Edge-to-Edge)
         ViewCompat.setOnApplyWindowInsetsListener(dialogView) { v, insets ->
             val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
             v.setPadding(0, 0, 0, imeInsets.bottom)

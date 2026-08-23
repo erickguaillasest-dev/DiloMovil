@@ -1,19 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="#F8FAFC"
     android:fillViewport="true"
-    android:maxHeight="600dp">
+    android:maxHeight="650dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- 1. ENCABEZADO SUPERIOR (AZUL OSCURO UNIFICADO) -->
+        <!-- ENCABEZADO SUPERIOR -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -24,7 +23,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Registrar Abastecimiento"
+                android:text="Nuevo Abastecimiento"
                 android:textColor="#FFFFFF"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -38,27 +37,51 @@
                 android:textSize="12sp" />
         </LinearLayout>
 
-        <!-- 2. CONTENIDO PRINCIPAL -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- SECCIÓN 1: DATOS PRINCIPALES DEL COMPROBANTE -->
+            <!-- SECCIÓN 1: DATOS DEL COMPROBANTE -->
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentStart="true"
+                    android:text="Proveedor *"
+                    android:textColor="#334155"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/btnNuevoProveedor"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    android:text="+ Nuevo"
+                    android:textColor="#EA580C"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </RelativeLayout>
+
             <com.google.android.material.textfield.TextInputLayout
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp"
-                android:hint="Proveedor *"
+                android:layout_marginBottom="12dp"
                 app:boxBackgroundColor="#FFFFFF"
                 app:boxCornerRadiusBottomEnd="10dp"
                 app:boxCornerRadiusBottomStart="10dp"
                 app:boxCornerRadiusTopEnd="10dp"
-                app:boxCornerRadiusTopStart="10dp"
-                app:endIconTint="#64748B"
-                app:hintTextColor="#64748B">
+                app:boxCornerRadiusTopStart="10dp">
 
                 <AutoCompleteTextView
                     android:id="@+id/spProveedor"
@@ -66,26 +89,51 @@
                     android:layout_height="wrap_content"
                     android:cursorVisible="false"
                     android:focusable="false"
+                    android:hint="Seleccionar proveedor..."
                     android:inputType="none"
                     android:paddingVertical="10dp"
                     android:textColor="#0F172A"
-                    android:textColorHint="#64748B"
                     android:textSize="13sp" />
             </com.google.android.material.textfield.TextInputLayout>
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentStart="true"
+                    android:text="Bodega Destino *"
+                    android:textColor="#334155"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/btnNuevaBodega"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    android:text="+ Nueva"
+                    android:textColor="#EA580C"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </RelativeLayout>
 
             <com.google.android.material.textfield.TextInputLayout
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp"
-                android:hint="Bodega de Ingreso *"
+                android:layout_marginBottom="12dp"
                 app:boxBackgroundColor="#FFFFFF"
                 app:boxCornerRadiusBottomEnd="10dp"
                 app:boxCornerRadiusBottomStart="10dp"
                 app:boxCornerRadiusTopEnd="10dp"
-                app:boxCornerRadiusTopStart="10dp"
-                app:endIconTint="#64748B"
-                app:hintTextColor="#64748B">
+                app:boxCornerRadiusTopStart="10dp">
 
                 <AutoCompleteTextView
                     android:id="@+id/spBodega"
@@ -93,10 +141,10 @@
                     android:layout_height="wrap_content"
                     android:cursorVisible="false"
                     android:focusable="false"
+                    android:hint="Seleccionar bodega..."
                     android:inputType="none"
                     android:paddingVertical="10dp"
                     android:textColor="#0F172A"
-                    android:textColorHint="#64748B"
                     android:textSize="13sp" />
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -105,13 +153,12 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:hint="Número de Comprobante *"
+                android:hint="N° Comprobante *"
                 app:boxBackgroundColor="#FFFFFF"
                 app:boxCornerRadiusBottomEnd="10dp"
                 app:boxCornerRadiusBottomStart="10dp"
                 app:boxCornerRadiusTopEnd="10dp"
-                app:boxCornerRadiusTopStart="10dp"
-                app:hintTextColor="#64748B">
+                app:boxCornerRadiusTopStart="10dp">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etNumeroComprobante"
@@ -119,11 +166,10 @@
                     android:layout_height="wrap_content"
                     android:paddingVertical="10dp"
                     android:textColor="#0F172A"
-                    android:textColorHint="#64748B"
                     android:textSize="13sp" />
             </com.google.android.material.textfield.TextInputLayout>
 
-            <!-- SECCIÓN 2: TARJETA PARA AGREGAR PRODUCTOS -->
+            <!-- SECCIÓN 2: DETALLE DE PRODUCTOS -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -140,28 +186,44 @@
                     android:orientation="vertical"
                     android:padding="14dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <RelativeLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
-                        android:text="Agregar Producto al Detalle"
-                        android:textColor="#0F172A"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
+                        android:layout_marginBottom="8dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:text="Producto"
+                            android:textColor="#0F172A"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/btnCrearProducto"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="?attr/selectableItemBackground"
+                            android:text="+ Crear Producto"
+                            android:textColor="#2563EB"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+                    </RelativeLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
-                        android:hint="Producto"
                         app:boxBackgroundColor="#FFFFFF"
                         app:boxCornerRadiusBottomEnd="10dp"
                         app:boxCornerRadiusBottomStart="10dp"
                         app:boxCornerRadiusTopEnd="10dp"
-                        app:boxCornerRadiusTopStart="10dp"
-                        app:endIconTint="#64748B"
-                        app:hintTextColor="#64748B">
+                        app:boxCornerRadiusTopStart="10dp">
 
                         <AutoCompleteTextView
                             android:id="@+id/spProducto"
@@ -169,10 +231,10 @@
                             android:layout_height="wrap_content"
                             android:cursorVisible="false"
                             android:focusable="false"
+                            android:hint="Buscar por código o nombre..."
                             android:inputType="none"
                             android:paddingVertical="10dp"
                             android:textColor="#0F172A"
-                            android:textColorHint="#64748B"
                             android:textSize="13sp" />
                     </com.google.android.material.textfield.TextInputLayout>
 
@@ -194,8 +256,7 @@
                             app:boxCornerRadiusBottomEnd="10dp"
                             app:boxCornerRadiusBottomStart="10dp"
                             app:boxCornerRadiusTopEnd="10dp"
-                            app:boxCornerRadiusTopStart="10dp"
-                            app:hintTextColor="#64748B">
+                            app:boxCornerRadiusTopStart="10dp">
 
                             <com.google.android.material.textfield.TextInputEditText
                                 android:id="@+id/etCantidad"
@@ -204,7 +265,6 @@
                                 android:inputType="number"
                                 android:paddingVertical="10dp"
                                 android:textColor="#0F172A"
-                                android:textColorHint="#64748B"
                                 android:textSize="13sp" />
                         </com.google.android.material.textfield.TextInputLayout>
 
@@ -214,13 +274,12 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="5dp"
                             android:layout_weight="1"
-                            android:hint="Costo Unitario"
+                            android:hint="Costo U. ($)"
                             app:boxBackgroundColor="#FFFFFF"
                             app:boxCornerRadiusBottomEnd="10dp"
                             app:boxCornerRadiusBottomStart="10dp"
                             app:boxCornerRadiusTopEnd="10dp"
-                            app:boxCornerRadiusTopStart="10dp"
-                            app:hintTextColor="#64748B">
+                            app:boxCornerRadiusTopStart="10dp">
 
                             <com.google.android.material.textfield.TextInputEditText
                                 android:id="@+id/etCostoUnitario"
@@ -229,7 +288,6 @@
                                 android:inputType="numberDecimal"
                                 android:paddingVertical="10dp"
                                 android:textColor="#0F172A"
-                                android:textColorHint="#64748B"
                                 android:textSize="13sp" />
                         </com.google.android.material.textfield.TextInputLayout>
                     </LinearLayout>
@@ -240,14 +298,13 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="10dp"
-                        android:hint="Fecha de Caducidad (AAAA-MM-DD)"
+                        android:hint="Caducidad (AAAA-MM-DD)"
                         android:visibility="gone"
                         app:boxBackgroundColor="#FFFFFF"
                         app:boxCornerRadiusBottomEnd="10dp"
                         app:boxCornerRadiusBottomStart="10dp"
                         app:boxCornerRadiusTopEnd="10dp"
-                        app:boxCornerRadiusTopStart="10dp"
-                        app:hintTextColor="#64748B">
+                        app:boxCornerRadiusTopStart="10dp">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/etFechaCaducidad"
@@ -256,7 +313,6 @@
                             android:focusable="false"
                             android:paddingVertical="10dp"
                             android:textColor="#0F172A"
-                            android:textColorHint="#64748B"
                             android:textSize="13sp" />
                     </com.google.android.material.textfield.TextInputLayout>
 
@@ -266,7 +322,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
-                        android:text="+ Agregar al listado"
+                        android:text="+ Agregar"
                         android:textAllCaps="false"
                         android:textColor="#EA580C"
                         app:cornerRadius="10dp"
@@ -274,14 +330,13 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- RECYCLER VIEW DE ITEMS TEMPORALES -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvDetallesTemp"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp" />
 
-            <!-- RESUMEN DEL TOTAL EN TARJETA (VERDE SUAVE DE ESTADO) -->
+            <!-- RESUMEN DEL TOTAL -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -303,23 +358,22 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="TOTAL ESTIMADO"
+                        android:text="TOTAL FACTURA"
                         android:textColor="#166534"
-                        android:textSize="11sp"
+                        android:textSize="12sp"
                         android:textStyle="bold" />
 
                     <TextView
                         android:id="@+id/tvTotalDialogo"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Total: $0.00"
+                        android:text="$0.00"
                         android:textColor="#15803D"
-                        android:textSize="16sp"
+                        android:textSize="18sp"
                         android:textStyle="bold" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- BOTONES INFERIORES DE ACCIÓN -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -346,7 +400,7 @@
                     android:layout_marginStart="6dp"
                     android:layout_weight="1"
                     android:backgroundTint="#EA580C"
-                    android:text="Registrar"
+                    android:text="Procesar Ingreso"
                     android:textAllCaps="false"
                     android:textColor="#FFFFFF"
                     app:cornerRadius="10dp" />

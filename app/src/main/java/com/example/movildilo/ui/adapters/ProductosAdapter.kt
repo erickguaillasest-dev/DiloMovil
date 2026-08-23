@@ -70,7 +70,7 @@ class ProductosAdapter(
                         .error(R.drawable.logo_dilo_sf)
                         .centerCrop()
                         .into(holder.imgProducto)
-                } catch (e: Exception) {
+                } catch (t: Throwable) {
                     holder.imgProducto.setImageResource(R.drawable.logo_dilo_sf)
                 }
             }
@@ -79,7 +79,7 @@ class ProductosAdapter(
         }
 
         val pvp = prod.precioUnitario ?: 0.0
-        val costo = prod.costoPromedio ?: 0.0
+        val costo = prod.costoPromedioActual ?: 0.0
 
         holder.tvPvpVenta.text = String.format(Locale.US, "$%.2f", pvp)
         holder.tvCostoPromedio.text = String.format(Locale.US, "$%.4f", costo)
@@ -95,8 +95,19 @@ class ProductosAdapter(
             holder.tvImpuestoBadge.setTextColor(Color.parseColor("#475569"))
         }
 
-        holder.btnEditar.setOnClickListener { onEditClick(prod) }
-        holder.btnEliminar.setOnClickListener { onDeleteClick(prod) }
+        holder.btnEditar.setOnClickListener {
+            val currentPos = holder.adapterPosition
+            if (currentPos != RecyclerView.NO_POSITION) {
+                onEditClick(listaProductos[currentPos])
+            }
+        }
+
+        holder.btnEliminar.setOnClickListener {
+            val currentPos = holder.adapterPosition
+            if (currentPos != RecyclerView.NO_POSITION) {
+                onDeleteClick(listaProductos[currentPos])
+            }
+        }
     }
 
     override fun getItemCount(): Int = listaProductos.size

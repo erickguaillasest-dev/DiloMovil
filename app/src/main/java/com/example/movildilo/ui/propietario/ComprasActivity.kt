@@ -2,18 +2,25 @@ package com.example.movildilo.ui.propietario
 
 import android.app.AlertDialog
 import android.app.DatePickerDialog
+import android.content.res.ColorStateList
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
+import android.view.WindowManager
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
+import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -21,14 +28,22 @@ import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
 import com.example.movildilo.data.model.dto.*
-import com.google.android.material.button.MaterialButton
-import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.android.material.textfield.TextInputEditText
-import com.google.android.material.textfield.TextInputLayout
 import com.example.movildilo.ui.adapters.CompraAdapter
 import com.example.movildilo.ui.adapters.DetalleCompraModalAdapter
 import com.example.movildilo.ui.adapters.DetalleTempAdapter
+import com.example.movildilo.ui.productos.ProductoDialog
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.checkbox.MaterialCheckBox
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
+import com.google.gson.Gson
 import kotlinx.coroutines.launch
+import okhttp3.MediaType
+import okhttp3.RequestBody
 import java.util.Calendar
 import java.util.Locale
 
@@ -48,15 +63,15 @@ class ComprasActivity : AppCompatActivity() {
     private var listaCompras = mutableListOf<CompraResponseDto>()
     private var listaFiltrada = mutableListOf<CompraResponseDto>()
 
-    private var proveedores = listOf<ProveedorResponseDto>()
-    private var bodegas = listOf<BodegaDto>()
-    private var productos = listOf<ProductoResponseDto>()
+    private var proveedores = mutableListOf<ProveedorResponseDto>()
+    private var bodegas = mutableListOf<BodegaDto>()
+    private var productos = mutableListOf<ProductoResponseDto>()
+    private var categorias = mutableListOf<CategoriaDto>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_compras)
-
 
         sessionManager = SessionManager(this)
         negocioId = sessionManager.getNegocioId()
@@ -72,7 +87,6 @@ class ComprasActivity : AppCompatActivity() {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 aplicarFiltro()
             }
-
             override fun afterTextChanged(s: Editable?) {}
         })
 
@@ -95,7 +109,7 @@ class ComprasActivity : AppCompatActivity() {
         etBuscarCompra = findViewById(R.id.etBuscarCompra)
         rvCompras = findViewById(R.id.rvCompras)
         tvSinCompras = findViewById(R.id.tvSinCompras)
-        fabNuevaCompra = findViewById<ExtendedFloatingActionButton>(R.id.fabNuevaCompra)
+        fabNuevaCompra = findViewById(R.id.fabNuevaCompra)
         layoutLoading = findViewById(R.id.layoutLoading)
     }
 
@@ -117,48 +131,42 @@ class ComprasActivity : AppCompatActivity() {
                     listaCompras = (response.body() ?: emptyList()).toMutableList()
                     aplicarFiltro()
                 } else {
-                    Toast.makeText(
-                        this@ComprasActivity,
-                        "No se pudo cargar el historial (${response.code()})",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Toast.makeText(this@ComprasActivity, "No se pudo cargar el historial (${response.code()})", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 layoutLoading.visibility = View.GONE
-                Toast.makeText(
-                    this@ComprasActivity,
-                    "Error de conexión: ${e.message}",
-                    Toast.LENGTH_LONG
-                ).show()
+                Toast.makeText(this@ComprasActivity, "Error de conexión: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
     }
 
-    private fun cargarCatalogos() {
+    private fun cargarCatalogos(onComplete: (() -> Unit)? = null) {
         val authHeader = sessionManager.getAuthHeader() ?: return
         lifecycleScope.launch {
             try {
                 val respProv = RetrofitClient.apiService.getProveedores(authHeader, negocioId)
                 if (respProv.isSuccessful) {
-                    proveedores = (respProv.body() ?: emptyList()).filter { it.estado != false }
+                    proveedores = (respProv.body() ?: emptyList()).filter { it.estado != false }.toMutableList()
                 }
-            } catch (_: Exception) {
-            }
 
-            try {
                 val respBod = RetrofitClient.apiService.getBodegas(authHeader, negocioId)
                 if (respBod.isSuccessful) {
-                    bodegas = respBod.body() ?: emptyList()
+                    bodegas = (respBod.body() ?: emptyList()).toMutableList()
                 }
-            } catch (_: Exception) {
-            }
 
-            try {
                 val respProd = RetrofitClient.apiService.getCatalogo(authHeader, negocioId)
                 if (respProd.isSuccessful) {
-                    productos = respProd.body() ?: emptyList()
+                    productos = (respProd.body() ?: emptyList()).toMutableList()
                 }
+
+                val respCat = RetrofitClient.apiService.getCategorias(authHeader, negocioId)
+                if (respCat.isSuccessful) {
+                    categorias = (respCat.body() ?: emptyList()).toMutableList()
+                }
+
+                onComplete?.invoke()
             } catch (_: Exception) {
+                onComplete?.invoke()
             }
         }
     }
@@ -194,29 +202,30 @@ class ComprasActivity : AppCompatActivity() {
         tvFecha.text = compra.fechaCompra?.take(10) ?: "-"
         tvTotal.text = String.format(Locale.US, "$%.2f", compra.totalCompra ?: 0.0)
 
-        val detalles = compra.detalles ?: emptyList()
         rvProductos.layoutManager = LinearLayoutManager(this)
-        rvProductos.adapter = DetalleCompraModalAdapter(detalles)
+        rvProductos.adapter = DetalleCompraModalAdapter(compra.detalles ?: emptyList())
 
-        val dialog = com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+        val dialog = MaterialAlertDialogBuilder(this)
             .setView(view)
             .create()
 
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-
         btnCerrar.setOnClickListener { dialog.dismiss() }
-
         dialog.show()
     }
 
     private fun abrirDialogoNuevaCompra() {
-        if (proveedores.isEmpty() || bodegas.isEmpty() || productos.isEmpty()) {
-            Toast.makeText(this, "Espera a que carguen los proveedores, bodegas y productos...", Toast.LENGTH_SHORT).show()
-            cargarCatalogos()
+        if (proveedores.isEmpty() || bodegas.isEmpty() || productos.isEmpty() || categorias.isEmpty()) {
+            Toast.makeText(this, "Cargando catálogos del servidor...", Toast.LENGTH_SHORT).show()
+            cargarCatalogos { abrirDialogoNuevaCompra() }
             return
         }
 
         val view = LayoutInflater.from(this).inflate(R.layout.dialog_registrar_compra, null)
+
+        val btnNuevoProveedor = view.findViewById<TextView>(R.id.btnNuevoProveedor)
+        val btnNuevaBodega = view.findViewById<TextView>(R.id.btnNuevaBodega)
+        val btnCrearProducto = view.findViewById<TextView>(R.id.btnCrearProducto)
 
         val spProveedor = view.findViewById<AutoCompleteTextView>(R.id.spProveedor)
         val spBodega = view.findViewById<AutoCompleteTextView>(R.id.spBodega)
@@ -232,9 +241,42 @@ class ComprasActivity : AppCompatActivity() {
         val btnCancelarCompra = view.findViewById<MaterialButton>(R.id.btnCancelarCompra)
         val btnGuardarCompra = view.findViewById<MaterialButton>(R.id.btnGuardarCompra)
 
-        spProveedor.setAdapter(ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, proveedores.map { it.nombreComercial ?: "Sin nombre" }))
-        spBodega.setAdapter(ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, bodegas.map { it.nombre }))
-        spProducto.setAdapter(ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, productos.map { "${it.codigoPrincipal ?: ""} - ${it.nombre ?: ""}" }))
+        fun actualizarAdapterProveedor() {
+            spProveedor.setAdapter(ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, proveedores.map { it.nombreComercial ?: "Sin nombre" }))
+        }
+
+        fun actualizarAdapterBodega() {
+            spBodega.setAdapter(ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, bodegas.map { it.nombre }))
+        }
+
+        fun actualizarAdapterProducto() {
+            spProducto.setAdapter(ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, productos.map { "${it.codigoPrincipal ?: ""} - ${it.nombre ?: ""}" }))
+        }
+
+        actualizarAdapterProveedor()
+        actualizarAdapterBodega()
+        actualizarAdapterProducto()
+
+        btnNuevoProveedor?.setOnClickListener {
+            mostrarDialogoCrearProveedor { nuevoProv ->
+                actualizarAdapterProveedor()
+                spProveedor.setText(nuevoProv.nombreComercial ?: "", false)
+            }
+        }
+
+        btnNuevaBodega?.setOnClickListener {
+            mostrarDialogoCrearBodega { nuevaBod ->
+                actualizarAdapterBodega()
+                spBodega.setText(nuevaBod.nombre, false)
+            }
+        }
+
+        btnCrearProducto?.setOnClickListener {
+            mostrarDialogoCrearProducto { nuevoProd ->
+                actualizarAdapterProducto()
+                spProducto.setText("${nuevoProd.codigoPrincipal ?: ""} - ${nuevoProd.nombre ?: ""}", false)
+            }
+        }
 
         var productoSeleccionado: ProductoResponseDto? = null
 
@@ -344,6 +386,296 @@ class ComprasActivity : AppCompatActivity() {
         }
 
         dialog.show()
+    }
+
+    private fun mostrarDialogoCrearProducto(onCreado: (ProductoResponseDto) -> Unit) {
+        if (categorias.isEmpty()) {
+            val authHeader = sessionManager.getAuthHeader()
+            if (authHeader.isNullOrBlank()) return
+
+            layoutLoading.visibility = View.VISIBLE
+            lifecycleScope.launch {
+                try {
+                    val respCat = RetrofitClient.apiService.getCategorias(authHeader, negocioId)
+                    layoutLoading.visibility = View.GONE
+                    if (respCat.isSuccessful) {
+                        categorias = (respCat.body() ?: emptyList()).toMutableList()
+                    }
+                } catch (_: Exception) {
+                    layoutLoading.visibility = View.GONE
+                }
+                lanzarDialogoProducto(onCreado)
+            }
+        } else {
+            lanzarDialogoProducto(onCreado)
+        }
+    }
+
+    private fun lanzarDialogoProducto(onCreado: (ProductoResponseDto) -> Unit) {
+        val codigosExistentes = productos.mapNotNull { it.codigoPrincipal?.trim() }
+
+        val dialog = ProductoDialog(
+            productoEditar = null,
+            listaCategoriasBD = categorias,
+            codigosExistentes = codigosExistentes,
+            onGuardarListener = { productoDto, catId ->
+                guardarProductoEnApi(productoDto, catId, onCreado)
+            }
+        )
+        dialog.show(supportFragmentManager, "ProductoDialog")
+    }
+
+    private fun guardarProductoEnApi(productoDto: ProductoDto, categoriaId: Long?, onSuccess: (ProductoResponseDto) -> Unit) {
+        val authHeader = sessionManager.getAuthHeader() ?: return
+        layoutLoading.visibility = View.VISIBLE
+
+        lifecycleScope.launch {
+            try {
+                val productoAEnviar = productoDto.copy(
+                    negocioId = productoDto.negocioId ?: negocioId,
+                    categoriaId = productoDto.categoriaId ?: categoriaId
+                )
+                val json = Gson().toJson(productoAEnviar)
+                val datosBody = RequestBody.create(MediaType.parse("application/json"), json)
+
+                val response = RetrofitClient.apiService.crearProducto(authHeader, negocioId, datosBody, null)
+                layoutLoading.visibility = View.GONE
+
+                if (response.isSuccessful && response.body() != null) {
+                    val nuevoProd = response.body()!!
+                    productos.add(nuevoProd)
+                    Toast.makeText(this@ComprasActivity, "Producto registrado correctamente", Toast.LENGTH_SHORT).show()
+                    onSuccess(nuevoProd)
+                } else {
+                    val errorBodyStr = response.errorBody()?.string()
+                    val mensajeError = try {
+                        val jsonObject = org.json.JSONObject(errorBodyStr ?: "")
+                        jsonObject.optString("message", "Error al procesar el producto")
+                    } catch (_: Exception) {
+                        "Error de respuesta (${response.code()})"
+                    }
+
+                    Toast.makeText(this@ComprasActivity, mensajeError, Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                layoutLoading.visibility = View.GONE
+                Toast.makeText(this@ComprasActivity, "Error de red: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun mostrarDialogoCrearProveedor(onCreado: (ProveedorResponseDto) -> Unit) {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_proveedor, null)
+        val tvTitulo = dialogView.findViewById<TextView>(R.id.tvDialogTitulo)
+        val etRuc = dialogView.findViewById<TextInputEditText>(R.id.etRuc)
+        val etTelefono = dialogView.findViewById<TextInputEditText>(R.id.etTelefono)
+        val etRazonSocial = dialogView.findViewById<TextInputEditText>(R.id.etRazonSocial)
+        val chipGroup = dialogView.findViewById<ChipGroup>(R.id.chipGroupCategoriasDialog)
+        val cbActivo = dialogView.findViewById<MaterialCheckBox>(R.id.cbActivo)
+        val btnCancelar = dialogView.findViewById<MaterialButton>(R.id.btnCancelar)
+        val btnGuardar = dialogView.findViewById<MaterialButton>(R.id.btnGuardar)
+
+        tvTitulo.text = "Nuevo Proveedor"
+        cbActivo.isChecked = true
+
+        val idsSeleccionados = mutableListOf<Long>()
+
+        chipGroup.removeAllViews()
+        categorias.forEach { cat ->
+            val chip = Chip(this).apply {
+                text = cat.nombre
+                isCheckable = true
+                chipBackgroundColor = ColorStateList.valueOf(Color.parseColor("#F1F5F9"))
+                setOnCheckedChangeListener { _, checked ->
+                    cat.id?.let { id ->
+                        if (checked) idsSeleccionados.add(id) else idsSeleccionados.remove(id)
+                    }
+                }
+            }
+            chipGroup.addView(chip)
+        }
+
+        val alertDialog = MaterialAlertDialogBuilder(this)
+            .setView(dialogView)
+            .create()
+
+        btnCancelar.setOnClickListener { alertDialog.dismiss() }
+
+        btnGuardar.setOnClickListener {
+            val ruc = etRuc.text.toString().trim()
+            val nombreComercial = etRazonSocial.text.toString().trim()
+            val telefonoRaw = etTelefono.text.toString().trim()
+            val activo = cbActivo.isChecked
+
+            if (!validarCamposProveedor(etRuc, ruc, etRazonSocial, nombreComercial, etTelefono, telefonoRaw)) {
+                return@setOnClickListener
+            }
+
+            val requestDto = ProveedorRequestDto(
+                dni = ruc,
+                nombreComercial = nombreComercial,
+                telefono = telefonoRaw.ifBlank { null },
+                estado = activo,
+                categoriasIds = idsSeleccionados
+            )
+
+            guardarProveedorEnApi(requestDto) { nuevoProveedor ->
+                alertDialog.dismiss()
+                onCreado(nuevoProveedor)
+            }
+        }
+
+        alertDialog.show()
+    }
+
+    private fun validarCamposProveedor(
+        etRuc: TextInputEditText,
+        ruc: String,
+        etRazonSocial: TextInputEditText,
+        nombreComercial: String,
+        etTelefono: TextInputEditText,
+        telefonoRaw: String
+    ): Boolean {
+        var esValido = true
+        var primerCampoError: View? = null
+
+        if (ruc.isBlank()) {
+            etRuc.error = "El RUC o DNI es obligatorio"
+            if (primerCampoError == null) primerCampoError = etRuc
+            esValido = false
+        } else if (!ruc.matches(Regex("^[0-9]{10,13}$"))) {
+            etRuc.error = "Ingresa un RUC o DNI válido (10 o 13 dígitos numéricos)"
+            if (primerCampoError == null) primerCampoError = etRuc
+            esValido = false
+        } else {
+            etRuc.error = null
+        }
+
+        if (nombreComercial.isBlank()) {
+            etRazonSocial.error = "El Nombre Comercial es obligatorio"
+            if (primerCampoError == null) primerCampoError = etRazonSocial
+            esValido = false
+        } else if (nombreComercial.length < 3) {
+            etRazonSocial.error = "El Nombre Comercial debe tener al menos 3 caracteres"
+            if (primerCampoError == null) primerCampoError = etRazonSocial
+            esValido = false
+        } else {
+            etRazonSocial.error = null
+        }
+
+        if (telefonoRaw.isNotBlank()) {
+            if (!telefonoRaw.matches(Regex("^[0-9]{7,10}$"))) {
+                etTelefono.error = "El teléfono debe contener entre 7 y 10 dígitos"
+                if (primerCampoError == null) primerCampoError = etTelefono
+                esValido = false
+            } else {
+                etTelefono.error = null
+            }
+        } else {
+            etTelefono.error = null
+        }
+
+        primerCampoError?.requestFocus()
+        return esValido
+    }
+
+    private fun guardarProveedorEnApi(request: ProveedorRequestDto, onSuccess: (ProveedorResponseDto) -> Unit) {
+        val authHeader = sessionManager.getAuthHeader() ?: return
+        layoutLoading.visibility = View.VISIBLE
+
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.apiService.crearProveedor(authHeader, negocioId, request)
+                layoutLoading.visibility = View.GONE
+
+                if (response.isSuccessful && response.body() != null) {
+                    val nuevoProveedor = response.body()!!
+                    proveedores.add(nuevoProveedor)
+                    Toast.makeText(this@ComprasActivity, "Proveedor registrado", Toast.LENGTH_SHORT).show()
+                    onSuccess(nuevoProveedor)
+                } else {
+                    Toast.makeText(this@ComprasActivity, "Error al crear proveedor (${response.code()})", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                layoutLoading.visibility = View.GONE
+                Toast.makeText(this@ComprasActivity, "Error de red: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun mostrarDialogoCrearBodega(onCreada: (BodegaDto) -> Unit) {
+        val view = LayoutInflater.from(this).inflate(R.layout.dialog_bodega, null)
+        val tvTitle = view.findViewById<TextView>(R.id.tvDialogTitle)
+        val etNombre = view.findViewById<EditText>(R.id.etDialogNombre)
+        val etDireccion = view.findViewById<EditText>(R.id.etDialogDireccion)
+        val btnConfirmar = view.findViewById<Button>(R.id.btnDialogConfirmar)
+        val btnCancelar = view.findViewById<Button>(R.id.btnDialogCancelar)
+
+        tvTitle.text = "Nueva Bodega"
+        btnConfirmar.text = "Crear Bodega"
+
+        ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
+            val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
+            v.setPadding(0, 0, 0, imeInsets.bottom)
+            insets
+        }
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(view)
+            .create()
+
+        btnConfirmar.setOnClickListener {
+            val nombre = etNombre.text.toString().trim()
+            val direccion = etDireccion.text.toString().trim()
+
+            if (nombre.isEmpty()) {
+                etNombre.error = "El nombre es obligatorio"
+                return@setOnClickListener
+            }
+
+            val request = BodegaRequest(
+                nombre = nombre,
+                direccion = if (direccion.isEmpty()) null else direccion
+            )
+
+            guardarBodegaEnApi(request) { nuevaBodega ->
+                dialog.dismiss()
+                onCreada(nuevaBodega)
+            }
+        }
+
+        btnCancelar.setOnClickListener { dialog.dismiss() }
+
+        dialog.show()
+
+        dialog.window?.apply {
+            setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        }
+    }
+
+    private fun guardarBodegaEnApi(request: BodegaRequest, onSuccess: (BodegaDto) -> Unit) {
+        val authHeader = sessionManager.getAuthHeader() ?: return
+        layoutLoading.visibility = View.VISIBLE
+
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.apiService.crearBodega(authHeader, negocioId, request)
+                layoutLoading.visibility = View.GONE
+
+                if (response.isSuccessful && response.body() != null) {
+                    val nuevaBodega = response.body()!!
+                    bodegas.add(nuevaBodega)
+                    Toast.makeText(this@ComprasActivity, "Bodega registrada", Toast.LENGTH_SHORT).show()
+                    onSuccess(nuevaBodega)
+                } else {
+                    Toast.makeText(this@ComprasActivity, "Error al crear bodega (${response.code()})", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                layoutLoading.visibility = View.GONE
+                Toast.makeText(this@ComprasActivity, "Error de red: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     private fun actualizarTotalDialogo(detalles: List<Pair<DetalleCompraRequestDto, String>>, tvTotal: TextView) {
