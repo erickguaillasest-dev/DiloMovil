@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.movildilo.R
@@ -113,7 +114,27 @@ class ProductosAdapter(
     override fun getItemCount(): Int = listaProductos.size
 
     fun actualizarLista(nuevaLista: List<ProductoDto>) {
-        listaProductos = nuevaLista
-        notifyDataSetChanged()
+        val diffCallback = ProductoDiffCallback(this.listaProductos, nuevaLista)
+        val diffResult = DiffUtil.calculateDiff(diffCallback)
+
+        this.listaProductos = nuevaLista
+        diffResult.dispatchUpdatesTo(this)
+    }
+
+    class ProductoDiffCallback(
+        private val antiguaLista: List<ProductoDto>,
+        private val nuevaLista: List<ProductoDto>
+    ) : DiffUtil.Callback() {
+
+        override fun getOldListSize(): Int = antiguaLista.size
+        override fun getNewListSize(): Int = nuevaLista.size
+
+        override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+            return antiguaLista[oldItemPosition].id == nuevaLista[newItemPosition].id
+        }
+
+        override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+            return antiguaLista[oldItemPosition] == nuevaLista[newItemPosition]
+        }
     }
 }
