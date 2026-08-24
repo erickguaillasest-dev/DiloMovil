@@ -412,12 +412,28 @@ class ComprasActivity : AppCompatActivity() {
     }
 
     private fun lanzarDialogoProducto(onCreado: (ProductoResponseDto) -> Unit) {
-        val codigosExistentes = productos.mapNotNull { it.codigoPrincipal?.trim() }
+        // Mapeo seguro a ProductoDto requeridos por el nuevo ProductoDialog
+        val listaDtoExistentes = productos.map { p ->
+            ProductoDto(
+                id = p.id,
+                codigoPrincipal = p.codigoPrincipal,
+                nombre = p.nombre,
+                marca = p.marca,
+                precioUnitario = p.precioUnitario,
+                costoPromedioActual = p.costoPromedio,
+                categoriaId = p.categoriaId,
+                categoria = p.categoria,
+                unidadMedida = p.unidadMedida,
+                grabaIva = p.grabaIva,
+                tieneCaducidad = p.tieneCaducidad,
+                imagen = p.imagen
+            )
+        }
 
         val dialog = ProductoDialog(
             productoEditar = null,
             listaCategoriasBD = categorias,
-            codigosExistentes = codigosExistentes,
+            listaProductosExistentes = listaDtoExistentes,
             onGuardarListener = { productoDto, catId ->
                 guardarProductoEnApi(productoDto, catId, onCreado)
             }

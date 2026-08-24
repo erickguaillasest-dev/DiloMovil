@@ -25,8 +25,8 @@ import android.view.View
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.ArrayAdapter
-import android.widget.Filter
 import android.widget.AutoCompleteTextView
+import android.widget.Filter
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -69,6 +69,14 @@ import java.text.Normalizer
 import java.util.Locale
 
 private enum class VoiceStep { OFF, ESCUCHANDO, CONFIRMAR, SELECCIONAR_OPCION, CONFIRMAR_VACIAR_CARRITO }
+
+/** Un grupo de productos ambiguos (mismo nombre) que quedó pendiente de resolver por voz,
+ *  junto con la cantidad y descuento que el cliente pidió para ese ítem específico. */
+private data class AmbiguoPendiente(
+    val opciones: List<ProductoResponseDto>,
+    val cantidad: Int,
+    val descuentoPorcentaje: Double
+)
 
 class HistorialFacturasActivity : AppCompatActivity() {
 
@@ -127,13 +135,16 @@ class HistorialFacturasActivity : AppCompatActivity() {
     private var pendingBodegaId: Long? = null
     private var intentosReconexion: Int = 0
     private var intentosSinReconocer: Int = 0
-    private val idiomasVoz = listOf("es-EC", "es-419", "es-ES", "es-US")
+    private val idiomasVoz = listOf("es-AR", "es-419", "es-EC", "es-ES", "es-US")
     private var idiomaVozIndex: Int = 0
     private val voiceHandler = Handler(Looper.getMainLooper())
 
     private var productosOpcionesPendientes: List<ProductoResponseDto> = emptyList()
     private var cantidadPendienteOpcion: Int = 1
     private var descuentoPendienteOpcion: Double = 0.0
+    // Cola de grupos ambiguos: si el cliente pidió varias cosas y más de una tiene nombres
+    // repetidos en el catálogo, se van resolviendo una por una SIN perder las demás.
+    private val colaAmbiguos = ArrayDeque<AmbiguoPendiente>()
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -212,8 +223,10 @@ class HistorialFacturasActivity : AppCompatActivity() {
     private fun configurarVozZoe() {
         val tts = textToSpeech ?: return
 
+        // Argentina primero (acento rioplatense pedido), con fallbacks razonables si el motor
+        // TTS del dispositivo no trae ese locale instalado.
         val localesPreferidos = listOf(
-            Locale("es", "EC"),
+            Locale("es", "AR"),
             Locale("es", "419"),
             Locale("es", "US"),
             Locale("es", "ES")
@@ -237,10 +250,21 @@ class HistorialFacturasActivity : AppCompatActivity() {
                         !it.isNetworkConnectionRequired &&
                         it.quality >= android.speech.tts.Voice.QUALITY_NORMAL
             }
+            // 1) Preferimos una voz cuyo locale sea explícitamente Argentina (country "AR" o
+            //    nombre con "ar" / "argentina"), para el acento pedido.
+            val vozArgentina = candidatas
+                .filter {
+                    it.locale.country.equals("AR", ignoreCase = true) ||
+                            it.name.contains("ar", ignoreCase = true) && it.name.contains("es", ignoreCase = true)
+                }
+                .maxByOrNull { it.quality }
+            // 2) Si no hay voz argentina instalada, priorizamos una femenina de buena calidad
+            //    (voz más "humana" que las robóticas por defecto).
             val vozFemenina = candidatas
                 .filter { it.name.contains("female", ignoreCase = true) || it.name.contains("#female", ignoreCase = true) }
                 .maxByOrNull { it.quality }
-            val mejorVoz = vozFemenina
+            val mejorVoz = vozArgentina
+                ?: vozFemenina
                 ?: candidatas.maxByOrNull { it.quality }
                 ?: vocesDisponibles.filter { it.locale.language == "es" }.maxByOrNull { it.quality }
             if (mejorVoz != null) {
@@ -248,8 +272,11 @@ class HistorialFacturasActivity : AppCompatActivity() {
             }
         }
 
-        tts.setSpeechRate(1.0f)
-        tts.setPitch(1.12f)
+        // Cadencia y tono más naturales: el pitch alto (1.12) sonaba artificial/apurado.
+        // Con 1.0 de pitch y una velocidad levemente por debajo de lo normal suena más humano
+        // y da tiempo a que el oído siga bien la frase.
+        tts.setSpeechRate(0.97f)
+        tts.setPitch(1.0f)
     }
 
     private fun cargarCatalogosFactura(onListo: (() -> Unit)? = null) {
@@ -302,6 +329,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
         facturaDescuentoGlobalPorcentaje = 0.0
         carritoTemporal.clear()
         metodoPagoConfirmadoPorVoz = false
+        colaAmbiguos.clear()
         pendingBodegaId = null
         productosOpcionesPendientes = emptyList()
         voiceState = VoiceStep.OFF
@@ -418,7 +446,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
 
         etDescuentoGlobal.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun onTextChanged(s: CharSequence?, before: Int, count: Int, after: Int) {}
             override fun afterTextChanged(s: Editable?) {
                 facturaDescuentoGlobalPorcentaje = s?.toString()?.toDoubleOrNull()?.coerceIn(0.0, 100.0) ?: 0.0
                 actualizarUiCarrito()
@@ -591,16 +619,24 @@ class HistorialFacturasActivity : AppCompatActivity() {
         tvStockRef?.text = ""
     }
 
+    private fun obtenerPrecioFactura(producto: ProductoResponseDto): Double {
+        val costo = producto.costoPromedio ?: 0.0
+        return if (costo > 0.0) costo else (producto.precioUnitario ?: 0.0)
+    }
+
     private fun agregarProductoAlCarrito(producto: ProductoResponseDto, cantidad: Int, bodegaId: Long, descuentoPorcentaje: Double = 0.0) {
         if (cantidad <= 0) return
-        var precio = producto.precioUnitario ?: 0.0
-        if (precio <= 0.0) precio = producto.costoPromedio ?: 0.0
+        val precio = obtenerPrecioFactura(producto)
 
         val existenteIndex = carritoTemporal.indexOfFirst { it.productoId == producto.id && it.bodegaId == bodegaId }
         if (existenteIndex != -1) {
             val actual = carritoTemporal[existenteIndex]
             val nuevoDescuento = if (descuentoPorcentaje > 0.0) descuentoPorcentaje else actual.descuentoPorcentaje
-            carritoTemporal[existenteIndex] = actual.copy(cantidad = actual.cantidad + cantidad, descuentoPorcentaje = nuevoDescuento)
+            carritoTemporal[existenteIndex] = actual.copy(
+                cantidad = actual.cantidad + cantidad,
+                precioUnitario = precio,
+                descuentoPorcentaje = nuevoDescuento
+            )
         } else {
             carritoTemporal.add(
                 ItemCarritoFactura(
@@ -680,11 +716,9 @@ class HistorialFacturasActivity : AppCompatActivity() {
             return
         }
 
-        val nombreClienteConfirm = if (facturaEsConsumidorFinal) "Consumidor Final" else (spClienteRef?.text?.toString().orEmpty().ifBlank { "el cliente seleccionado" })
-        val totalConfirmFmt = String.format(Locale.US, "%.2f", totalCarritoFinal())
         MaterialAlertDialogBuilder(this)
             .setTitle("Confirmar emisión de factura")
-            .setMessage("¿Deseas emitir la factura a $nombreClienteConfirm por $$totalConfirmFmt? Esta acción no se puede deshacer.")
+            .setMessage("¿Deseas emitir la factura? Sí o no.")
             .setPositiveButton("Sí, emitir") { dialogConfirm, _ ->
                 dialogConfirm.dismiss()
                 procesarEmisionFactura()
@@ -795,6 +829,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
         idiomaVozIndex = 0
         escuchaEnCurso = false
         productosOpcionesPendientes = emptyList()
+        colaAmbiguos.clear()
         dialogOpcionesAmbiguas?.dismiss()
         dialogOpcionesAmbiguas = null
         voiceHandler.removeCallbacksAndMessages(null)
@@ -872,9 +907,14 @@ class HistorialFacturasActivity : AppCompatActivity() {
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
             putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
-            putExtra("android.speech.extra.SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS", 2000)
-            putExtra("android.speech.extra.SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS", 2000)
-            putExtra("android.speech.extra.SPEECH_INPUT_MINIMUM_LENGTH_MILLIS", 15000)
+            // Antes estaba en 2000ms: si el cliente hacía una pausa corta para pensar el pedido
+            // ("quiero dos colas... y... tres papas"), el reconocedor lo tomaba como que ya
+            // había terminado de hablar y cortaba la frase a la mitad. Se sube a 3500-4000ms
+            // para tolerar pausas naturales al dictar un pedido largo, sin quedar esperando
+            // eternamente si el cliente sí terminó.
+            putExtra("android.speech.extra.SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS", 4000)
+            putExtra("android.speech.extra.SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS", 3500)
+            putExtra("android.speech.extra.SPEECH_INPUT_MINIMUM_LENGTH_MILLIS", 20000)
         }
 
         speechRecognizer?.setRecognitionListener(object : RecognitionListener {
@@ -1193,6 +1233,17 @@ class HistorialFacturasActivity : AppCompatActivity() {
             agregarProductoAlCarrito(producto, cantFinal, bodegaIdActual, descuentoPendienteOpcion)
             productosOpcionesPendientes = emptyList()
 
+            // ¿Quedaba otro producto ambiguo pendiente de esta misma frase? Lo preguntamos ahora,
+            // en vez de dar el pedido por terminado: así no se pierde nada de lo que pidió.
+            val siguienteAmbiguo = colaAmbiguos.removeFirstOrNull()
+            if (siguienteAmbiguo != null) {
+                productosOpcionesPendientes = siguienteAmbiguo.opciones
+                cantidadPendienteOpcion = siguienteAmbiguo.cantidad
+                descuentoPendienteOpcion = siguienteAmbiguo.descuentoPorcentaje
+                mostrarDialogoOpcionesAmbiguas(productosOpcionesPendientes, "${mensajePrefijo}Agregué ${producto.nombre}. ")
+                return
+            }
+
             val totalFmt = String.format(Locale.US, "%.2f", totalCarritoFinal())
             avanzarPaso(VoiceStep.CONFIRMAR, "${mensajePrefijo}Agregado ${producto.nombre}. El total a cobrar con descuento es $totalFmt dólares. ¿Deseas emitir ya o agregar algo más?")
         } else {
@@ -1269,15 +1320,16 @@ class HistorialFacturasActivity : AppCompatActivity() {
         }
 
         var pedirCedula = false
-        if (datos.cliente != null && (facturaClienteId == null || datos.cliente.isNotBlank())) {
-            if (datos.cliente.equals("CONSUMIDOR_FINAL", ignoreCase = true) || datos.cliente.contains("consumidor", ignoreCase = true)) {
+        val textoClienteBuscado = datos.cliente ?: extractDigits(fraseOriginal)
+        if (!textoClienteBuscado.isNullOrBlank() && (facturaClienteId == null || datos.cliente?.isNotBlank() == true)) {
+            if (textoClienteBuscado.equals("CONSUMIDOR_FINAL", ignoreCase = true) || textoClienteBuscado.contains("consumidor", ignoreCase = true)) {
                 setConsumidorFinalUi()
             } else {
-                val matches = buscarClientesUniversales(datos.cliente)
+                val matches = buscarClientesUniversales(textoClienteBuscado)
                 when {
                     matches.size == 1 -> seleccionarClienteUi(matches[0])
                     matches.size > 1 -> pedirCedula = true
-                    else -> alertas.add("no encontré a ${datos.cliente}")
+                    else -> alertas.add("no encontré al cliente relacionado con \"$textoClienteBuscado\"")
                 }
             }
         }
@@ -1335,9 +1387,11 @@ class HistorialFacturasActivity : AppCompatActivity() {
 
         var algoAgregado = false
 
-        var ambiguoPendiente: List<ProductoResponseDto>? = null
-        var ambiguoCantidad = 1
-        var ambiguoDescuento = 0.0
+        // Ambigüedad del PRIMER ítem con nombre repetido: se resuelve ya mismo (se le pregunta al cliente).
+        var ambiguoPendiente: AmbiguoPendiente? = null
+        // Si hay MÁS de un ítem ambiguo en la misma frase, no se descartan: se encolan y se
+        // preguntan una por una después, sin perder ninguno de los productos pedidos.
+        colaAmbiguos.clear()
 
         for (item in datos.items) {
             val matches = resolverMatchesProductoVoz(item.producto, fraseOriginal)
@@ -1383,12 +1437,16 @@ class HistorialFacturasActivity : AppCompatActivity() {
                     }
                 }
                 matches.size > 1 -> {
+                    val pendiente = AmbiguoPendiente(
+                        opciones = matches.take(4),
+                        cantidad = item.cantidad?.takeIf { it > 0 } ?: 1,
+                        descuentoPorcentaje = item.descuentoPorcentaje?.toDouble()?.coerceIn(0.0, 100.0) ?: 0.0
+                    )
+                    // El primero se pregunta ya; los siguientes quedan encolados (no se pierden).
                     if (ambiguoPendiente == null) {
-                        ambiguoPendiente = matches.take(4)
-                        ambiguoCantidad = item.cantidad?.takeIf { it > 0 } ?: 1
-                        ambiguoDescuento = item.descuentoPorcentaje?.toDouble()?.coerceIn(0.0, 100.0) ?: 0.0
+                        ambiguoPendiente = pendiente
                     } else {
-                        alertas.add("\"${item.producto}\" también tiene varias coincidencias, dime uno a la vez")
+                        colaAmbiguos.addLast(pendiente)
                     }
                 }
                 else -> alertas.add("no tengo ${item.producto} en catálogo")
@@ -1396,16 +1454,19 @@ class HistorialFacturasActivity : AppCompatActivity() {
         }
 
         if (ambiguoPendiente != null) {
-            productosOpcionesPendientes = ambiguoPendiente
-            cantidadPendienteOpcion = ambiguoCantidad
-            descuentoPendienteOpcion = ambiguoDescuento
-            mostrarDialogoOpcionesAmbiguas(productosOpcionesPendientes)
+            productosOpcionesPendientes = ambiguoPendiente.opciones
+            cantidadPendienteOpcion = ambiguoPendiente.cantidad
+            descuentoPendienteOpcion = ambiguoPendiente.descuentoPorcentaje
+            // Avisamos de todo lo demás que sí se resolvió (agregado o alertas) para que el
+            // cliente sepa que el resto de su pedido NO se perdió, solo falta esta elección.
+            val prefijoAmbiguo = if (alertas.isNotEmpty()) "Ya anoté el resto: ${alertas.joinToString(", y ")}. " else ""
+            mostrarDialogoOpcionesAmbiguas(productosOpcionesPendientes, prefijoAmbiguo)
             return
         }
 
         if (pedirCedula) {
             val prefijoCedula = if (alertas.isNotEmpty()) "Entendido, ${alertas.joinToString(", y ")}. " else ""
-            avanzarPaso(VoiceStep.ESCUCHANDO, "${prefijoCedula}Hay varios clientes con ese nombre. Dime su cédula o RUC para seleccionarlo.")
+            avanzarPaso(VoiceStep.ESCUCHANDO, "${prefijoCedula}Hay varios clientes coincidentes. Dime su cédula o RUC completo para seleccionarlo.")
             return
         }
 
@@ -1416,8 +1477,15 @@ class HistorialFacturasActivity : AppCompatActivity() {
 
         val totalFmt = String.format(Locale.US, "%.2f", totalCarritoFinal())
 
-        if (quiereEmitir && !faltaCliente && !faltaItems) {
-            avanzarPaso(VoiceStep.CONFIRMAR, "${prefijo}Total a pagar $totalFmt dólares. ¿Confirmas que emitimos la factura? Di sí o no.")
+        if (quiereEmitir) {
+            // Antes de pasar a la confirmación, revisamos si falta algún campo obligatorio
+            // (cliente, método de pago, cuotas de tarjeta, carrito) y lo pedimos primero.
+            val (pasoValidacion, mensajeValidacion) = calcularPasoYMensaje()
+            if (pasoValidacion == VoiceStep.CONFIRMAR) {
+                avanzarPaso(VoiceStep.CONFIRMAR, "${prefijo}Total a pagar $totalFmt dólares. ¿Confirmas que emitimos la factura? Di sí o no.")
+            } else {
+                avanzarPaso(pasoValidacion, "$prefijo$mensajeValidacion")
+            }
             return
         }
 
@@ -1434,17 +1502,23 @@ class HistorialFacturasActivity : AppCompatActivity() {
         }
     }
 
-    private fun mostrarDialogoOpcionesAmbiguas(opciones: List<ProductoResponseDto>) {
+    private fun extractDigits(text: String): String? {
+        val digits = text.filter { it.isDigit() }
+        return digits.takeIf { it.isNotEmpty() }
+    }
+
+    private fun mostrarDialogoOpcionesAmbiguas(opciones: List<ProductoResponseDto>, prefijo: String = "") {
         dialogOpcionesAmbiguas?.dismiss()
 
         val nombres = opciones.mapIndexed { idx, prod ->
-            "${idx + 1}. ${prod.nombre} — $${String.format(Locale.US, "%.2f", prod.precioUnitario ?: 0.0)}"
+            val precio = obtenerPrecioFactura(prod)
+            "${idx + 1}. ${prod.nombre} — $${String.format(Locale.US, "%.2f", precio)}"
         }.toTypedArray()
 
         val opcionesHablar = opciones.mapIndexed { idx, prod -> "Opción ${idx + 1}: ${prod.nombre}" }.joinToString(", ")
         voiceState = VoiceStep.SELECCIONAR_OPCION
 
-        hablar("Encontré varias coincidencias: $opcionesHablar. ¿Cuál deseas seleccionar?") {
+        hablar("${prefijo}Encontré varias coincidencias: $opcionesHablar. ¿Cuál deseas seleccionar?") {
             escucharVoz()
         }
 
@@ -1463,7 +1537,17 @@ class HistorialFacturasActivity : AppCompatActivity() {
                 dialog.dismiss()
                 dialogOpcionesAmbiguas = null
                 productosOpcionesPendientes = emptyList()
-                avanzarPaso(VoiceStep.ESCUCHANDO, "Selección cancelada. ¿Qué otro producto agregamos?")
+                // Si había más productos ambiguos en cola, seguimos con el siguiente en vez de
+                // dar por terminado todo el pedido.
+                val siguiente = colaAmbiguos.removeFirstOrNull()
+                if (siguiente != null) {
+                    productosOpcionesPendientes = siguiente.opciones
+                    cantidadPendienteOpcion = siguiente.cantidad
+                    descuentoPendienteOpcion = siguiente.descuentoPorcentaje
+                    mostrarDialogoOpcionesAmbiguas(productosOpcionesPendientes, "De acuerdo, seguimos con lo demás. ")
+                } else {
+                    avanzarPaso(VoiceStep.ESCUCHANDO, "Selección cancelada. ¿Qué otro producto agregamos?")
+                }
             }
             .setCancelable(false)
             .create()
@@ -1475,6 +1559,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
         val txt = limpiarTexto(textoBuscado)
         if (txt.isBlank()) return emptyList()
 
+        // 1. Coincidencia exacta (Nombre, DNI o Email)
         val exact = clientesList.filter { cli ->
             limpiarTexto(cli.nombreCompleto) == txt ||
                     limpiarTexto(cli.primerNombre) == txt ||
@@ -1484,6 +1569,17 @@ class HistorialFacturasActivity : AppCompatActivity() {
         }
         if (exact.isNotEmpty()) return exact
 
+        // 2. Coincidencia por DNI / Cédula / RUC (últimos dígitos, ej: los 3 últimos dígitos por voz)
+        val digitos = txt.filter { it.isDigit() }
+        if (digitos.isNotBlank()) {
+            val porDigitos = clientesList.filter { cli ->
+                val dni = cli.dni?.filter { c -> c.isDigit() }.orEmpty()
+                dni.isNotBlank() && (dni == digitos || dni.endsWith(digitos) || dni.contains(digitos))
+            }
+            if (porDigitos.isNotEmpty()) return porDigitos
+        }
+
+        // 3. Coincidencia parcial general por texto
         val partial = clientesList.filter { cli ->
             val nom = limpiarTexto(cli.nombreCompleto ?: "${cli.primerNombre ?: ""} ${cli.apellidoPaterno ?: ""}")
             val doc = limpiarTexto(cli.dni)
@@ -1492,11 +1588,13 @@ class HistorialFacturasActivity : AppCompatActivity() {
         }
         if (partial.isNotEmpty()) return partial
 
+        // 4. Coincidencia por tokenización de palabras
         val palabras = txt.split(" ").filter { it.length > 2 }
         if (palabras.isEmpty()) return emptyList()
         return clientesList.filter { cli ->
             val nom = limpiarTexto(cli.nombreCompleto ?: "${cli.primerNombre ?: ""} ${cli.apellidoPaterno ?: ""}")
-            palabras.all { nom.contains(it) }
+            val doc = limpiarTexto(cli.dni)
+            palabras.all { nom.contains(it) || doc.contains(it) }
         }
     }
 
@@ -1589,12 +1687,19 @@ class HistorialFacturasActivity : AppCompatActivity() {
     }
 
     private fun resolverMatchesProductoVoz(nombreIa: String, fraseUsuario: String): List<ProductoResponseDto> {
-        val tokensUsuario = limpiarTexto(fraseUsuario)
+        // IMPORTANTE: los tokens para buscar ambigüedad deben salir del nombre de ESTE ítem
+        // (nombreIa), no de la frase completa. Antes se usaba fraseUsuario entera, así que si el
+        // cliente pedía varias cosas en un solo audio y UNA de ellas tenía nombre repetido en el
+        // catálogo (ej. "leche"), esa ambigüedad se "contagiaba" a TODOS los demás ítems del
+        // pedido (ej. "coca cola" también se marcaba como ambiguo con las opciones de leche),
+        // cortando el resto del pedido. Al acotarlo al ítem actual, cada producto se resuelve
+        // de forma independiente.
+        val tokensItem = limpiarTexto(nombreIa)
             .split(Regex("\\s+"))
             .filter { it.length >= 3 && it !in stopWordsProducto && it.toIntOrNull() == null }
 
         var mejorMulti: List<ProductoResponseDto> = emptyList()
-        for (tok in tokensUsuario) {
+        for (tok in tokensItem) {
             val hits = dedupProductos(productosList.filter { limpiarTexto(it.nombre).contains(tok) })
             if (hits.size > mejorMulti.size) mejorMulti = hits
         }
@@ -1659,6 +1764,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
             estado = fac.estadoFormateado,
             total = fac.totalCalculado,
             descuentoGlobal = fac.totalDescuento ?: 0.0,
+            porcentajeIva = 15.0,
             items = items,
             mostrarBotonImprimir = true,
             onImprimir = { prepararGeneracionPDF(fac) }
@@ -1715,11 +1821,29 @@ class HistorialFacturasActivity : AppCompatActivity() {
     }
 
     private fun imprimirFacturaPDF(fac: FacturaResponseDto) {
-        val total = fac.totalCalculado
-        val subtotal = total / 1.15
-        val iva = total - subtotal
-
         val detalles = fac.detalles ?: emptyList()
+        val tasaIva = 0.15
+        val porcentajeIvaFmt = "15"
+
+        var gravado = 0.0
+        var exento = 0.0
+
+        detalles.forEach { item ->
+            val cant = item.cantidad ?: 1
+            val pUnit = item.precioUnitario ?: 0.0
+            val desc = item.descuento ?: 0.0
+            val sub = item.subtotalItem ?: ((cant * pUnit) - desc)
+            gravado += sub
+        }
+
+        val totalBruto = gravado + exento
+        val descGlobalIn = fac.totalDescuento ?: 0.0
+        val descGlobal = descGlobalIn.coerceAtMost(totalBruto)
+
+        val baseImponible = (gravado - descGlobal).coerceAtLeast(0.0)
+        val iva = baseImponible * tasaIva
+        val subtotalSinIva = baseImponible
+        val total = fac.totalCalculado.takeIf { it > 0 } ?: (subtotalSinIva + iva)
         val filasProductos = StringBuilder()
 
         if (detalles.isNotEmpty()) {
@@ -1728,10 +1852,10 @@ class HistorialFacturasActivity : AppCompatActivity() {
                 val desc = obtenerNombreProducto(item, index)
                 val precioUnit = item.precioUnitario ?: 0.0
                 val subtotalItem = item.subtotalItem ?: (cantidad * precioUnit)
-
                 val descuentoItem = item.descuento ?: 0.0
+
                 val descHtml = if (descuentoItem > 0.0)
-                    "<br><small style=\"color:#ea580c;font-weight:bold;\">(Descuento: -$${String.format(Locale.US, "%.2f", descuentoItem)})</small>"
+                    "<br><small style=\"color:#ea580c;font-weight:bold;\">(Desc. línea: -$${String.format(Locale.US, "%.2f", descuentoItem)})</small>"
                 else ""
 
                 filasProductos.append("""
@@ -1747,9 +1871,9 @@ class HistorialFacturasActivity : AppCompatActivity() {
             filasProductos.append("""
             <tr>
                 <td class="center">1</td>
-                <td>Consumo general (Resumen de Factura)</td>
-                <td class="text-right">$${String.format(Locale.US, "%.2f", subtotal)}</td>
-                <td class="text-right font-bold">$${String.format(Locale.US, "%.2f", subtotal)}</td>
+                <td>Consumo general</td>
+                <td class="text-right">$${String.format(Locale.US, "%.2f", subtotalSinIva)}</td>
+                <td class="text-right font-bold">$${String.format(Locale.US, "%.2f", subtotalSinIva)}</td>
             </tr>
         """.trimIndent())
         }
@@ -1765,11 +1889,10 @@ class HistorialFacturasActivity : AppCompatActivity() {
         val rucNegocio = negocioActual?.ruc ?: "N/D"
         val direccionNegocio = negocioActual?.direccion ?: "Sin dirección registrada"
 
-        val descuentoGlobalPdf = fac.totalDescuento ?: 0.0
-        val htmlDescuentoGlobal = if (descuentoGlobalPdf > 0.0) """
+        val htmlDescuentoGlobal = if (descGlobal > 0.0) """
             <div class="total-row">
-                <span>Descuento Global Adicional</span>
-                <span class="font-bold" style="color:#ea580c;">-$${String.format(Locale.US, "%.2f", descuentoGlobalPdf)}</span>
+                <span>Descuento Factura</span>
+                <span class="font-bold" style="color:#ea580c;">-$${String.format(Locale.US, "%.2f", descGlobal)}</span>
             </div>
         """.trimIndent() else ""
 
@@ -1785,33 +1908,33 @@ class HistorialFacturasActivity : AppCompatActivity() {
                 @page { margin: 8mm; size: portrait; }
                 * { box-sizing: border-box; }
                 body { font-family: 'Inter', sans-serif; color: #1e293b; margin: 0; padding: 0; background-color: #ffffff; }
-                .invoice-container { width: 100%; max-width: 600px; margin: 0 auto; background: #fff; padding: 15px; }
+                .invoice-container { width: 100%; max-width: 650px; margin: 0 auto; background: #fff; padding: 25px; }
                 .top-bar { height: 6px; background: linear-gradient(90deg, #ed8936, #ea580c); width: 100%; margin-bottom: 20px; border-radius: 3px; }
-                .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; gap: 10px; }
-                .logo h2 { margin: 0 0 4px 0; font-size: 22px; font-weight: 800; color: #ed8936; letter-spacing: 0.5px; }
-                .company-details { font-size: 11px; color: #64748b; line-height: 1.4; }
+                .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; gap: 10px; }
+                .logo h2 { margin: 0 0 4px 0; font-size: 24px; font-weight: 800; color: #ed8936; letter-spacing: 0.5px; }
+                .company-details { font-size: 12px; color: #64748b; line-height: 1.5; }
                 .invoice-title-area { text-align: right; }
-                .invoice-title-area h1 { margin: 0 0 2px 0; font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;}
-                .invoice-title-area .invoice-no { font-size: 13px; color: #ed8936; font-weight: 700; }
-                .info-grid { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 20px; background: #f8fafc; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
-                .info-block h3 { margin: 0 0 4px 0; font-size: 10px; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.5px; }
-                .info-block p { margin: 0 0 2px 0; font-size: 13px; font-weight: 600; color: #0f172a; }
-                .info-block span { display: block; font-size: 11px; color: #475569; font-weight: 400; }
-                table { width: 100%; border-collapse: collapse; margin-bottom: 20px; table-layout: fixed; }
-                th { background-color: #0f172a; color: white; padding: 8px 10px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;}
+                .invoice-title-area h1 { margin: 0 0 2px 0; font-size: 24px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;}
+                .invoice-title-area .invoice-no { font-size: 14px; color: #ed8936; font-weight: 700; }
+                .info-grid { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; }
+                .info-block h3 { margin: 0 0 4px 0; font-size: 11px; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.5px; }
+                .info-block p { margin: 0 0 2px 0; font-size: 14px; font-weight: 600; color: #0f172a; }
+                .info-block span { display: block; font-size: 12px; color: #475569; font-weight: 400; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 25px; table-layout: fixed; }
+                th { background-color: #0f172a; color: white; padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;}
                 th:first-child { border-top-left-radius: 6px; border-bottom-left-radius: 6px; }
                 th:last-child { border-top-right-radius: 6px; border-bottom-right-radius: 6px; }
-                td { padding: 10px 8px; font-size: 12px; color: #334155; border-bottom: 1px solid #e2e8f0; word-wrap: break-word; }
+                td { padding: 12px 10px; font-size: 13px; color: #334155; border-bottom: 1px solid #e2e8f0; word-wrap: break-word; }
                 .text-right { text-align: right; }
                 .center { text-align: center; }
                 .font-bold { font-weight: 700; color: #0f172a; }
-                .totals-wrapper { display: flex; justify-content: flex-end; margin-bottom: 25px; }
-                .totals-box { width: 100%; max-width: 260px; }
-                .total-row { display: flex; justify-content: space-between; padding: 8px 10px; font-size: 12px; color: #475569; border-bottom: 1px solid #f1f5f9; }
-                .total-row.grand-total { background: #0f172a; color: white; border-radius: 6px; font-size: 15px; font-weight: 700; border: none; margin-top: 8px; padding: 12px 14px;}
+                .totals-wrapper { display: flex; justify-content: flex-end; margin-bottom: 30px; }
+                .totals-box { width: 100%; max-width: 280px; }
+                .total-row { display: flex; justify-content: space-between; padding: 10px 12px; font-size: 13px; color: #475569; border-bottom: 1px solid #f1f5f9; }
+                .total-row.grand-total { background: #0f172a; color: white; border-radius: 6px; font-size: 16px; font-weight: 700; border: none; margin-top: 8px; padding: 14px 16px;}
                 .total-row.grand-total span:last-child { color: #ed8936; }
-                .footer { text-align: center; padding-top: 15px; border-top: 2px dashed #e2e8f0; color: #64748b; font-size: 11px; }
-                .footer p { margin: 3px 0; }
+                .footer { text-align: center; padding-top: 20px; border-top: 2px dashed #e2e8f0; color: #64748b; font-size: 12px; }
+                .footer p { margin: 4px 0; }
                 .footer-bold { font-weight: 600; color: #0f172a; }
             </style>
         </head>
@@ -1852,8 +1975,8 @@ class HistorialFacturasActivity : AppCompatActivity() {
                     <thead>
                         <tr>
                             <th class="center" width="12%">Cant.</th>
-                            <th width="48%">Descripción</th>
-                            <th class="text-right" width="20%">P. Unit.</th>
+                            <th width="48%">Descripción del Producto</th>
+                            <th class="text-right" width="20%">P. Unitario</th>
                             <th class="text-right" width="20%">Total</th>
                         </tr>
                     </thead>
@@ -1864,13 +1987,13 @@ class HistorialFacturasActivity : AppCompatActivity() {
 
                 <div class="totals-wrapper">
                     <div class="totals-box">
+                        $htmlDescuentoGlobal
                         <div class="total-row">
                             <span>Subtotal (Sin IVA)</span>
-                            <span class="font-bold">$${String.format(Locale.US, "%.2f", subtotal)}</span>
+                            <span class="font-bold">$${String.format(Locale.US, "%.2f", subtotalSinIva)}</span>
                         </div>
-                        ${htmlDescuentoGlobal}
                         <div class="total-row">
-                            <span>IVA (15%)</span>
+                            <span>IVA (${porcentajeIvaFmt}%)</span>
                             <span class="font-bold">$${String.format(Locale.US, "%.2f", iva)}</span>
                         </div>
                         <div class="total-row grand-total">

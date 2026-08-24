@@ -5,6 +5,8 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -18,6 +20,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.bumptech.glide.Glide
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
@@ -25,6 +28,7 @@ import com.example.movildilo.data.local.SessionManager
 import com.example.movildilo.data.model.dto.MiembroResponseDto
 import com.example.movildilo.ui.adapters.MiembroEquipoAdapter
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -38,6 +42,8 @@ class Mi_equipo : AppCompatActivity() {
     private lateinit var btnRegenerarCodigo: ImageView
     private lateinit var tvCodigoAcceso: TextView
     private lateinit var tvBadgeCantidadSolicitudes: TextView
+    private lateinit var etBuscarMiembro: TextInputEditText
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
 
     private lateinit var tvHeaderIniciales: TextView
     private lateinit var ivHeaderAvatar: ImageView
@@ -106,6 +112,8 @@ class Mi_equipo : AppCompatActivity() {
         btnRegenerarCodigo = findViewById(R.id.btnRegenerarCodigo)
         tvCodigoAcceso = findViewById(R.id.tvCodigoAcceso)
         tvBadgeCantidadSolicitudes = findViewById(R.id.tvCantidadSolicitudes)
+        etBuscarMiembro = findViewById(R.id.etBuscarMiembro)
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout)
         tvHeaderIniciales = findViewById(R.id.tvHeaderIniciales)
         ivHeaderAvatar = findViewById(R.id.ivHeaderAvatar)
         rvSolicitudesPendientes = findViewById(R.id.rvSolicitudesPendientes)
@@ -118,6 +126,23 @@ class Mi_equipo : AppCompatActivity() {
         btnNotificaciones.setOnClickListener { view -> mostrarPopupAlertas(view) }
         btnCopiarCodigo.setOnClickListener { copiarCodigo() }
         btnRegenerarCodigo.setOnClickListener { regenerarCodigo() }
+
+        // Gesto Swipe to Refresh
+        swipeRefreshLayout.setOnRefreshListener {
+            if (negocioId != -1L) {
+                cargarEquipo(negocioId)
+            } else {
+                swipeRefreshLayout.isRefreshing = false
+            }
+        }
+
+        etBuscarMiembro.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                filtrarEquipo(s?.toString() ?: "")
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
     }
 
     private fun setupRecyclerViews() {
@@ -141,6 +166,7 @@ class Mi_equipo : AppCompatActivity() {
     private fun cargarEquipo(id: Long) {
         val authHeader = sessionManager.getAuthHeader()
         if (authHeader.isNullOrEmpty()) {
+            swipeRefreshLayout.isRefreshing = false
             Toast.makeText(this, "Sesión no válida. Por favor vuelve a iniciar sesión.", Toast.LENGTH_LONG).show()
             return
         }
@@ -171,8 +197,7 @@ class Mi_equipo : AppCompatActivity() {
                         miembrosActivos[0].esCreador = true
                     }
 
-                    adapterPendientes.actualizarLista(solicitudes)
-                    adapterActivos.actualizarLista(miembrosActivos)
+                    filtrarEquipo(etBuscarMiembro.text?.toString() ?: "")
                     tvBadgeCantidadSolicitudes.text = solicitudes.size.toString()
                 } else {
                     Log.e("Equipo", "Error API miembros: ${respMiembros?.code()}")
@@ -192,8 +217,44 @@ class Mi_equipo : AppCompatActivity() {
             } catch (e: Exception) {
                 Log.e("Equipo", "Excepción al cargar equipo", e)
                 Toast.makeText(this@Mi_equipo, "Error al cargar la información.", Toast.LENGTH_LONG).show()
+            } finally {
+                // Detener siempre la animación de carga (SwipeRefresh)
+                swipeRefreshLayout.isRefreshing = false
             }
         }
+    }
+
+    private fun filtrarEquipo(query: String) {
+        val texto = query.trim().lowercase(Locale.ROOT)
+
+        val solicitudesFiltradas = if (texto.isEmpty()) {
+            solicitudes
+        } else {
+            solicitudes.filter { miembro -> coincideFiltro(miembro, texto) }
+        }
+
+        val activosFiltrados = if (texto.isEmpty()) {
+            miembrosActivos
+        } else {
+            miembrosActivos.filter { miembro -> coincideFiltro(miembro, texto) }
+        }
+
+        adapterPendientes.actualizarLista(solicitudesFiltradas)
+        adapterActivos.actualizarLista(activosFiltrados)
+    }
+
+    private fun coincideFiltro(miembro: MiembroResponseDto, texto: String): Boolean {
+        val nombreUsuario = miembro.nombreUsuario?.lowercase(Locale.ROOT) ?: ""
+        val email = miembro.emailUsuario?.lowercase(Locale.ROOT) ?: ""
+        val rol = miembro.rol?.lowercase(Locale.ROOT) ?: ""
+        val idStr = miembro.id?.toString() ?: ""
+        val usuarioIdStr = miembro.usuarioId?.toString() ?: ""
+
+        return nombreUsuario.contains(texto) ||
+                email.contains(texto) ||
+                rol.contains(texto) ||
+                idStr.contains(texto) ||
+                usuarioIdStr.contains(texto)
     }
 
     private fun responderSolicitud(miembro: MiembroResponseDto, aceptar: Boolean) {

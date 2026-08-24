@@ -40,8 +40,13 @@ import java.io.InputStream
 class ProductoDialog(
     private val productoEditar: ProductoDto? = null,
     private val listaCategoriasBD: List<CategoriaDto> = emptyList(),
-    private val codigosExistentes: List<String> = emptyList(),
-    private val listaUnidades: List<String> = listOf("UNIDADES(Cajas,Botellas,Piezas)", "Libras(Peso)", "Litros(Volumen)", "Kilogramos (Peso)"),
+    private val listaProductosExistentes: List<ProductoDto> = emptyList(),
+    private val listaUnidades: List<Pair<String, String>> = listOf(
+        "UNIDADES" to "Unidades (Cajas, Botellas, Piezas)",
+        "LIBRAS" to "Libras (Peso)",
+        "KILOGRAMOS" to "Kilogramos (Peso)",
+        "LITROS" to "Litros (Volumen)"
+    ),
     private val onGuardarListener: (ProductoDto, Long?) -> Unit
 ) : DialogFragment() {
 
@@ -69,27 +74,18 @@ class ProductoDialog(
 
     private val seleccionarImagenLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let { convertirUriABase64(it) }
-    }
+    ) { uri: Uri? -> uri?.let { convertirUriABase64(it) } }
 
     private val tomarFotoLauncher = registerForActivityResult(
         ActivityResultContracts.TakePicturePreview()
-    ) { bitmap: Bitmap? ->
-        bitmap?.let { convertirBitmapABase64(it) }
-    }
+    ) { bitmap: Bitmap? -> bitmap?.let { convertirBitmapABase64(it) } }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.dialog_producto, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
         initViews(view)
         setupDropdowns()
         cargarDatosSiEsEdicion()
@@ -97,7 +93,6 @@ class ProductoDialog(
         val abrirOpciones = View.OnClickListener { mostrarOpcionesImagen() }
         btnSubirFoto.setOnClickListener(abrirOpciones)
         imgPreview.setOnClickListener(abrirOpciones)
-
         btnCerrar.setOnClickListener { dismiss() }
         btnCancelar.setOnClickListener { dismiss() }
         btnGuardar.setOnClickListener { guardarProducto() }
@@ -114,9 +109,7 @@ class ProductoDialog(
         dialog?.window?.let { window ->
             val displayMetrics = resources.displayMetrics
             val width = (displayMetrics.widthPixels * 0.90).toInt()
-
             window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
-
             window.setLayout(width, WindowManager.LayoutParams.WRAP_CONTENT)
             window.setGravity(Gravity.CENTER)
             window.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
@@ -143,8 +136,11 @@ class ProductoDialog(
         tilCategoria = v.findViewById(R.id.tilCategoria)
         tilUnidad = v.findViewById(R.id.tilUnidadMedida)
 
+        etCodigo.isEnabled = false
+        etCodigo.setBackgroundColor(Color.parseColor("#F1F5F9"))
+        etCodigo.setTextColor(Color.parseColor("#475569"))
+
         etNombre.doAfterTextChangedClearError(tilNombre)
-        etCodigo.doAfterTextChangedClearError(tilCodigo)
         etMarca.doAfterTextChangedClearError(tilMarca)
     }
 
@@ -157,28 +153,50 @@ class ProductoDialog(
     }
 
     private fun setupDropdowns() {
-        val adapterCat = ArrayAdapter(
-            requireContext(),
-            android.R.layout.simple_dropdown_item_1line,
-            listaCategoriasBD
-        )
+        val adapterCat = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, listaCategoriasBD)
         spinnerCategoria.setAdapter(adapterCat)
-
         spinnerCategoria.setOnItemClickListener { parent, _, position, _ ->
             categoriaSeleccionada = parent.getItemAtPosition(position) as CategoriaDto
         }
-        spinnerCategoria.setOnClickListener {
-            spinnerCategoria.showDropDown()
+        spinnerCategoria.setOnClickListener { spinnerCategoria.showDropDown() }
+
+        val nombresUnidades = listaUnidades.map { it.second }
+        val adapterUni = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, nombresUnidades)
+        spinnerUnidad.setAdapter(adapterUni)
+        spinnerUnidad.setOnClickListener { spinnerUnidad.showDropDown() }
+    }
+
+    private fun generarSiguienteCodigo(): String {
+        if (listaProductosExistentes.isEmpty()) return "PROD-001"
+
+        var maxNumber = 0
+        var prefix = "PROD-"
+        var hasPrefixFound = false
+
+        listaProductosExistentes.forEach { prod ->
+            val codigo = prod.codigoPrincipal
+            if (!codigo.isNullOrBlank() && codigo != "S/C") {
+                val match = Regex("^(.*?)(\\d+)$").find(codigo)
+                if (match != null) {
+                    val currentPrefix = match.groupValues[1]
+                    val currentNumber = match.groupValues[2].toIntOrNull() ?: 0
+                    if (currentNumber >= maxNumber) {
+                        maxNumber = currentNumber
+                        prefix = currentPrefix
+                        hasPrefixFound = currentPrefix.isNotEmpty()
+                    }
+                }
+            }
         }
 
-        val adapterUni = ArrayAdapter(
-            requireContext(),
-            android.R.layout.simple_dropdown_item_1line,
-            listaUnidades
-        )
-        spinnerUnidad.setAdapter(adapterUni)
-        spinnerUnidad.setOnClickListener {
-            spinnerUnidad.showDropDown()
+        val nextNumber = maxNumber + 1
+        val padLength = maxOf(3, maxNumber.toString().length)
+        val paddedNumber = nextNumber.toString().padStart(padLength, '0')
+
+        return if (hasPrefixFound) {
+            "$prefix$paddedNumber"
+        } else {
+            paddedNumber
         }
     }
 
@@ -186,8 +204,8 @@ class ProductoDialog(
         if (productoEditar != null) {
             tvTitulo.text = "Editar Producto"
             etNombre.setText(productoEditar.nombre)
-            etCodigo.setText(productoEditar.codigoPrincipal)
-            etMarca.setText(productoEditar.marca)
+            etCodigo.setText(if (productoEditar.codigoPrincipal.isNullOrBlank()) "S/C" else productoEditar.codigoPrincipal)
+            etMarca.setText(if (productoEditar.marca == "Sin marca") "" else productoEditar.marca)
 
             val catCoincidente = listaCategoriasBD.find {
                 it.id == productoEditar.categoriaId || it.nombre.equals(productoEditar.categoria, ignoreCase = true)
@@ -199,14 +217,27 @@ class ProductoDialog(
                 spinnerCategoria.setText(productoEditar.categoria, false)
             }
 
-            spinnerUnidad.setText(productoEditar.unidadMedida ?: "UNIDADES", false)
-            cbGrabaIva.isChecked = productoEditar.grabaIva ?: true
+            val unidadClave = productoEditar.unidadMedida ?: "UNIDADES"
+            val parUnidad = listaUnidades.find { it.first.equals(unidadClave, ignoreCase = true) } ?: listaUnidades[0]
+            spinnerUnidad.setText(parUnidad.second, false)
+
+            cbGrabaIva.isChecked = productoEditar.grabaIva ?: false
             cbTieneCaducidad.isChecked = productoEditar.tieneCaducidad ?: false
 
             imagenBase64Seleccionada = productoEditar.imagen
             cargarImagenEnPreview(productoEditar.imagen)
         } else {
             tvTitulo.text = "Nuevo Producto"
+            etCodigo.setText(generarSiguienteCodigo())
+
+            if (listaCategoriasBD.isNotEmpty()) {
+                categoriaSeleccionada = listaCategoriasBD[0]
+                spinnerCategoria.setText(listaCategoriasBD[0].nombre, false)
+            }
+            spinnerUnidad.setText(listaUnidades[0].second, false)
+            cbGrabaIva.isChecked = false
+            cbTieneCaducidad.isChecked = false
+
             restablecerImagenDefecto()
         }
     }
@@ -278,13 +309,11 @@ class ProductoDialog(
     private fun guardarProducto() {
         val nombre = etNombre.text.toString().trim()
         val codigo = etCodigo.text.toString().trim()
-        val marca = etMarca.text.toString().trim().ifBlank { null }
+        val marca = etMarca.text.toString().trim().ifBlank { "Sin marca" }
         val nombreCategoria = spinnerCategoria.text.toString().trim()
-        val unidad = spinnerUnidad.text.toString().trim()
+        val nombreUnidadVisual = spinnerUnidad.text.toString().trim()
 
-        val yaExisteCodigo = codigosExistentes.any {
-            it.equals(codigo, ignoreCase = true) && !it.equals(productoEditar?.codigoPrincipal?.trim(), ignoreCase = true)
-        }
+        val unidadTecnica = listaUnidades.find { it.second.equals(nombreUnidadVisual, ignoreCase = true) }?.first ?: "UNIDADES"
 
         val ok = FormValidator.validar(
             FormValidator.Campo(tilNombre) {
@@ -292,16 +321,11 @@ class ProductoDialog(
                     ?: FormValidator.longitudMinima(nombre, 2, "El nombre del producto")
                     ?: FormValidator.longitudMaxima(nombre, 100, "El nombre del producto")
             },
-            FormValidator.Campo(tilCodigo) {
-                FormValidator.requerido(codigo, "El código principal")
-                    ?: FormValidator.longitudMinima(codigo, 2, "El código principal")
-                    ?: if (yaExisteCodigo) "El código ya está en uso por otro producto" else null
-            },
             FormValidator.Campo(tilCategoria) {
                 FormValidator.requerido(nombreCategoria, "La categoría")
             },
             FormValidator.Campo(tilUnidad) {
-                FormValidator.requerido(unidad, "La unidad de medida")
+                FormValidator.requerido(nombreUnidadVisual, "La unidad de medida")
             }
         )
         if (!ok) return
@@ -313,7 +337,7 @@ class ProductoDialog(
             return
         }
 
-        val precio = if ((productoEditar?.precioUnitario ?: 0.0) > 0) productoEditar!!.precioUnitario else 0.01
+        val precio = if ((productoEditar?.precioUnitario ?: 0.0) > 0) productoEditar!!.precioUnitario else 0.0
 
         val productoGuardado = ProductoDto(
             id = productoEditar?.id,
@@ -324,7 +348,7 @@ class ProductoDialog(
             costoPromedioActual = productoEditar?.costoPromedioActual ?: 0.0,
             categoriaId = idCategoriaFinal,
             categoria = nombreCategoria,
-            unidadMedida = unidad,
+            unidadMedida = unidadTecnica,
             grabaIva = cbGrabaIva.isChecked,
             tieneCaducidad = cbTieneCaducidad.isChecked,
             imagen = imagenBase64Seleccionada

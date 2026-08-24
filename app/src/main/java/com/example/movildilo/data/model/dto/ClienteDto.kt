@@ -70,3 +70,11 @@ data class DocumentoUiModel(
     val metodoPago: String? = null,
     var expandido: Boolean = false
 )
+
+data class ClienteAgrupado(
+    val nombre: String,
+    val identificacion: String,
+    var totalDeuda: Double,
+    var cuentasPendientes: Int,
+    val cuentas: List<Any>
+)

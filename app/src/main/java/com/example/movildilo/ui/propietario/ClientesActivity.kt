@@ -290,6 +290,7 @@ class ClientesActivity : AppCompatActivity() {
         setupErrorClearing(etContrasena, layoutContrasena)
         setupErrorClearing(etTelefono, tilTelefono)
         setupErrorClearing(etDireccion, tilDireccion)
+        setupErrorClearing(etFechaNacimiento, tilFechaNacimiento)
 
         val dialog = MaterialAlertDialogBuilder(this)
             .setView(view)
@@ -309,6 +310,7 @@ class ClientesActivity : AppCompatActivity() {
             tilEmail.error = null
             layoutContrasena.error = null
             tilTelefono.error = null
+            tilFechaNacimiento.error = null
 
             val dni = etDni.text.toString().trim()
             val primerNombre = etPrimerNombre.text.toString().trim()
@@ -365,6 +367,17 @@ class ClientesActivity : AppCompatActivity() {
                 isValid = false
             }
 
+            if (fechaNacimiento.isNotEmpty()) {
+                val edad = calcularEdad(fechaNacimiento)
+                if (edad < 17) {
+                    tilFechaNacimiento.error = "El cliente debe ser mayor o igual a 17 años"
+                    isValid = false
+                }
+            } else {
+                tilFechaNacimiento.error = "La fecha de nacimiento es obligatoria"
+                isValid = false
+            }
+
             if (!isValid) return@setOnClickListener
 
             val requestDto = ClienteResponseDto(
@@ -401,6 +414,30 @@ class ClientesActivity : AppCompatActivity() {
             }
             override fun afterTextChanged(s: Editable?) {}
         })
+    }
+
+    // Función auxiliar para calcular la edad exacta a partir de "YYYY-MM-DD"
+    private fun calcularEdad(fechaNacimientoStr: String): Int {
+        return try {
+            val partes = fechaNacimientoStr.split("-")
+            if (partes.size != 3) return 0
+
+            val anioNac = partes[0].toInt()
+            val mesNac = partes[1].toInt()
+            val diaNac = partes[2].toInt()
+
+            val hoy = Calendar.getInstance()
+            var edad = hoy.get(Calendar.YEAR) - anioNac
+            val mesActual = hoy.get(Calendar.MONTH) + 1
+            val diaActual = hoy.get(Calendar.DAY_OF_MONTH)
+
+            if (mesActual < mesNac || (mesActual == mesNac && diaActual < diaNac)) {
+                edad--
+            }
+            edad
+        } catch (e: Exception) {
+            0
+        }
     }
 
     private fun validarCedulaEcuatoriana(cedula: String): Boolean {

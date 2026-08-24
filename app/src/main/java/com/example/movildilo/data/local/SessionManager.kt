@@ -15,6 +15,14 @@ class SessionManager(private val context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("app_session", Context.MODE_PRIVATE)
     private val gson = Gson()
 
+    fun setSolicitudPendiente(pendiente: Boolean) {
+        prefs.edit().putBoolean("solicitud_pendiente", pendiente).apply()
+    }
+
+    fun isSolicitudPendiente(): Boolean {
+        return prefs.getBoolean("solicitud_pendiente", false)
+    }
+
     fun saveToken(token: String?, tokenType: String?) {
         val tipoLimpio = tokenType?.trim().takeIf { !it.isNullOrEmpty() } ?: "Bearer"
         prefs.edit()

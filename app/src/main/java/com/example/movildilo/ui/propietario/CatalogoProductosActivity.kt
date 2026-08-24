@@ -235,7 +235,7 @@ class CatalogoProductosActivity : AppCompatActivity() {
                     mostrarCargando(false)
                     Toast.makeText(
                         this@CatalogoProductosActivity,
-                        "Error de conexión: ${e.localizedMessage}",
+                        "Error de red: ${e.localizedMessage}",
                         Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -381,6 +381,7 @@ class CatalogoProductosActivity : AppCompatActivity() {
         val dialog = ProductoDialog(
             productoEditar = producto,
             listaCategoriasBD = listaCategoriasBD,
+            listaProductosExistentes = listaOriginal,
             onGuardarListener = { prodAGuardar, categoriaId ->
                 guardarProductoEnBackend(prodAGuardar, categoriaId)
             }

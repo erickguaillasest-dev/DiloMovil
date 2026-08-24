@@ -46,7 +46,10 @@ class LoginActivity : AppCompatActivity() {
 
         sessionManager = SessionManager(this)
 
-        if (sessionManager.isLoggedIn()) {
+        if (sessionManager.isSolicitudPendiente()) {
+            sessionManager.clearSession()
+            sessionManager.setSolicitudPendiente(false) // Limpiamos la bandera para permitir nuevos intentos
+        } else if (sessionManager.isLoggedIn()) {
             redirigirSegunRolGuardado()
             return
         }
@@ -59,6 +62,7 @@ class LoginActivity : AppCompatActivity() {
         btnTogglePassword = findViewById(R.id.btnTogglePassword)
         tvEmailError = findViewById(R.id.tvEmailError)
         tvPasswordError = findViewById(R.id.tvPasswordError)
+
         etEmail.setOnFocusChangeListener { _, tieneFoco -> if (tieneFoco) FormValidator.marcarErrorSimple(etEmail, tvEmailError, null) }
         etPassword.setOnFocusChangeListener { _, tieneFoco -> if (tieneFoco) FormValidator.marcarErrorSimple(etPassword, tvPasswordError, null) }
 
@@ -141,16 +145,19 @@ class LoginActivity : AppCompatActivity() {
                     val body = response.body()
                     if (body != null) {
 
-                        sessionManager.saveToken(body.token, body.tokenType)
-                        sessionManager.saveUserSession(body)
-
-                        val estadoUsuario = body.rol ?: ""
-                        if (estadoUsuario.equals("PENDIENTE", ignoreCase = true) || estadoUsuario.equals("PENDING", ignoreCase = true)) {
-                            sessionManager.logout()
+                        // Verificamos de inmediato si el rol o estado devuelto es pendiente
+                        val rolAux = body.rol?.uppercase()?.trim() ?: ""
+                        if (rolAux == "PENDIENTE" || rolAux == "PENDING") {
+                            setLoading(false)
+                            sessionManager.clearSession() // Limpiamos todo rastro de sesión previa
                             SolicitudPendienteDialog(this@LoginActivity).show()
                             return@launch
                         }
 
+                        sessionManager.saveToken(body.token, body.tokenType)
+                        sessionManager.saveUserSession(body)
+
+                        // Verificación auxiliar con el endpoint de estado
                         try {
                             val authHeader = sessionManager.getAuthHeader()
                             if (authHeader != null) {
@@ -158,15 +165,31 @@ class LoginActivity : AppCompatActivity() {
 
                                 if (estadoRes.isSuccessful) {
                                     val jsonResponse = estadoRes.body()?.string() ?: ""
-                                    if (jsonResponse.contains("\"tienePendiente\":true") || jsonResponse.contains("\"tienePendiente\": true")) {
-                                        sessionManager.logout()
+                                    // Solo confiamos en el campo real "tienePendiente".
+                                    // Antes se usaba jsonResponse.contains("PENDIENTE", ignoreCase = true),
+                                    // lo cual detectaba la palabra "pendiente" en CUALQUIER parte del JSON
+                                    // (facturas pendientes, cuotas pendientes, etc.) y bloqueaba por error
+                                    // a usuarios con roles distintos a admin que sí podían ingresar.
+                                    val tienePendiente = try {
+                                        if (jsonResponse.isNotBlank()) {
+                                            org.json.JSONObject(jsonResponse).optBoolean("tienePendiente", false)
+                                        } else {
+                                            false
+                                        }
+                                    } catch (e: Exception) {
+                                        false
+                                    }
+
+                                    if (tienePendiente) {
+                                        setLoading(false)
+                                        sessionManager.clearSession()
                                         SolicitudPendienteDialog(this@LoginActivity).show()
                                         return@launch
                                     }
                                 }
                             }
                         } catch (e: Exception) {
-
+                            // Ignorar error de red secundario
                         }
 
                         val negocioId = body.selectedBusinessId ?: body.negocioId
@@ -218,25 +241,36 @@ class LoginActivity : AppCompatActivity() {
                         finish()
 
                     } else {
+                        setLoading(false)
                         Toast.makeText(this@LoginActivity, "Respuesta vacía del servidor", Toast.LENGTH_SHORT).show()
                     }
                 } else {
+                    setLoading(false)
+
+                    // Capturar código 403 o si el mensaje del servidor indica que la solicitud está pendiente
+                    val errorBodyStr = response.errorBody()?.string() ?: ""
+                    if (errorBodyStr.contains("pendiente", ignoreCase = true) || response.code() == 403) {
+                        sessionManager.clearSession()
+                        SolicitudPendienteDialog(this@LoginActivity).show()
+                        return@launch
+                    }
+
                     val mensaje = when (response.code()) {
-                        401, 403 -> "Tu correo o contraseña son incorrectos. Por favor, intenta de nuevo."
+                        401 -> "Tu correo o contraseña son incorrectos. Por favor, intenta de nuevo."
                         else -> "Error del servidor (código ${response.code()})"
                     }
                     Toast.makeText(this@LoginActivity, mensaje, Toast.LENGTH_SHORT).show()
                 }
             } catch (e: IOException) {
+                setLoading(false)
                 Toast.makeText(
                     this@LoginActivity,
                     "No se pudo conectar al servidor. Revisa tu conexión.",
                     Toast.LENGTH_LONG
                 ).show()
             } catch (e: Exception) {
-                Toast.makeText(this@LoginActivity, "Ocurrió un error: ${e.message}", Toast.LENGTH_LONG).show()
-            } finally {
                 setLoading(false)
+                Toast.makeText(this@LoginActivity, "Ocurrió un error: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
     }

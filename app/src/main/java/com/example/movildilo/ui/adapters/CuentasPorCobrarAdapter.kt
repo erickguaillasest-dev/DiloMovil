@@ -1,4 +1,4 @@
-package com.example.movildilo.ui.propietario
+package com.example.movildilo.ui.adapters
 
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.movildilo.R
 import com.example.movildilo.data.model.dto.CuentaPorCobrarResponseDto
 import com.example.movildilo.data.model.dto.CuotaDto
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.button.MaterialButton
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -18,17 +19,21 @@ import java.util.Locale
 class CuentasPorCobrarAdapter(
     private var listaCuentas: List<CuentaPorCobrarResponseDto>,
     private val onAbonarClick: (CuentaPorCobrarResponseDto) -> Unit,
-    private val onAbonarCuotaClick: (CuentaPorCobrarResponseDto, CuotaDto) -> Unit
+    private val onAbonarCuotaClick: (CuentaPorCobrarResponseDto, CuotaDto) -> Unit,
+    var idUltimaCuentaModificada: Long? = null
 ) : RecyclerView.Adapter<CuentasPorCobrarAdapter.CuentaViewHolder>() {
 
     class CuentaViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val cardItem: MaterialCardView = view.findViewById(R.id.cardCuentaItem)
         val tvNumeroFactura: TextView = view.findViewById(R.id.tvNumeroFactura)
+        val tvBadgeRecienPagado: TextView = view.findViewById(R.id.tvBadgeRecienPagado)
         val tvClienteNombre: TextView = view.findViewById(R.id.tvClienteNombre)
         val tvVencimientoGlobal: TextView = view.findViewById(R.id.tvVencimientoGlobal)
         val tvMontoTotal: TextView = view.findViewById(R.id.tvMontoTotal)
         val tvSaldoPendiente: TextView = view.findViewById(R.id.tvSaldoPendiente)
         val tvEstado: TextView = view.findViewById(R.id.tvEstado)
         val btnToggleCuotas: MaterialButton = view.findViewById(R.id.btnToggleCuotas)
+        val btnAbrirPanelCobranza: MaterialButton = view.findViewById(R.id.btnAbrirPanelCobranza)
         val btnAccionAbonar: MaterialButton = view.findViewById(R.id.btnAccionAbonar)
         val containerCuotas: LinearLayout = view.findViewById(R.id.containerCuotas)
         val layoutListaCuotas: LinearLayout = view.findViewById(R.id.layoutListaCuotas)
@@ -58,6 +63,23 @@ class CuentasPorCobrarAdapter(
         val estado = cuenta.estado ?: if (saldoPendiente <= 0) "PAGADA" else "PENDIENTE"
         holder.tvEstado.text = estado.uppercase(Locale.ROOT)
         configurarBadgeEstado(holder.tvEstado, estado)
+
+        // Mostrar Badge Verde "💸 PAGADO" si coincide con la cuenta recién pagada o modificada
+        val esReciente = idUltimaCuentaModificada != null && idUltimaCuentaModificada == cuenta.id
+        if (esReciente || estado.equals("PAGADA", ignoreCase = true) || saldoPendiente <= 0) {
+            holder.tvBadgeRecienPagado.visibility = View.VISIBLE
+            holder.tvBadgeRecienPagado.text = if (saldoPendiente <= 0) "💸 PAGADO" else "💸 ABONADO"
+            holder.cardItem.setCardBackgroundColor(Color.parseColor("#F0FDF4")) // Fondo verde claro como en la web
+            holder.cardItem.strokeColor = Color.parseColor("#10B981")
+        } else {
+            holder.tvBadgeRecienPagado.visibility = View.GONE
+            holder.cardItem.setCardBackgroundColor(Color.WHITE)
+            holder.cardItem.strokeColor = Color.parseColor("#E2E8F0")
+        }
+
+        holder.btnAbrirPanelCobranza.setOnClickListener {
+            onAbonarClick(cuenta)
+        }
 
         if (saldoPendiente <= 0) {
             holder.btnAccionAbonar.text = "Completado"
@@ -154,7 +176,7 @@ class CuentasPorCobrarAdapter(
             "yyyy-MM-dd",
             "dd/MM/yyyy"
         )
-        val formatoSalida = SimpleDateFormat("dd 'de' MMM, yyyy", Locale("es", "ES"))
+        val formatoSalida = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
         for (formato in formatosEntrada) {
             try {

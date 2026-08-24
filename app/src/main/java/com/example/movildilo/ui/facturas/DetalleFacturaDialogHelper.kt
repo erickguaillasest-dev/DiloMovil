@@ -20,7 +20,8 @@ object DetalleFacturaDialogHelper {
         val cantidad: Int,
         val precioUnitario: Double,
         val descuento: Double = 0.0,
-        val subtotal: Double
+        val subtotal: Double,
+        val grabaIva: Boolean = true
     )
 
     data class DatosFactura(
@@ -31,6 +32,7 @@ object DetalleFacturaDialogHelper {
         val estado: String,
         val total: Double,
         val descuentoGlobal: Double = 0.0,
+        val porcentajeIva: Double = 15.0,
         val items: List<ItemLinea> = emptyList(),
         val mostrarBotonImprimir: Boolean = false,
         val onImprimir: (() -> Unit)? = null
@@ -60,13 +62,17 @@ object DetalleFacturaDialogHelper {
         tvMetodoPago.text = datos.metodoPago
         tvEstadoBadge.text = datos.estado.uppercase(Locale.US)
 
-        val total = datos.total
-        val subtotal = total / 1.15
-        val iva = total - subtotal
+        // Cálculo seguro y robusto en base al total de la factura
+        val tasaIva = datos.porcentajeIva / 100.0
+        val totalCalculado = datos.total
 
-        tvSubtotal.text = String.format(Locale.US, "$%.2f", subtotal)
-        tvIva.text = String.format(Locale.US, "$%.2f", iva)
-        tvTotal.text = String.format(Locale.US, "$%.2f", total)
+        // Desglose estándar matemático si no viene segregado del servidor
+        val subtotalSinIva = totalCalculado / (1.0 + tasaIva)
+        val montoIva = totalCalculado - subtotalSinIva
+
+        tvSubtotal.text = String.format(Locale.US, "$%.2f", subtotalSinIva)
+        tvIva.text = String.format(Locale.US, "$%.2f", montoIva)
+        tvTotal.text = String.format(Locale.US, "$%.2f", totalCalculado)
 
         if (datos.descuentoGlobal > 0.0) {
             rowDescuento.visibility = View.VISIBLE
@@ -108,7 +114,7 @@ object DetalleFacturaDialogHelper {
 
                 if (item.descuento > 0.0) {
                     val tvDescuentoItem = TextView(context).apply {
-                        text = "Descuento: -$${String.format(Locale.US, "%.2f", item.descuento)}"
+                        text = "Descuento línea: -$${String.format(Locale.US, "%.2f", item.descuento)}"
                         textSize = 10f
                         typeface = Typeface.DEFAULT_BOLD
                         setTextColor(0xFFEA580C.toInt())
