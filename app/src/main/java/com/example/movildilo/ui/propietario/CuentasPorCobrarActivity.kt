@@ -124,7 +124,8 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         adapterCuentas = CuentasPorCobrarAdapter(
             listaCuentas = emptyList(),
             onAbonarClick = { cuenta -> abrirPanelCobranza(cuenta) },
-            onAbonarCuotaClick = { cuenta, cuota -> abrirPanelCobranza(cuenta, cuota) }
+            onAbonarCuotaClick = { cuenta, cuota -> abrirPanelCobranza(cuenta, cuota) },
+            onRecordatorioClick = { cuenta -> confirmarYEnviarRecordatorio(cuenta) }
         )
         rvCuentasGeneral.adapter = adapterCuentas
 
@@ -247,7 +248,6 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
                         !nombre.lowercase().contains("consumidor final")
                     }
 
-                    // Colocar la cuenta recién modificada/pagada AL INICIO de la lista (Posición 0)
                     cuentasBase = filtradas.sortedByDescending { it.id == idReciente }
 
                     calcularKPIs()
@@ -431,11 +431,18 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         val listaCreditos = cliente.cuentas as List<CreditoClienteResumenDto>
 
         rvFacturas.layoutManager = LinearLayoutManager(this)
-        rvFacturas.adapter = FacturasClienteModalAdapter(listaCreditos) { credito ->
-            dialog.dismiss()
-            val cuentaOriginal = cuentasBase.find { it.id == credito.id }
-            cuentaOriginal?.let { abrirPanelCobranza(it) }
-        }
+        rvFacturas.adapter = FacturasClienteModalAdapter(
+            lista = listaCreditos,
+            onAbonarClick = { credito ->
+                dialog.dismiss()
+                val cuentaOriginal = cuentasBase.find { it.id == credito.id }
+                cuentaOriginal?.let { abrirPanelCobranza(it) }
+            },
+            onEmailClick = { credito ->
+                val cuentaOriginal = cuentasBase.find { it.id == credito.id }
+                cuentaOriginal?.let { confirmarYEnviarRecordatorio(it) }
+            }
+        )
 
         dialog.show()
     }
@@ -461,6 +468,43 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
             }
         }
         return fechaRaw
+    }
+
+    private fun confirmarYEnviarRecordatorio(cuenta: CuentaPorCobrarResponseDto) {
+        val clienteNombre = obtenerNombreCliente(cuenta)
+        val saldo = String.format(Locale.US, "$%.2f", cuenta.saldoPendiente ?: 0.0)
+        val numFactura = cuenta.numeroFactura ?: cuenta.factura?.numeroFactura ?: "N/A"
+
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("¿Enviar Recordatorio?")
+            .setMessage("Se enviará un correo a $clienteNombre recordándole su saldo pendiente de $saldo por la factura #$numFactura.")
+            .setPositiveButton("Sí, enviar") { _, _ ->
+                enviarCorreoRecordatorio(cuenta)
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun enviarCorreoRecordatorio(cuenta: CuentaPorCobrarResponseDto) {
+        val token = sessionManager.getAuthHeader() ?: return
+        layoutLoading.visibility = View.VISIBLE
+
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.apiService.enviarRecordatorioEmail(token, cuenta.id)
+                layoutLoading.visibility = View.GONE
+
+                if (response.isSuccessful) {
+                    Toast.makeText(this@CuentasPorCobrarActivity, "El recordatorio ha sido enviado exitosamente al correo del cliente.", Toast.LENGTH_SHORT).show()
+                } else {
+                    val errorStr = response.errorBody()?.string()?.replace("\"", "") ?: "Ocurrió un error al intentar enviar el correo."
+                    Toast.makeText(this@CuentasPorCobrarActivity, errorStr, Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                layoutLoading.visibility = View.GONE
+                Toast.makeText(this@CuentasPorCobrarActivity, "Error de red al intentar enviar el correo", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun abrirPanelCobranza(cuenta: CuentaPorCobrarResponseDto, cuotaSeleccionada: CuotaDto? = null) {
@@ -509,19 +553,16 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         tvCliente.text = obtenerNombreCliente(cuenta)
         tvSaldo.text = String.format(Locale.US, "$%.2f", saldoPendienteTotal)
 
-        // 1. Filtrar únicamente las cuotas PENDIENTES
         val cuotasPendientes = todasLasCuotas.filter { cuota ->
             val saldoCuota = cuota.saldoPendienteCuota ?: 0.0
             val esPagada = cuota.estado?.equals("PAGADA", ignoreCase = true) == true
             !esPagada && saldoCuota > 0
         }.sortedBy { it.fechaVencimiento ?: "" }
 
-        // 2. Renderizado de Tarjetas con Renumeración Dinámica
         layoutContenedorCuotas.removeAllViews()
         val inflater = LayoutInflater.from(this)
         val listaTarjetas = mutableListOf<MaterialCardView>()
 
-        // Tarjeta 1: Saldo Total
         val cardTotalView = inflater.inflate(R.layout.item_tarjeta_cuota, layoutContenedorCuotas, false)
         val cardTotal = cardTotalView.findViewById<MaterialCardView>(R.id.cardCuotaItem)
         cardTotalView.findViewById<TextView>(R.id.tvTituloCuotaCard).text = "Saldo Total"
@@ -535,7 +576,6 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
             seleccionarTarjetaCuotaConAnimacion(cardTotal, listaTarjetas, saldoPendienteTotal, etMonto)
         }
 
-        // Tarjetas de cuotas activas recorridas secuencialmente
         cuotasPendientes.forEachIndexed { index, cuota ->
             val cardCuotaView = inflater.inflate(R.layout.item_tarjeta_cuota, layoutContenedorCuotas, false)
             val cardItem = cardCuotaView.findViewById<MaterialCardView>(R.id.cardCuotaItem)
@@ -563,7 +603,6 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
             seleccionarTarjetaCuotaConAnimacion(cardTotal, listaTarjetas, saldoPendienteTotal, etMonto)
         }
 
-        // 3. Métodos de Pago
         val metodos = arrayOf("Efectivo", "Transferencia")
         val adapterSpinner = ArrayAdapter(this, android.R.layout.simple_spinner_item, metodos)
         adapterSpinner.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
@@ -617,7 +656,6 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
                         Toast.makeText(this@CuentasPorCobrarActivity, "Abono registrado con éxito", Toast.LENGTH_SHORT).show()
                         dialog.dismiss()
 
-                        // Activar el Badge Verde "💸 PAGADO" y mover la cuenta al inicio
                         adapterCuentas.idUltimaCuentaModificada = cuenta.id
                         cargarCuentasYResaltarUltima(cuenta.id)
                     } else {
@@ -641,7 +679,6 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
     ) {
         val density = resources.displayMetrics.density
 
-        // Resetear tarjetas inactivas
         todas.forEach { card ->
             card.animate().scaleX(1.0f).scaleY(1.0f).setDuration(150).start()
             card.setCardBackgroundColor(Color.WHITE)
@@ -650,7 +687,6 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
             card.cardElevation = 0f
         }
 
-        // Animación de la tarjeta activa estilo Web (#FFF7ED, #EA580C)
         seleccionada.animate().scaleX(1.03f).scaleY(1.03f).setDuration(150).start()
         seleccionada.setCardBackgroundColor(Color.parseColor("#FFF7ED"))
         seleccionada.strokeColor = Color.parseColor("#EA580C")

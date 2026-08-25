@@ -503,4 +503,11 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Path("id") negocioId: Long
     ): Response<CodigoInvitacionResponseDto>
+
+    @POST("api/v1/cuentas-por-cobrar/{id}/recordatorio-email")
+    suspend fun enviarRecordatorioEmail(
+        @Header("Authorization") token: String,
+        @Path("id") id: Long
+    ): retrofit2.Response<ResponseBody>
+
 }

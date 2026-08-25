@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="horizontal"
     android:gravity="center_vertical"
     android:paddingVertical="10dp"
@@ -55,4 +56,13 @@
         android:paddingHorizontal="12dp"
         android:backgroundTint="#F97316"
         android:textColor="@android:color/white" />
+
+    <ImageButton
+        android:id="@+id/btnEmailFacturaModal"
+        android:layout_width="38dp"
+        android:layout_height="38dp"
+        android:layout_marginStart="4dp"
+        android:background="@drawable/bg_outlined_box"
+        android:src="@android:drawable/ic_dialog_email"
+        app:tint="#475569" />
 </LinearLayout>

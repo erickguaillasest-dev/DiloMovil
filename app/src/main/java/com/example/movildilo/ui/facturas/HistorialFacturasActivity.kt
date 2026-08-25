@@ -70,8 +70,6 @@ import java.util.Locale
 
 private enum class VoiceStep { OFF, ESCUCHANDO, CONFIRMAR, SELECCIONAR_OPCION, CONFIRMAR_VACIAR_CARRITO }
 
-/** Un grupo de productos ambiguos (mismo nombre) que quedó pendiente de resolver por voz,
- *  junto con la cantidad y descuento que el cliente pidió para ese ítem específico. */
 private data class AmbiguoPendiente(
     val opciones: List<ProductoResponseDto>,
     val cantidad: Int,
@@ -142,8 +140,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
     private var productosOpcionesPendientes: List<ProductoResponseDto> = emptyList()
     private var cantidadPendienteOpcion: Int = 1
     private var descuentoPendienteOpcion: Double = 0.0
-    // Cola de grupos ambiguos: si el cliente pidió varias cosas y más de una tiene nombres
-    // repetidos en el catálogo, se van resolviendo una por una SIN perder las demás.
     private val colaAmbiguos = ArrayDeque<AmbiguoPendiente>()
 
     private val requestPermissionLauncher = registerForActivityResult(
@@ -223,8 +219,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
     private fun configurarVozZoe() {
         val tts = textToSpeech ?: return
 
-        // Argentina primero (acento rioplatense pedido), con fallbacks razonables si el motor
-        // TTS del dispositivo no trae ese locale instalado.
         val localesPreferidos = listOf(
             Locale("es", "AR"),
             Locale("es", "419"),
@@ -250,16 +244,12 @@ class HistorialFacturasActivity : AppCompatActivity() {
                         !it.isNetworkConnectionRequired &&
                         it.quality >= android.speech.tts.Voice.QUALITY_NORMAL
             }
-            // 1) Preferimos una voz cuyo locale sea explícitamente Argentina (country "AR" o
-            //    nombre con "ar" / "argentina"), para el acento pedido.
             val vozArgentina = candidatas
                 .filter {
                     it.locale.country.equals("AR", ignoreCase = true) ||
                             it.name.contains("ar", ignoreCase = true) && it.name.contains("es", ignoreCase = true)
                 }
                 .maxByOrNull { it.quality }
-            // 2) Si no hay voz argentina instalada, priorizamos una femenina de buena calidad
-            //    (voz más "humana" que las robóticas por defecto).
             val vozFemenina = candidatas
                 .filter { it.name.contains("female", ignoreCase = true) || it.name.contains("#female", ignoreCase = true) }
                 .maxByOrNull { it.quality }
@@ -272,9 +262,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
             }
         }
 
-        // Cadencia y tono más naturales: el pitch alto (1.12) sonaba artificial/apurado.
-        // Con 1.0 de pitch y una velocidad levemente por debajo de lo normal suena más humano
-        // y da tiempo a que el oído siga bien la frase.
         tts.setSpeechRate(0.97f)
         tts.setPitch(1.0f)
     }
@@ -907,11 +894,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
             putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
-            // Antes estaba en 2000ms: si el cliente hacía una pausa corta para pensar el pedido
-            // ("quiero dos colas... y... tres papas"), el reconocedor lo tomaba como que ya
-            // había terminado de hablar y cortaba la frase a la mitad. Se sube a 3500-4000ms
-            // para tolerar pausas naturales al dictar un pedido largo, sin quedar esperando
-            // eternamente si el cliente sí terminó.
             putExtra("android.speech.extra.SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS", 4000)
             putExtra("android.speech.extra.SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS", 3500)
             putExtra("android.speech.extra.SPEECH_INPUT_MINIMUM_LENGTH_MILLIS", 20000)
@@ -1097,6 +1079,13 @@ class HistorialFacturasActivity : AppCompatActivity() {
     private fun procesarComandoVoz(transcriptOriginal: String) {
         val transcript = limpiarTexto(transcriptOriginal)
 
+        // Fix 3: Asegurar que si estamos en SELECCIONAR_OPCION, procesemos únicamente la selección
+        // y no reinterpretemos el comando de forma general o repetida.
+        if (voiceState == VoiceStep.SELECCIONAR_OPCION && productosOpcionesPendientes.isNotEmpty()) {
+            procesarSeleccionOpcionPorVoz(transcript)
+            return
+        }
+
         if (voiceState == VoiceStep.CONFIRMAR_VACIAR_CARRITO) {
             val afirmativas = listOf("si", "claro", "borra", "vaciar", "hazlo", "de acuerdo", "limpiar", "confirmar")
             if (afirmativas.any { transcript.contains(it) }) {
@@ -1118,11 +1107,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
         if (comandosLimpiar.any { transcript.contains(it) }) {
             voiceState = VoiceStep.CONFIRMAR_VACIAR_CARRITO
             hablar("¿Estás seguro de que deseas vaciar el ticket actual?") { escucharVoz() }
-            return
-        }
-
-        if (voiceState == VoiceStep.SELECCIONAR_OPCION && productosOpcionesPendientes.isNotEmpty()) {
-            procesarSeleccionOpcionPorVoz(transcript)
             return
         }
 
@@ -1233,8 +1217,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
             agregarProductoAlCarrito(producto, cantFinal, bodegaIdActual, descuentoPendienteOpcion)
             productosOpcionesPendientes = emptyList()
 
-            // ¿Quedaba otro producto ambiguo pendiente de esta misma frase? Lo preguntamos ahora,
-            // en vez de dar el pedido por terminado: así no se pierde nada de lo que pidió.
             val siguienteAmbiguo = colaAmbiguos.removeFirstOrNull()
             if (siguienteAmbiguo != null) {
                 productosOpcionesPendientes = siguienteAmbiguo.opciones
@@ -1282,6 +1264,11 @@ class HistorialFacturasActivity : AppCompatActivity() {
     }
 
     private fun aplicarResultadoIA(datos: ResultadoVozFactura, quiereEmitirPalabra: Boolean, fraseOriginal: String = "") {
+        // Fix 1: Filtrar y deduplicar estrictamente los ítems devueltos por la IA
+        val itemsUnicos = datos.items
+            .filter { !it.producto.isNullOrBlank() }
+            .distinctBy { limpiarTexto(it.producto) }
+
         val alertas = mutableListOf<String>()
         val fraseLimpia = limpiarTexto(fraseOriginal)
 
@@ -1386,14 +1373,10 @@ class HistorialFacturasActivity : AppCompatActivity() {
         }
 
         var algoAgregado = false
-
-        // Ambigüedad del PRIMER ítem con nombre repetido: se resuelve ya mismo (se le pregunta al cliente).
         var ambiguoPendiente: AmbiguoPendiente? = null
-        // Si hay MÁS de un ítem ambiguo en la misma frase, no se descartan: se encolan y se
-        // preguntan una por una después, sin perder ninguno de los productos pedidos.
         colaAmbiguos.clear()
 
-        for (item in datos.items) {
+        for (item in itemsUnicos) {
             val matches = resolverMatchesProductoVoz(item.producto, fraseOriginal)
             when {
                 matches.size == 1 -> {
@@ -1442,7 +1425,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
                         cantidad = item.cantidad?.takeIf { it > 0 } ?: 1,
                         descuentoPorcentaje = item.descuentoPorcentaje?.toDouble()?.coerceIn(0.0, 100.0) ?: 0.0
                     )
-                    // El primero se pregunta ya; los siguientes quedan encolados (no se pierden).
                     if (ambiguoPendiente == null) {
                         ambiguoPendiente = pendiente
                     } else {
@@ -1457,8 +1439,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
             productosOpcionesPendientes = ambiguoPendiente.opciones
             cantidadPendienteOpcion = ambiguoPendiente.cantidad
             descuentoPendienteOpcion = ambiguoPendiente.descuentoPorcentaje
-            // Avisamos de todo lo demás que sí se resolvió (agregado o alertas) para que el
-            // cliente sepa que el resto de su pedido NO se perdió, solo falta esta elección.
             val prefijoAmbiguo = if (alertas.isNotEmpty()) "Ya anoté el resto: ${alertas.joinToString(", y ")}. " else ""
             mostrarDialogoOpcionesAmbiguas(productosOpcionesPendientes, prefijoAmbiguo)
             return
@@ -1478,8 +1458,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
         val totalFmt = String.format(Locale.US, "%.2f", totalCarritoFinal())
 
         if (quiereEmitir) {
-            // Antes de pasar a la confirmación, revisamos si falta algún campo obligatorio
-            // (cliente, método de pago, cuotas de tarjeta, carrito) y lo pedimos primero.
             val (pasoValidacion, mensajeValidacion) = calcularPasoYMensaje()
             if (pasoValidacion == VoiceStep.CONFIRMAR) {
                 avanzarPaso(VoiceStep.CONFIRMAR, "${prefijo}Total a pagar $totalFmt dólares. ¿Confirmas que emitimos la factura? Di sí o no.")
@@ -1537,8 +1515,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
                 dialog.dismiss()
                 dialogOpcionesAmbiguas = null
                 productosOpcionesPendientes = emptyList()
-                // Si había más productos ambiguos en cola, seguimos con el siguiente en vez de
-                // dar por terminado todo el pedido.
                 val siguiente = colaAmbiguos.removeFirstOrNull()
                 if (siguiente != null) {
                     productosOpcionesPendientes = siguiente.opciones
@@ -1559,7 +1535,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
         val txt = limpiarTexto(textoBuscado)
         if (txt.isBlank()) return emptyList()
 
-        // 1. Coincidencia exacta (Nombre, DNI o Email)
         val exact = clientesList.filter { cli ->
             limpiarTexto(cli.nombreCompleto) == txt ||
                     limpiarTexto(cli.primerNombre) == txt ||
@@ -1569,7 +1544,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
         }
         if (exact.isNotEmpty()) return exact
 
-        // 2. Coincidencia por DNI / Cédula / RUC (últimos dígitos, ej: los 3 últimos dígitos por voz)
         val digitos = txt.filter { it.isDigit() }
         if (digitos.isNotBlank()) {
             val porDigitos = clientesList.filter { cli ->
@@ -1579,7 +1553,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
             if (porDigitos.isNotEmpty()) return porDigitos
         }
 
-        // 3. Coincidencia parcial general por texto
         val partial = clientesList.filter { cli ->
             val nom = limpiarTexto(cli.nombreCompleto ?: "${cli.primerNombre ?: ""} ${cli.apellidoPaterno ?: ""}")
             val doc = limpiarTexto(cli.dni)
@@ -1588,7 +1561,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
         }
         if (partial.isNotEmpty()) return partial
 
-        // 4. Coincidencia por tokenización de palabras
         val palabras = txt.split(" ").filter { it.length > 2 }
         if (palabras.isEmpty()) return emptyList()
         return clientesList.filter { cli ->
@@ -1687,14 +1659,18 @@ class HistorialFacturasActivity : AppCompatActivity() {
     }
 
     private fun resolverMatchesProductoVoz(nombreIa: String, fraseUsuario: String): List<ProductoResponseDto> {
-        // IMPORTANTE: los tokens para buscar ambigüedad deben salir del nombre de ESTE ítem
-        // (nombreIa), no de la frase completa. Antes se usaba fraseUsuario entera, así que si el
-        // cliente pedía varias cosas en un solo audio y UNA de ellas tenía nombre repetido en el
-        // catálogo (ej. "leche"), esa ambigüedad se "contagiaba" a TODOS los demás ítems del
-        // pedido (ej. "coca cola" también se marcaba como ambiguo con las opciones de leche),
-        // cortando el resto del pedido. Al acotarlo al ítem actual, cada producto se resuelve
-        // de forma independiente.
-        val tokensItem = limpiarTexto(nombreIa)
+        val txtIa = limpiarTexto(nombreIa)
+        if (txtIa.isBlank()) return emptyList()
+
+        // Fix 2: Priorizar coincidencias exactas (nombre o código principal) antes de evaluar genéricos o ambigüedades
+        val exactos = dedupProductos(productosList.filter { limpiarTexto(it.nombre) == txtIa })
+        if (exactos.size == 1) return exactos
+        if (exactos.isNotEmpty()) return exactos
+
+        val porCodigo = dedupProductos(productosList.filter { !it.codigoPrincipal.isNullOrBlank() && limpiarTexto(it.codigoPrincipal) == txtIa })
+        if (porCodigo.size == 1) return porCodigo
+
+        val tokensItem = txtIa
             .split(Regex("\\s+"))
             .filter { it.length >= 3 && it !in stopWordsProducto && it.toIntOrNull() == null }
 

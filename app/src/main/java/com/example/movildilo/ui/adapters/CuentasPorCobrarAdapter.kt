@@ -5,6 +5,7 @@ import android.graphics.drawable.GradientDrawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
@@ -20,6 +21,7 @@ class CuentasPorCobrarAdapter(
     private var listaCuentas: List<CuentaPorCobrarResponseDto>,
     private val onAbonarClick: (CuentaPorCobrarResponseDto) -> Unit,
     private val onAbonarCuotaClick: (CuentaPorCobrarResponseDto, CuotaDto) -> Unit,
+    private val onRecordatorioClick: (CuentaPorCobrarResponseDto) -> Unit, // Callback para el botón de recordatorio
     var idUltimaCuentaModificada: Long? = null
 ) : RecyclerView.Adapter<CuentasPorCobrarAdapter.CuentaViewHolder>() {
 
@@ -35,6 +37,7 @@ class CuentasPorCobrarAdapter(
         val btnToggleCuotas: MaterialButton = view.findViewById(R.id.btnToggleCuotas)
         val btnAbrirPanelCobranza: MaterialButton = view.findViewById(R.id.btnAbrirPanelCobranza)
         val btnAccionAbonar: MaterialButton = view.findViewById(R.id.btnAccionAbonar)
+        val btnEnviarRecordatorio: ImageButton = view.findViewById(R.id.btnEnviarRecordatorio) // Referencia al nuevo botón
         val containerCuotas: LinearLayout = view.findViewById(R.id.containerCuotas)
         val layoutListaCuotas: LinearLayout = view.findViewById(R.id.layoutListaCuotas)
     }
@@ -81,17 +84,28 @@ class CuentasPorCobrarAdapter(
             onAbonarClick(cuenta)
         }
 
+        // Listener del nuevo botón de recordatorio
+        holder.btnEnviarRecordatorio.setOnClickListener {
+            onRecordatorioClick(cuenta)
+        }
+
         if (saldoPendiente <= 0) {
             holder.btnAccionAbonar.text = "Completado"
             holder.btnAccionAbonar.isEnabled = false
             holder.btnAccionAbonar.setBackgroundColor(Color.parseColor("#E2E8F0"))
             holder.btnAccionAbonar.setTextColor(Color.parseColor("#94A3B8"))
+
+            // Ocultar botón de recordatorio si ya está pagada
+            holder.btnEnviarRecordatorio.visibility = View.GONE
         } else {
             holder.btnAccionAbonar.text = "Abonar"
             holder.btnAccionAbonar.isEnabled = true
             holder.btnAccionAbonar.setBackgroundColor(Color.parseColor("#ED8936"))
             holder.btnAccionAbonar.setTextColor(Color.WHITE)
             holder.btnAccionAbonar.setOnClickListener { onAbonarClick(cuenta) }
+
+            // Mostrar botón de recordatorio si hay deuda
+            holder.btnEnviarRecordatorio.visibility = View.VISIBLE
         }
 
         val cuotas = cuenta.cuotas?.sortedBy { it.numeroCuota ?: 0 } ?: emptyList()

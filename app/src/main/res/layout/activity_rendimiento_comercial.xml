@@ -79,14 +79,27 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <!-- Botón global de Exportar PDF accesible en cualquier pestaña -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnExportarPdf"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="14dp"
+                android:backgroundTint="#0F172A"
+                android:text="Exportar PDF"
+                android:textAllCaps="false"
+                app:cornerRadius="10dp"
+                app:icon="@android:drawable/ic_menu_save"
+                app:iconTint="#FFFFFF" />
 
             <LinearLayout
                 android:id="@+id/layoutResumenGeneral"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="12dp">
+                android:orientation="vertical">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -132,18 +145,6 @@
                         android:textSize="13sp"
                         android:textStyle="bold" />
                 </LinearLayout>
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnExportarPdf"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="14dp"
-                    android:backgroundTint="#0F172A"
-                    android:text="Exportar PDF"
-                    android:textAllCaps="false"
-                    app:cornerRadius="10dp"
-                    app:icon="@android:drawable/ic_menu_save"
-                    app:iconTint="#FFFFFF" />
 
                 <LinearLayout
                     android:id="@+id/loadingContainer"
@@ -586,7 +587,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp"
                 android:visibility="gone">
 
                 <LinearLayout
@@ -628,7 +628,7 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- Resumen: 3 métricas apiladas en fila, cómodas en pantallas angostas -->
+                <!-- Resumen: 3 métricas apiladas en fila -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -727,7 +727,7 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- Búsqueda y filtro, apilados para que no se corten en pantallas angostas -->
+                <!-- Búsqueda y filtro -->
                 <EditText
                     android:id="@+id/etBuscarClienteRendimiento"
                     android:layout_width="match_parent"
@@ -753,7 +753,7 @@
                     android:textColor="#0F172A"
                     android:textSize="13sp" />
 
-                <!-- Lista de clientes como tarjetas independientes -->
+                <!-- Lista de clientes -->
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvClientesReporte"
                     android:layout_width="match_parent"

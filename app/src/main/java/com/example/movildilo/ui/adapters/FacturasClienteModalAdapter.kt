@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.movildilo.R
@@ -12,7 +13,8 @@ import com.example.movildilo.data.model.dto.CreditoClienteResumenDto
 
 class FacturasClienteModalAdapter(
     private val lista: List<CreditoClienteResumenDto>,
-    private val onAbonarClick: (CreditoClienteResumenDto) -> Unit
+    private val onAbonarClick: (CreditoClienteResumenDto) -> Unit,
+    private val onEmailClick: (CreditoClienteResumenDto) -> Unit
 ) : RecyclerView.Adapter<FacturasClienteModalAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -21,6 +23,7 @@ class FacturasClienteModalAdapter(
         val tvEstado: TextView = view.findViewById(R.id.tvBadgeEstadoModal)
         val tvSaldo: TextView = view.findViewById(R.id.tvSaldoModalItem)
         val btnAccion: Button = view.findViewById(R.id.btnAccionFacturaModal)
+        val btnEmail: ImageButton = view.findViewById(R.id.btnEmailFacturaModal)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -44,6 +47,9 @@ class FacturasClienteModalAdapter(
             holder.tvSaldo.setTextColor(Color.parseColor("#F97316"))
             holder.btnAccion.text = "Abonar"
             holder.btnAccion.setOnClickListener { onAbonarClick(item) }
+
+            holder.btnEmail.visibility = View.VISIBLE
+            holder.btnEmail.setOnClickListener { onEmailClick(item) }
         } else {
             holder.tvEstado.text = "PAGADA"
             holder.tvEstado.setBackgroundColor(Color.parseColor("#D1FAE5"))
@@ -51,6 +57,8 @@ class FacturasClienteModalAdapter(
             holder.tvSaldo.setTextColor(Color.parseColor("#10B981"))
             holder.btnAccion.text = "Historial"
             holder.btnAccion.setOnClickListener { onAbonarClick(item) }
+
+            holder.btnEmail.visibility = View.GONE
         }
     }
 

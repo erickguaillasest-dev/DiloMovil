@@ -25,6 +25,7 @@ import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.GridLayout
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -209,6 +210,8 @@ class RendimientoComercialActivity : AppCompatActivity() {
         chip7.setOnClickListener { cambiarPeriodo(7) }
         chip30.setOnClickListener { cambiarPeriodo(30) }
         chip90.setOnClickListener { cambiarPeriodo(90) }
+
+        // Configuración inicial del botón principal de exportación (Resumen General)
         btnExportarPdf.setOnClickListener { exportarPdf() }
 
         etBuscarClienteRendimiento.addTextChangedListener(object : TextWatcher {
@@ -223,16 +226,19 @@ class RendimientoComercialActivity : AppCompatActivity() {
     private fun setupTabs() {
         tabLayoutRendimiento.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
+                btnExportarPdf.visibility = View.VISIBLE
                 when (tab?.position) {
                     0 -> {
                         layoutResumenGeneral.visibility = View.VISIBLE
                         layoutReporteClientes.visibility = View.GONE
-                        btnExportarPdf.visibility = View.VISIBLE
+                        btnExportarPdf.text = "Exportar PDF"
+                        btnExportarPdf.setOnClickListener { exportarPdf() }
                     }
                     1 -> {
                         layoutResumenGeneral.visibility = View.GONE
                         layoutReporteClientes.visibility = View.VISIBLE
-                        btnExportarPdf.visibility = View.GONE
+                        btnExportarPdf.text = "Exportar PDF Clientes"
+                        btnExportarPdf.setOnClickListener { exportarPdfClientesGeneral() }
                     }
                 }
             }
@@ -388,15 +394,6 @@ class RendimientoComercialActivity : AppCompatActivity() {
             val facturaIdCredito = c.factura?.id
             val facturaRelacionada = cliente.facturas.find { facturaIdCredito != null && it.id == facturaIdCredito }
                 ?: cliente.facturas.find { it.numero == numeroFacturaCredito }
-
-            if (facturaRelacionada == null) {
-                Log.w(
-                    "RendimientoComercial",
-                    "Sin factura relacionada para crédito id=${c.id} numeroFactura=$numeroFacturaCredito " +
-                            "facturaIdCredito=$facturaIdCredito. Facturas disponibles del cliente: " +
-                            cliente.facturas.joinToString { "(id=${it.id}, numero=${it.numero})" }
-                )
-            }
 
             cliente.creditos.add(
                 CreditoClienteResumenDto(
@@ -595,6 +592,11 @@ class RendimientoComercialActivity : AppCompatActivity() {
 
         val defaultTabIsCredito = (cliente.saldoPendiente > 0 && cliente.facturas.isEmpty())
         renderTabList(defaultTabIsCredito)
+
+        val btnExportarPdfCliente: ImageButton = dialog.findViewById(R.id.btnExportarPdfCliente)
+        btnExportarPdfCliente.setOnClickListener {
+            exportarPdfCliente(cliente)
+        }
 
         dialog.findViewById<ImageView>(R.id.btnModalCloseTop).setOnClickListener { dialog.dismiss() }
         dialog.findViewById<MaterialButton>(R.id.btnModalCerrar).setOnClickListener { dialog.dismiss() }
@@ -1325,6 +1327,28 @@ class RendimientoComercialActivity : AppCompatActivity() {
         }
     }
 
+    // Exportar PDF General del Directorio de Clientes
+    private fun exportarPdfClientesGeneral() {
+        if (exportandoPdf || isLoading) return
+        exportandoPdf = true
+        btnExportarPdf.isEnabled = false
+        btnExportarPdf.text = "Generando…"
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            val archivo = runCatching { generarPdfDirectorioClientes() }.getOrNull()
+            withContext(Dispatchers.Main) {
+                exportandoPdf = false
+                btnExportarPdf.isEnabled = true
+                btnExportarPdf.text = "Exportar PDF Clientes"
+                if (archivo != null) {
+                    abrirPdf(archivo)
+                } else {
+                    Toast.makeText(this@RendimientoComercialActivity, "No se pudo generar el reporte de clientes.", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
     private fun generarPdf(): File {
         val pageWidth = 595
         val pageHeight = 842
@@ -1691,6 +1715,152 @@ class RendimientoComercialActivity : AppCompatActivity() {
         return archivo
     }
 
+    // Generador de PDF general para el Directorio de Clientes
+    private fun generarPdfDirectorioClientes(): File {
+        val pageWidth = 595
+        val pageHeight = 842
+        val margin = 28f
+        val contentWidth = pageWidth - margin * 2
+
+        val cNavy = Color.parseColor("#0F172A")
+        val cNavySubtitle = Color.parseColor("#CBD5E1")
+        val cNeutralBg = Color.parseColor("#F1F5F9")
+        val cDark = Color.parseColor("#0F172A")
+        val cMuted = Color.parseColor("#64748B")
+        val cBorder = Color.parseColor("#E2E8F0")
+
+        val doc = PdfDocument()
+        var pageNum = 1
+        var pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNum).create()
+        var page = doc.startPage(pageInfo)
+        var canvas: Canvas = page.canvas
+        var y = 0f
+
+        fun rr(rect: RectF, radius: Float, color: Int) {
+            val p = Paint().apply { isAntiAlias = true; this.color = color; style = Paint.Style.FILL }
+            canvas.drawRoundRect(rect, radius, radius, p)
+        }
+
+        fun rrBorde(rect: RectF, radius: Float, color: Int, ancho: Float = 1f) {
+            val p = Paint().apply { isAntiAlias = true; this.color = color; style = Paint.Style.STROKE; strokeWidth = ancho }
+            canvas.drawRoundRect(rect, radius, radius, p)
+        }
+
+        fun dibujarPieDePagina(currentNum: Int) {
+            val pFoot = Paint().apply { color = cMuted; textSize = 8f; isAntiAlias = true }
+            canvas.drawText("Dilo · Reporte de Clientes", margin, pageHeight - 16f, pFoot)
+            val pFootR = Paint(pFoot).apply { textAlign = Paint.Align.RIGHT }
+            canvas.drawText("Página $currentNum", pageWidth - margin, pageHeight - 16f, pFootR)
+        }
+
+        dibujarPieDePagina(pageNum)
+
+        fun nuevaPagina() {
+            doc.finishPage(page)
+            pageNum++
+            pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNum).create()
+            page = doc.startPage(pageInfo)
+            canvas = page.canvas
+            dibujarPieDePagina(pageNum)
+            y = 30f
+        }
+
+        fun asegurarEspacio(necesario: Float) {
+            if (y + necesario > pageHeight - 40) nuevaPagina()
+        }
+
+        canvas.drawRect(0f, 0f, pageWidth.toFloat(), 96f, Paint().apply { color = cNavy })
+        canvas.drawText("Directorio de Clientes", margin, 34f, Paint().apply { color = Color.WHITE; textSize = 18f; isFakeBoldText = true; isAntiAlias = true })
+        canvas.drawText(negocioNombre, margin, 52f, Paint().apply { color = cNavySubtitle; textSize = 10.5f; isAntiAlias = true })
+        val sdf = java.text.SimpleDateFormat("d/M/yyyy, h:mm:ss a", Locale("es", "EC"))
+        canvas.drawText("Generado: ${sdf.format(java.util.Date())}", margin, 68f, Paint().apply { color = cNavySubtitle; textSize = 8.5f; isAntiAlias = true })
+
+        y = 116f
+
+        val totalClientes = reporteClientesCompleto.size
+        val conDeuda = reporteClientesCompleto.count { it.saldoPendiente > 0 }
+        val totalPorCobrar = reporteClientesCompleto.sumOf { it.saldoPendiente }
+
+        val kpiH = 46f
+        asegurarEspacio(kpiH + 15f)
+        val rectKpi = RectF(margin, y, margin + contentWidth, y + kpiH)
+        rr(rectKpi, 8f, Color.WHITE)
+        rrBorde(rectKpi, 8f, cBorder, 1f)
+
+        val wTercio = contentWidth / 3f
+        val pKpiHead = Paint().apply { color = cMuted; textSize = 8f; isFakeBoldText = true; isAntiAlias = true; textAlign = Paint.Align.CENTER }
+        val pKpiVal = Paint().apply { color = cDark; textSize = 13f; isFakeBoldText = true; isAntiAlias = true; textAlign = Paint.Align.CENTER }
+
+        canvas.drawText("TOTAL CLIENTES", margin + wTercio * 0.5f, y + 15f, pKpiHead)
+        canvas.drawText("CON DEUDA", margin + wTercio * 1.5f, y + 15f, pKpiHead)
+        canvas.drawText("POR COBRAR", margin + wTercio * 2.5f, y + 15f, pKpiHead)
+
+        canvas.drawText(totalClientes.toString(), margin + wTercio * 0.5f, y + 34f, pKpiVal)
+        canvas.drawText(conDeuda.toString(), margin + wTercio * 1.5f, y + 34f, pKpiVal)
+        canvas.drawText("$${fmtMoney(totalPorCobrar)}", margin + wTercio * 2.5f, y + 34f, Paint(pKpiVal).apply { color = Color.parseColor("#EF4444") })
+
+        y += kpiH + 20f
+
+        asegurarEspacio(20f)
+        canvas.drawText("Listado General de Clientes y Saldos", margin, y, Paint().apply { color = cDark; textSize = 13f; isFakeBoldText = true; isAntiAlias = true })
+        y += 14f
+
+        val headerH = 18f
+        asegurarEspacio(headerH + 6f)
+        rr(RectF(margin, y, margin + contentWidth, y + headerH), 4f, cNeutralBg)
+        val pHC = Paint().apply { color = cMuted; textSize = 8f; isFakeBoldText = true; isAntiAlias = true }
+        canvas.drawText("CLIENTE / CÉDULA", margin + 10f, y + 12f, pHC)
+        canvas.drawText("FACTURAS", margin + 240f, y + 12f, pHC)
+        val pHR = Paint(pHC).apply { textAlign = Paint.Align.RIGHT }
+        canvas.drawText("TOTAL FACTURADO", margin + contentWidth - 110f, y + 12f, pHR)
+        canvas.drawText("SALDO PENDIENTE", margin + contentWidth - 10f, y + 12f, pHR)
+        y += headerH + 4f
+
+        reporteClientesCompleto.forEachIndexed { i, c ->
+            val rowH = 26f
+            if (y + rowH > pageHeight - 40) {
+                nuevaPagina()
+                rr(RectF(margin, y, margin + contentWidth, y + headerH), 4f, cNeutralBg)
+                canvas.drawText("CLIENTE / CÉDULA", margin + 10f, y + 12f, pHC)
+                canvas.drawText("FACTURAS", margin + 240f, y + 12f, pHC)
+                canvas.drawText("TOTAL FACTURADO", margin + contentWidth - 110f, y + 12f, pHR)
+                canvas.drawText("SALDO PENDIENTE", margin + contentWidth - 10f, y + 12f, pHR)
+                y += headerH + 4f
+            }
+            if (i % 2 == 0) rr(RectF(margin, y, margin + contentWidth, y + rowH), 3f, Color.parseColor("#F8FAFC"))
+
+            val pRow = Paint().apply { color = cDark; textSize = 9.5f; isFakeBoldText = true; isAntiAlias = true }
+            canvas.drawText(c.nombre, margin + 10f, y + 11f, pRow)
+
+            val pSub = Paint().apply { color = cMuted; textSize = 8f; isAntiAlias = true }
+            val idTxt = if (!c.identificacion.isNullOrBlank()) "CI/RUC: ${c.identificacion}" else "Sin identificación"
+            canvas.drawText(idTxt, margin + 10f, y + 21f, pSub)
+
+            val pRowNormal = Paint().apply { color = cDark; textSize = 9f; isAntiAlias = true }
+            canvas.drawText(c.numFacturas.toString(), margin + 240f, y + 16f, pRowNormal)
+
+            val pRowR = Paint(pRowNormal).apply { textAlign = Paint.Align.RIGHT }
+            canvas.drawText("$${fmtMoney(c.totalFacturado)}", margin + contentWidth - 110f, y + 16f, pRowR)
+
+            val deudaTxt = if (c.saldoPendiente > 0) "$${fmtMoney(c.saldoPendiente)}" else "$0.00"
+            canvas.drawText(deudaTxt, margin + contentWidth - 10f, y + 16f, Paint(pRowR).apply {
+                color = if (c.saldoPendiente > 0) Color.parseColor("#EF4444") else cDark
+                isFakeBoldText = true
+            })
+
+            y += rowH
+        }
+
+        doc.finishPage(page)
+
+        val carpeta = File(cacheDir, "reportes").apply { if (!exists()) mkdirs() }
+        val archivo = File(carpeta, "Reporte_General_Clientes.pdf")
+        FileOutputStream(archivo).use { doc.writeTo(it) }
+        doc.close()
+
+        return archivo
+    }
+
     private fun abrirPdf(archivo: File) {
         val uri: Uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", archivo)
         val intent = Intent(Intent.ACTION_VIEW).apply {
@@ -1708,5 +1878,207 @@ class RendimientoComercialActivity : AppCompatActivity() {
             }
             startActivity(Intent.createChooser(shareIntent, "Compartir PDF"))
         }
+    }
+
+    private fun exportarPdfCliente(cliente: ClienteReporteDto) {
+        if (exportandoPdf || isLoading) return
+        exportandoPdf = true
+
+        Toast.makeText(this, "Generando PDF de cliente...", Toast.LENGTH_SHORT).show()
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            val archivo = runCatching { generarPdfIndividualCliente(cliente) }.getOrNull()
+            withContext(Dispatchers.Main) {
+                exportandoPdf = false
+                if (archivo != null) {
+                    abrirPdf(archivo)
+                } else {
+                    Toast.makeText(this@RendimientoComercialActivity, "Error al generar el PDF del cliente.", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    private fun generarPdfIndividualCliente(cliente: ClienteReporteDto): File {
+        val pageWidth = 595
+        val pageHeight = 842
+        val margin = 28f
+        val contentWidth = pageWidth - margin * 2
+
+        val cNavy = Color.parseColor("#0F172A")
+        val cNavySubtitle = Color.parseColor("#CBD5E1")
+        val cNeutralBg = Color.parseColor("#F1F5F9")
+        val cDark = Color.parseColor("#0F172A")
+        val cMuted = Color.parseColor("#64748B")
+        val cBorder = Color.parseColor("#E2E8F0")
+
+        val doc = PdfDocument()
+        var pageNum = 1
+        var pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNum).create()
+        var page = doc.startPage(pageInfo)
+        var canvas: Canvas = page.canvas
+        var y = 0f
+
+        fun rr(rect: RectF, radius: Float, color: Int) {
+            val p = Paint().apply { isAntiAlias = true; this.color = color; style = Paint.Style.FILL }
+            canvas.drawRoundRect(rect, radius, radius, p)
+        }
+
+        fun rrBorde(rect: RectF, radius: Float, color: Int, ancho: Float = 1f) {
+            val p = Paint().apply { isAntiAlias = true; this.color = color; style = Paint.Style.STROKE; strokeWidth = ancho }
+            canvas.drawRoundRect(rect, radius, radius, p)
+        }
+
+        fun dibujarPieDePagina(currentNum: Int) {
+            val pFoot = Paint().apply { color = cMuted; textSize = 8f; isAntiAlias = true }
+            canvas.drawText("Dilo", margin, pageHeight - 16f, pFoot)
+            val pFootR = Paint(pFoot).apply { textAlign = Paint.Align.RIGHT }
+            canvas.drawText("Página $currentNum", pageWidth - margin, pageHeight - 16f, pFootR)
+        }
+
+        dibujarPieDePagina(pageNum)
+
+        fun nuevaPagina() {
+            doc.finishPage(page)
+            pageNum++
+            pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNum).create()
+            page = doc.startPage(pageInfo)
+            canvas = page.canvas
+            dibujarPieDePagina(pageNum)
+            y = 30f
+        }
+
+        fun asegurarEspacio(necesario: Float) {
+            if (y + necesario > pageHeight - 40) nuevaPagina()
+        }
+
+        canvas.drawRect(0f, 0f, pageWidth.toFloat(), 96f, Paint().apply { color = cNavy })
+        val paintTitle = Paint().apply { color = Color.WHITE; textSize = 18f; isFakeBoldText = true; isAntiAlias = true }
+        canvas.drawText("Reporte Individual de Cliente", margin, 34f, paintTitle)
+        canvas.drawText(negocioNombre, margin, 52f, Paint().apply { color = cNavySubtitle; textSize = 10.5f; isAntiAlias = true })
+        val sdf = java.text.SimpleDateFormat("d/M/yyyy, h:mm:ss a", Locale("es", "EC"))
+        canvas.drawText("Generado: ${sdf.format(java.util.Date())}", margin, 68f, Paint().apply { color = cNavySubtitle; textSize = 8.5f; isAntiAlias = true })
+
+        y = 116f
+
+        canvas.drawText(cliente.nombre, margin, y, Paint().apply { color = cDark; textSize = 16f; isFakeBoldText = true; isAntiAlias = true })
+        y += 14f
+        val identificacionTxt = if (!cliente.identificacion.isNullOrBlank()) "CI/RUC: ${cliente.identificacion}" else "CI/RUC: S/N"
+        canvas.drawText(identificacionTxt, margin, y, Paint().apply { color = cMuted; textSize = 11f; isAntiAlias = true })
+        y += 20f
+
+        val kpiH = 46f
+        asegurarEspacio(kpiH + 10f)
+        val rectKpi = RectF(margin, y, margin + contentWidth, y + kpiH)
+        rr(rectKpi, 8f, Color.WHITE)
+        rrBorde(rectKpi, 8f, cBorder, 1f)
+
+        val wTercio = contentWidth / 3f
+        val pKpiHead = Paint().apply { color = cMuted; textSize = 8f; isFakeBoldText = true; isAntiAlias = true; textAlign = Paint.Align.CENTER }
+        val pKpiVal = Paint().apply { color = cDark; textSize = 13f; isFakeBoldText = true; isAntiAlias = true; textAlign = Paint.Align.CENTER }
+
+        canvas.drawText("Facturas Emitidas", margin + wTercio * 0.5f, y + 15f, pKpiHead)
+        canvas.drawText("Total Facturado", margin + wTercio * 1.5f, y + 15f, pKpiHead)
+        canvas.drawText("Saldo Pendiente", margin + wTercio * 2.5f, y + 15f, pKpiHead)
+
+        canvas.drawText("${cliente.numFacturas}", margin + wTercio * 0.5f, y + 34f, pKpiVal)
+        canvas.drawText("$${fmtMoney(cliente.totalFacturado)}", margin + wTercio * 1.5f, y + 34f, pKpiVal)
+        canvas.drawText("$${fmtMoney(cliente.saldoPendiente)}", margin + wTercio * 2.5f, y + 34f, pKpiVal)
+
+        y += kpiH + 20f
+        val sdfShort = java.text.SimpleDateFormat("dd/MM/yyyy", Locale.US)
+
+        if (cliente.facturas.isNotEmpty()) {
+            asegurarEspacio(30f)
+            canvas.drawText("Historial de Facturas", margin, y, Paint().apply { color = cDark; textSize = 13f; isFakeBoldText = true; isAntiAlias = true })
+            y += 14f
+
+            val headerH = 18f
+            asegurarEspacio(headerH + 6f)
+            rr(RectF(margin, y, margin + contentWidth, y + headerH), 4f, cNeutralBg)
+            val pHC = Paint().apply { color = cMuted; textSize = 8f; isFakeBoldText = true; isAntiAlias = true }
+            canvas.drawText("COMPROBANTE", margin + 10f, y + 12f, pHC)
+            canvas.drawText("FECHA", margin + 130f, y + 12f, pHC)
+            canvas.drawText("FORMA PAGO", margin + 220f, y + 12f, pHC)
+            val pHR = Paint(pHC).apply { textAlign = Paint.Align.RIGHT }
+            canvas.drawText("ESTADO", margin + contentWidth - 85f, y + 12f, pHR)
+            canvas.drawText("TOTAL", margin + contentWidth - 10f, y + 12f, pHR)
+            y += headerH + 4f
+
+            cliente.facturas.sortedByDescending { f -> try { sdfShort.parse(f.fecha ?: "")?.time ?: 0L } catch(e: Exception) { 0L } }.forEachIndexed { i, f ->
+                val rowH = 16f
+                if (y + rowH > pageHeight - 40) {
+                    nuevaPagina()
+                    rr(RectF(margin, y, margin + contentWidth, y + headerH), 4f, cNeutralBg)
+                    canvas.drawText("COMPROBANTE", margin + 10f, y + 12f, pHC)
+                    canvas.drawText("FECHA", margin + 130f, y + 12f, pHC)
+                    canvas.drawText("FORMA PAGO", margin + 220f, y + 12f, pHC)
+                    canvas.drawText("ESTADO", margin + contentWidth - 85f, y + 12f, pHR)
+                    canvas.drawText("TOTAL", margin + contentWidth - 10f, y + 12f, pHR)
+                    y += headerH + 4f
+                }
+                if (i % 2 == 0) rr(RectF(margin, y, margin + contentWidth, y + rowH), 3f, Color.parseColor("#F8FAFC"))
+                val pRow = Paint().apply { color = cDark; textSize = 9f; isAntiAlias = true }
+                canvas.drawText("#${f.numero}", margin + 10f, y + 11f, pRow)
+                canvas.drawText(f.fecha ?: "-", margin + 130f, y + 11f, pRow)
+                canvas.drawText(f.tipo ?: "OTRO", margin + 220f, y + 11f, pRow)
+                val pRowR = Paint(pRow).apply { textAlign = Paint.Align.RIGHT }
+                canvas.drawText(f.estado ?: "-", margin + contentWidth - 85f, y + 11f, pRowR)
+                canvas.drawText("$${fmtMoney(f.monto)}", margin + contentWidth - 10f, y + 11f, Paint(pRowR).apply { isFakeBoldText = true })
+                y += rowH
+            }
+            y += 16f
+        }
+
+        if (cliente.creditos.isNotEmpty()) {
+            asegurarEspacio(30f)
+            canvas.drawText("Cuentas de Crédito / Saldos Pendientes", margin, y, Paint().apply { color = cDark; textSize = 13f; isFakeBoldText = true; isAntiAlias = true })
+            y += 14f
+
+            val headerH = 18f
+            asegurarEspacio(headerH + 6f)
+            rr(RectF(margin, y, margin + contentWidth, y + headerH), 4f, cNeutralBg)
+            val pHC = Paint().apply { color = cMuted; textSize = 8f; isFakeBoldText = true; isAntiAlias = true }
+            canvas.drawText("REF. FACTURA", margin + 10f, y + 12f, pHC)
+            canvas.drawText("VENCIMIENTO", margin + 130f, y + 12f, pHC)
+            canvas.drawText("ESTADO", margin + 220f, y + 12f, pHC)
+            val pHR = Paint(pHC).apply { textAlign = Paint.Align.RIGHT }
+            canvas.drawText("MONTO ORIGINAL", margin + contentWidth - 85f, y + 12f, pHR)
+            canvas.drawText("DEUDA ACTUAL", margin + contentWidth - 10f, y + 12f, pHR)
+            y += headerH + 4f
+
+            cliente.creditos.sortedByDescending { c -> try { sdfShort.parse(c.fechaVencimiento ?: "")?.time ?: 0L } catch(e: Exception) { 0L } }.forEachIndexed { i, c ->
+                val rowH = 16f
+                if (y + rowH > pageHeight - 40) {
+                    nuevaPagina()
+                    rr(RectF(margin, y, margin + contentWidth, y + headerH), 4f, cNeutralBg)
+                    canvas.drawText("REF. FACTURA", margin + 10f, y + 12f, pHC)
+                    canvas.drawText("VENCIMIENTO", margin + 130f, y + 12f, pHC)
+                    canvas.drawText("ESTADO", margin + 220f, y + 12f, pHC)
+                    canvas.drawText("MONTO ORIGINAL", margin + contentWidth - 85f, y + 12f, pHR)
+                    canvas.drawText("DEUDA ACTUAL", margin + contentWidth - 10f, y + 12f, pHR)
+                    y += headerH + 4f
+                }
+                if (i % 2 == 0) rr(RectF(margin, y, margin + contentWidth, y + rowH), 3f, Color.parseColor("#F8FAFC"))
+                val pRow = Paint().apply { color = cDark; textSize = 9f; isAntiAlias = true }
+                canvas.drawText(c.factura ?: "S/N", margin + 10f, y + 11f, pRow)
+                canvas.drawText(c.fechaVencimiento ?: "-", margin + 130f, y + 11f, pRow)
+                canvas.drawText(c.estado ?: "PENDIENTE", margin + 220f, y + 11f, pRow)
+                val pRowR = Paint(pRow).apply { textAlign = Paint.Align.RIGHT }
+                canvas.drawText("$${fmtMoney(c.montoTotal)}", margin + contentWidth - 85f, y + 11f, pRowR)
+                canvas.drawText("$${fmtMoney(c.saldoPendiente)}", margin + contentWidth - 10f, y + 11f, Paint(pRowR).apply { isFakeBoldText = true })
+                y += rowH
+            }
+        }
+
+        doc.finishPage(page)
+
+        val carpeta = File(cacheDir, "reportes").apply { if (!exists()) mkdirs() }
+        val nombreLimpio = cliente.nombre.replace(Regex("[^a-zA-Z0-9]"), "_").take(20)
+        val archivo = File(carpeta, "Estado_Cuenta_$nombreLimpio.pdf")
+        FileOutputStream(archivo).use { doc.writeTo(it) }
+        doc.close()
+
+        return archivo
     }
 }

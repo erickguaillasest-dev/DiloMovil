@@ -11,8 +11,6 @@ import android.view.View
 import android.widget.*
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -44,7 +42,7 @@ class ProveedoresActivity : AppCompatActivity() {
     private lateinit var spinnerEstado: AutoCompleteTextView
     private lateinit var layoutLoading: FrameLayout
     private lateinit var tvListaVacia: TextView
-    private lateinit var btnNuevoProveedor: MaterialButton
+    private lateinit var btnNuevoProveedor: com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
     private lateinit var btnRegresar: ImageButton
 
     private lateinit var tvKpiTotalProveedores: TextView
@@ -204,6 +202,7 @@ class ProveedoresActivity : AppCompatActivity() {
         val etRuc = dialogView.findViewById<TextInputEditText>(R.id.etRuc)
         val etTelefono = dialogView.findViewById<TextInputEditText>(R.id.etTelefono)
         val etRazonSocial = dialogView.findViewById<TextInputEditText>(R.id.etRazonSocial)
+        val spinnerBuscarCategoria = dialogView.findViewById<AutoCompleteTextView>(R.id.spinnerBuscarCategoria)
         val chipGroup = dialogView.findViewById<ChipGroup>(R.id.chipGroupCategoriasDialog)
         val cbActivo = dialogView.findViewById<MaterialCheckBox>(R.id.cbActivo)
         val btnCancelar = dialogView.findViewById<MaterialButton>(R.id.btnCancelar)
@@ -214,20 +213,45 @@ class ProveedoresActivity : AppCompatActivity() {
 
         val idsSeleccionados = proveedorParaEditar?.categorias?.mapNotNull { it.id }?.toMutableList() ?: mutableListOf()
 
-        chipGroup.removeAllViews()
-        listaCategoriasDisponibles.forEach { cat ->
-            val chip = Chip(this).apply {
-                text = cat.nombre
-                isCheckable = true
-                isChecked = idsSeleccionados.contains(cat.id)
-                chipBackgroundColor = ColorStateList.valueOf(Color.parseColor("#F1F5F9"))
-                setOnCheckedChangeListener { _, checked ->
-                    cat.id?.let { id ->
-                        if (checked) idsSeleccionados.add(id) else idsSeleccionados.remove(id)
+        // Función para renderizar los chips dinámicamente según los IDs seleccionados
+        fun refrescarChips() {
+            chipGroup.removeAllViews()
+            idsSeleccionados.forEach { catId ->
+                val categoria = listaCategoriasDisponibles.find { it.id == catId }
+                if (categoria != null) {
+                    val chip = Chip(this).apply {
+                        text = categoria.nombre
+                        isCloseIconVisible = true
+                        chipBackgroundColor = ColorStateList.valueOf(Color.parseColor("#EFF6FF"))
+                        setTextColor(Color.parseColor("#1D4ED8"))
+                        setOnCloseIconClickListener {
+                            idsSeleccionados.remove(catId)
+                            refrescarChips()
+                        }
                     }
+                    chipGroup.addView(chip)
                 }
             }
-            chipGroup.addView(chip)
+        }
+
+        refrescarChips()
+
+        // Configurar AutoCompleteTextView para buscar y agregar categorías
+        val nombresCategorias = listaCategoriasDisponibles.map { it.nombre ?: "" }
+        val adapterCat = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, nombresCategorias)
+        spinnerBuscarCategoria.setAdapter(adapterCat)
+        spinnerBuscarCategoria.threshold = 1
+        spinnerBuscarCategoria.setOnClickListener { spinnerBuscarCategoria.showDropDown() }
+
+        spinnerBuscarCategoria.setOnItemClickListener { parent, _, position, _ ->
+            val nombreSeleccionado = parent.getItemAtPosition(position).toString()
+            val categoriaEncontrada = listaCategoriasDisponibles.find { it.nombre.equals(nombreSeleccionado, ignoreCase = true) }
+
+            if (categoriaEncontrada?.id != null && !idsSeleccionados.contains(categoriaEncontrada.id)) {
+                idsSeleccionados.add(categoriaEncontrada.id!!)
+                refrescarChips()
+            }
+            spinnerBuscarCategoria.setText("", false)
         }
 
         if (esEdicion) {
@@ -253,7 +277,6 @@ class ProveedoresActivity : AppCompatActivity() {
             val telefonoRaw = etTelefono.text.toString().trim()
             val activo = cbActivo.isChecked
 
-            // Validación detallada de los campos del diálogo
             if (!validarCamposProveedor(etRuc, ruc, etRazonSocial, nombreComercial, etTelefono, telefonoRaw)) {
                 return@setOnClickListener
             }
@@ -276,9 +299,6 @@ class ProveedoresActivity : AppCompatActivity() {
         alertDialog.show()
     }
 
-    /**
-     * Valida los datos ingresados en el formulario emergente para crear o editar un proveedor.
-     */
     private fun validarCamposProveedor(
         etRuc: TextInputEditText,
         ruc: String,
@@ -290,7 +310,6 @@ class ProveedoresActivity : AppCompatActivity() {
         var esValido = true
         var primerCampoError: View? = null
 
-        // Validación RUC / DNI (Obligatorio, numérico de 10 a 13 dígitos)
         if (ruc.isBlank()) {
             etRuc.error = "El RUC o DNI es obligatorio"
             if (primerCampoError == null) primerCampoError = etRuc
@@ -303,7 +322,6 @@ class ProveedoresActivity : AppCompatActivity() {
             etRuc.error = null
         }
 
-        // Validación Nombre Comercial / Razón Social (Obligatorio, mínimo 3 caracteres)
         if (nombreComercial.isBlank()) {
             etRazonSocial.error = "El Nombre Comercial es obligatorio"
             if (primerCampoError == null) primerCampoError = etRazonSocial
@@ -316,7 +334,6 @@ class ProveedoresActivity : AppCompatActivity() {
             etRazonSocial.error = null
         }
 
-        // Validación Teléfono (Opcional, si se ingresa debe tener entre 7 y 10 dígitos numéricos)
         if (telefonoRaw.isNotBlank()) {
             if (!telefonoRaw.matches(Regex("^[0-9]{7,10}$"))) {
                 etTelefono.error = "El teléfono debe contener entre 7 y 10 dígitos"
