@@ -48,7 +48,7 @@ class LoginActivity : AppCompatActivity() {
 
         if (sessionManager.isSolicitudPendiente()) {
             sessionManager.clearSession()
-            sessionManager.setSolicitudPendiente(false) // Limpiamos la bandera para permitir nuevos intentos
+            sessionManager.setSolicitudPendiente(false)
         } else if (sessionManager.isLoggedIn()) {
             redirigirSegunRolGuardado()
             return
@@ -145,11 +145,17 @@ class LoginActivity : AppCompatActivity() {
                     val body = response.body()
                     if (body != null) {
 
-                        // Verificamos de inmediato si el rol o estado devuelto es pendiente
+                        if (body.suspendido == true) {
+                            setLoading(false)
+                            sessionManager.clearSession()
+                            Toast.makeText(this@LoginActivity, "Tu cuenta se encuentra suspendida. No puedes iniciar sesión.", Toast.LENGTH_LONG).show()
+                            return@launch
+                        }
+
                         val rolAux = body.rol?.uppercase()?.trim() ?: ""
                         if (rolAux == "PENDIENTE" || rolAux == "PENDING") {
                             setLoading(false)
-                            sessionManager.clearSession() // Limpiamos todo rastro de sesión previa
+                            sessionManager.clearSession()
                             SolicitudPendienteDialog(this@LoginActivity).show()
                             return@launch
                         }
@@ -157,7 +163,6 @@ class LoginActivity : AppCompatActivity() {
                         sessionManager.saveToken(body.token, body.tokenType)
                         sessionManager.saveUserSession(body)
 
-                        // Verificación auxiliar con el endpoint de estado
                         try {
                             val authHeader = sessionManager.getAuthHeader()
                             if (authHeader != null) {
@@ -165,11 +170,24 @@ class LoginActivity : AppCompatActivity() {
 
                                 if (estadoRes.isSuccessful) {
                                     val jsonResponse = estadoRes.body()?.string() ?: ""
-                                    // Solo confiamos en el campo real "tienePendiente".
-                                    // Antes se usaba jsonResponse.contains("PENDIENTE", ignoreCase = true),
-                                    // lo cual detectaba la palabra "pendiente" en CUALQUIER parte del JSON
-                                    // (facturas pendientes, cuotas pendientes, etc.) y bloqueaba por error
-                                    // a usuarios con roles distintos a admin que sí podían ingresar.
+
+                                    val suspendidoServidor = try {
+                                        if (jsonResponse.isNotBlank()) {
+                                            org.json.JSONObject(jsonResponse).optBoolean("suspendido", false)
+                                        } else {
+                                            false
+                                        }
+                                    } catch (e: Exception) {
+                                        false
+                                    }
+
+                                    if (suspendidoServidor) {
+                                        setLoading(false)
+                                        sessionManager.clearSession()
+                                        Toast.makeText(this@LoginActivity, "Tu cuenta se encuentra suspendida.", Toast.LENGTH_LONG).show()
+                                        return@launch
+                                    }
+
                                     val tienePendiente = try {
                                         if (jsonResponse.isNotBlank()) {
                                             org.json.JSONObject(jsonResponse).optBoolean("tienePendiente", false)
@@ -188,9 +206,7 @@ class LoginActivity : AppCompatActivity() {
                                     }
                                 }
                             }
-                        } catch (e: Exception) {
-                            // Ignorar error de red secundario
-                        }
+                        } catch (e: Exception) {}
 
                         val negocioId = body.selectedBusinessId ?: body.negocioId
 
@@ -247,8 +263,13 @@ class LoginActivity : AppCompatActivity() {
                 } else {
                     setLoading(false)
 
-                    // Capturar código 403 o si el mensaje del servidor indica que la solicitud está pendiente
                     val errorBodyStr = response.errorBody()?.string() ?: ""
+                    if (errorBodyStr.contains("suspendido", ignoreCase = true) || response.code() == 403 && errorBodyStr.contains("suspendido", ignoreCase = true)) {
+                        sessionManager.clearSession()
+                        Toast.makeText(this@LoginActivity, "Tu cuenta se encuentra suspendida.", Toast.LENGTH_LONG).show()
+                        return@launch
+                    }
+
                     if (errorBodyStr.contains("pendiente", ignoreCase = true) || response.code() == 403) {
                         sessionManager.clearSession()
                         SolicitudPendienteDialog(this@LoginActivity).show()

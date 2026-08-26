@@ -56,7 +56,6 @@ class UsuarioDialog : DialogFragment() {
     private lateinit var imgAvatarUsuario: ShapeableImageView
     private lateinit var btnCambiarFoto: MaterialCardView
 
-    // Layouts y Campos
     private lateinit var tilDni: TextInputLayout
     private lateinit var etDni: TextInputEditText
 
@@ -277,25 +276,20 @@ class UsuarioDialog : DialogFragment() {
         val password = etContrasena.text.toString()
         val fechaNacimiento = etFechaNacimiento.text.toString().trim()
 
-        // 1. Cédula Ecuatoriana (dígito verificador)
         val errorDni = FormValidator.cedulaEcuatoriana(dni)
         FormValidator.marcarError(tilDni, errorDni)
 
-        // 2. Primer Nombre
         val errorPrimerNombre = FormValidator.requerido(primerNombre, "El primer nombre")
             ?: FormValidator.longitudMinima(primerNombre, 2, "El primer nombre")
         FormValidator.marcarError(tilPrimerNombre, errorPrimerNombre)
 
-        // 3. Apellido Paterno
         val errorApellidoPaterno = FormValidator.requerido(apellidoPaterno, "El apellido paterno")
             ?: FormValidator.longitudMinima(apellidoPaterno, 2, "El apellido paterno")
         FormValidator.marcarError(tilApellidoPaterno, errorApellidoPaterno)
 
-        // 4. Correo electrónico
         val errorEmail = FormValidator.correo(email)
         FormValidator.marcarError(tilEmail, errorEmail)
 
-        // 5. Contraseña (Obligatoria al crear; opcional al editar salvo si se ingresan caracteres)
         val errorPassword = if (modo == MODO_CREAR) {
             FormValidator.requerido(password, "La contraseña")
                 ?: FormValidator.longitudMinima(password, 8, "La contraseña")
@@ -304,13 +298,11 @@ class UsuarioDialog : DialogFragment() {
         } else null
         FormValidator.marcarError(layoutContrasena, errorPassword)
 
-        // 6. Selección de Parroquia
         val errorParroquia = if (modo == MODO_CREAR && parroquiaSeleccionadaId == null) {
             "Debe seleccionar una parroquia obligatoria."
         } else null
         FormValidator.marcarError(tilParroquia, errorParroquia)
 
-        // 7. Fecha de Nacimiento / Edad (>= 18 y < 99)
         val errorFecha = FormValidator.requerido(fechaNacimiento, "La fecha de nacimiento")
             ?: run {
                 val edad = calcularEdad(fechaNacimiento)
@@ -323,7 +315,6 @@ class UsuarioDialog : DialogFragment() {
             }
         FormValidator.marcarError(tilFechaNacimiento, errorFecha)
 
-        // Detener ejecución si existe algún error activo
         if (errorDni != null || errorPrimerNombre != null || errorApellidoPaterno != null ||
             errorEmail != null || errorPassword != null || errorParroquia != null || errorFecha != null) {
             return

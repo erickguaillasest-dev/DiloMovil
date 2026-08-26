@@ -510,4 +510,11 @@ interface ApiService {
         @Path("id") id: Long
     ): retrofit2.Response<ResponseBody>
 
+  @PATCH("api/v1/usuarios/{id}/suspension")
+    suspend fun suspenderUsuario(
+        @Header("Authorization") token: String,
+        @Path("id") usuarioId: Long,
+        @Query("estado") suspendido: Boolean
+    ): Response<Void>
+
 }

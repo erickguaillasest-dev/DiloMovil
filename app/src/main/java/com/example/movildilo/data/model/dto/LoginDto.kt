@@ -56,6 +56,9 @@ data class LoginResponseDto(
     @SerializedName("needsRoleSelection")
     val needsRoleSelection: Boolean? = false,
 
+    @SerializedName("suspendido")
+    val suspendido: Boolean? = null,
+
     @SerializedName("superAdmin")
     val superAdmin: Boolean? = false
 )

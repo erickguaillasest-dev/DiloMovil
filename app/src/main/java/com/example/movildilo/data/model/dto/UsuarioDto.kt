@@ -2,7 +2,6 @@ package com.example.movildilo.data.model.dto
 
 import com.google.gson.annotations.SerializedName
 
-
 data class UsuarioDto(
     @SerializedName("id")
     val id: Long? = null,
@@ -24,6 +23,9 @@ data class UsuarioDto(
 
     @SerializedName("estado")
     val estado: String? = null,
+
+    @SerializedName("suspendido")
+    val suspendido: Boolean? = null,
 
     @SerializedName("avatarUrl")
     val avatarUrl: String? = null,

@@ -41,7 +41,6 @@ import java.util.Locale
 
 class PropietarioActivity : AppCompatActivity() {
 
-
     private lateinit var ivAvatar: ShapeableImageView
     private lateinit var tvWelcome: TextView
     private lateinit var tvBusinessName: TextView
@@ -61,18 +60,14 @@ class PropietarioActivity : AppCompatActivity() {
 
     private lateinit var cardProveedores: LinearLayout
     private lateinit var cardBodegas: LinearLayout
-
     private lateinit var cardCategorias: LinearLayout
-
     private lateinit var cardCuentasPorCobrar: LinearLayout
-
     private lateinit var cardMovimientos: LinearLayout
     private lateinit var cardRendimiento: LinearLayout
 
     private lateinit var btnAdminEquipo: LinearLayout
     private lateinit var btnAdminConfig: LinearLayout
     private lateinit var btnAdminPerfil: LinearLayout
-
     private lateinit var cardAbastecimiento: LinearLayout
 
     private lateinit var rvEquipo: RecyclerView
@@ -83,7 +78,6 @@ class PropietarioActivity : AppCompatActivity() {
     private var negocioId: Long = -1L
     private var usuarioNombre: String = "Administrador"
     private var negocioNombreReal: String = "Mi Empresa"
-
 
     private var contextoNegocioTexto: String = "Aún no se ha cargado la información del negocio."
     private var alertasTexto: String = "No hay productos próximos a caducar en los siguientes 30 días."
@@ -99,6 +93,7 @@ class PropietarioActivity : AppCompatActivity() {
         setupRecyclerView()
         cargarDatosUsuarioLocal()
         setupListeners()
+        verificarEstadoSuspension()
         cargarContextoCompletoDashboard()
     }
 
@@ -109,7 +104,6 @@ class PropietarioActivity : AppCompatActivity() {
         btnLogout = findViewById(R.id.btnLogout)
 
         cardAbastecimiento = findViewById(R.id.cardAbastecimiento)
-
         cardAlert = findViewById(R.id.cardAlert)
         btnVerStock = findViewById(R.id.btnVerStock)
 
@@ -187,7 +181,7 @@ class PropietarioActivity : AppCompatActivity() {
         cardBodegas.setOnClickListener { startActivity(Intent(this, BodegasActivity::class.java)) }
         cardProveedores.setOnClickListener { startActivity(Intent(this, ProveedoresActivity::class.java)) }
         cardCategorias.setOnClickListener { startActivity(Intent(this, CategoriasActivity::class.java)) }
-        cardCuentasPorCobrar.setOnClickListener { startActivity(Intent(this,CuentasPorCobrarActivity::class.java)) }
+        cardCuentasPorCobrar.setOnClickListener { startActivity(Intent(this, CuentasPorCobrarActivity::class.java)) }
         cardMovimientos.setOnClickListener { startActivity(Intent(this, KardexActivity::class.java)) }
         cardRendimiento.setOnClickListener { startActivity(Intent(this, RendimientoComercialActivity::class.java)) }
 
@@ -200,6 +194,34 @@ class PropietarioActivity : AppCompatActivity() {
         }
 
         fabZoe.setOnClickListener { abrirChatZoe() }
+    }
+
+    private fun verificarEstadoSuspension() {
+        val authHeader = sessionManager.getAuthHeader() ?: return
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.apiService.getMiPerfil(authHeader)
+                if (response.isSuccessful) {
+                    val usuario = response.body()
+                    if (usuario?.suspendido == true) {
+                        MaterialAlertDialogBuilder(this@PropietarioActivity)
+                            .setTitle("Cuenta o Negocio Suspendido")
+                            .setMessage("El acceso a este negocio se encuentra suspendido. ¿Qué deseas hacer?")
+                            .setCancelable(false)
+                            .setPositiveButton("Salir del negocio") { dialog, _ ->
+                                dialog.dismiss()
+                                sessionManager.clearSession()
+                                val intent = Intent(this@PropietarioActivity, LoginActivity::class.java)
+                                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                startActivity(intent)
+                                finish()
+                            }
+                            .setNegativeButton("Esperar", null)
+                            .show()
+                    }
+                }
+            } catch (_: Exception) {}
+        }
     }
 
     private fun cargarContextoCompletoDashboard() {

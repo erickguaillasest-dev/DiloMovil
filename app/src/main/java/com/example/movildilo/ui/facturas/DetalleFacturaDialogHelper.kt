@@ -35,7 +35,8 @@ object DetalleFacturaDialogHelper {
         val porcentajeIva: Double = 15.0,
         val items: List<ItemLinea> = emptyList(),
         val mostrarBotonImprimir: Boolean = false,
-        val onImprimir: (() -> Unit)? = null
+        val onImprimir: (() -> Unit)? = null,
+        val clienteIdentificacion: String? = null
     )
 
     fun mostrar(context: Context, datos: DatosFactura) {
@@ -44,6 +45,7 @@ object DetalleFacturaDialogHelper {
         val tvNumero = view.findViewById<TextView>(R.id.tvNumeroFacturaDetalle)
         val tvFecha = view.findViewById<TextView>(R.id.tvFechaFacturaDetalle)
         val tvCliente = view.findViewById<TextView>(R.id.tvClienteNombreDetalle)
+        val tvClienteIdentificacion = view.findViewById<TextView>(R.id.tvClienteIdentificacionDetalle)
         val tvMetodoPago = view.findViewById<TextView>(R.id.tvMetodoPagoDetalle)
         val tvEstadoBadge = view.findViewById<TextView>(R.id.tvEstadoBadge)
         val containerProductos = view.findViewById<LinearLayout>(R.id.containerProductosDetalle)
@@ -59,6 +61,12 @@ object DetalleFacturaDialogHelper {
         tvNumero.text = "Nº ${datos.numero.ifBlank { "S/N" }}"
         tvFecha.text = datos.fecha
         tvCliente.text = datos.clienteNombre
+        if (!datos.clienteIdentificacion.isNullOrBlank()) {
+            tvClienteIdentificacion.text = "CI/RUC: ${datos.clienteIdentificacion}"
+            tvClienteIdentificacion.visibility = View.VISIBLE
+        } else {
+            tvClienteIdentificacion.visibility = View.GONE
+        }
         tvMetodoPago.text = datos.metodoPago
         tvEstadoBadge.text = datos.estado.uppercase(Locale.US)
 

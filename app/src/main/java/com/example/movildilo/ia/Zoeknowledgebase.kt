@@ -43,9 +43,6 @@ object ZoeKnowledgeBase {
         "NO tienes acceso desde el móvil a: Facturas y Ventas, Clientes, Cuentas por Cobrar, Mi Equipo ni Configuración del Negocio (esos son solo del rol Propietario)."
     )
 
-    private val FUNCIONES_SOLO_WEB = listOf(
-        "Mejor experiencia visual en una pantalla mas grande"
-    )
 
     private val FUNCIONES_ZOE = listOf(
         "Chat de texto y voz: puedes escribirle o hablarle, y ella puede leerte la respuesta en voz alta.",
@@ -77,8 +74,6 @@ object ZoeKnowledgeBase {
             2. CAPACIDADES PROPIAS DE ZOE (tú misma):
             ${FUNCIONES_ZOE.joinToString("\n            ") { "- $it" }}
 
-            3. FUNCIONES EXCLUSIVAS DE LA PLATAFORMA WEB (no existen en el móvil todavía):
-            ${FUNCIONES_SOLO_WEB.joinToString("\n            ") { "- $it" }}
 
             📊 DATOS REALES DE LA BASE DE DATOS EN TIEMPO REAL:
             $contextoNegocioTexto

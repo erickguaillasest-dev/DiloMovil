@@ -40,6 +40,7 @@ import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
 import com.example.movildilo.data.model.dto.ClienteReporteDto
+import com.example.movildilo.data.model.dto.ClienteResponseDto
 import com.example.movildilo.data.model.dto.ClienteTopDto
 import com.example.movildilo.data.model.dto.ComparativaItemDto
 import com.example.movildilo.data.model.dto.CreditoClienteResumenDto
@@ -119,6 +120,7 @@ class RendimientoComercialActivity : AppCompatActivity() {
 
     private var facturasRaw: List<FacturaResponseDto> = emptyList()
     private var cuentasRaw: List<CuentaPorCobrarResponseDto> = emptyList()
+    private var clientesRaw: List<ClienteResponseDto> = emptyList()
     private var reporteClientesCompleto: List<ClienteReporteDto> = emptyList()
 
     private var ventasPeriodo = 0.0
@@ -211,7 +213,6 @@ class RendimientoComercialActivity : AppCompatActivity() {
         chip30.setOnClickListener { cambiarPeriodo(30) }
         chip90.setOnClickListener { cambiarPeriodo(90) }
 
-        // Configuración inicial del botón principal de exportación (Resumen General)
         btnExportarPdf.setOnClickListener { exportarPdf() }
 
         etBuscarClienteRendimiento.addTextChangedListener(object : TextWatcher {
@@ -281,9 +282,14 @@ class RendimientoComercialActivity : AppCompatActivity() {
             val facturasReq = async { runCatching { api.getFacturas(authHeader, negocioId) }.getOrNull()?.body() ?: emptyList() }
             val negocioReq = async { runCatching { api.getNegocio(authHeader, negocioId) }.getOrNull()?.body() }
             val cuentasReq = async { runCatching { api.getCuentasPorCobrar(authHeader, negocioId) }.getOrNull()?.body() ?: emptyList() }
+            // Fuente confiable de CI/RUC: el endpoint de clientes trae la ficha completa del cliente
+            // (dni, nombre, etc.), a diferencia del objeto "cliente" embebido dentro de cada factura o
+            // cuenta por cobrar, que muchas veces viene incompleto o sin ese dato.
+            val clientesReq = async { runCatching { api.getClientes(authHeader, negocioId) }.getOrNull()?.body() ?: emptyList() }
 
             facturasRaw = facturasReq.await()
             cuentasRaw = cuentasReq.await()
+            clientesRaw = clientesReq.await()
             val negocio = negocioReq.await()
 
             if (negocio != null) {
@@ -317,21 +323,116 @@ class RendimientoComercialActivity : AppCompatActivity() {
     }
 
     private fun procesarReporteClientes() {
-        val mapClientes = mutableMapOf<String, ClienteReporteDto>()
+        // Índices para resolver SIEMPRE al mismo cliente, sin importar si el registro
+        // que estamos procesando (factura o cuenta por cobrar) trae DNI/RUC, solo nombre, o ambos.
+        val dniIndex = mutableMapOf<String, ClienteReporteDto>()
+        val nombreIndex = mutableMapOf<String, ClienteReporteDto>()
+        val clientesUnicos = mutableListOf<ClienteReporteDto>()
+
+        // Índices adicionales que enlazan cada FACTURA (por id y por número) con el cliente al que
+        // ya quedó asignada. Esto es lo que de verdad evita el cliente duplicado: una cuenta por
+        // cobrar SIEMPRE pertenece a una factura concreta, así que si sabemos a qué cliente
+        // corresponde esa factura, no hace falta volver a adivinar por nombre/DNI (que es donde
+        // fallaba antes cuando el nombre venía formateado distinto o el DNI faltaba en un lado).
+        val facturaIdToCliente = mutableMapOf<Long, ClienteReporteDto>()
+        val facturaNumeroToCliente = mutableMapOf<String, ClienteReporteDto>()
+
+        fun limpiarDni(identificacionCruda: String?): String? =
+            identificacionCruda?.trim()?.filter { it.isLetterOrDigit() }?.takeIf { it.isNotBlank() }
+
+        // Fuente autoritativa de CI/RUC: el objeto "cliente" embebido dentro de cada factura o cuenta
+        // por cobrar suele venir incompleto (a veces el backend ni siquiera manda ese campo ahí).
+        // El endpoint dedicado de clientes (GET /clientes) sí trae la ficha completa, así que la
+        // usamos para "rellenar" la identificación cuando la factura/cuenta no la trae.
+        val clientesPorId = clientesRaw.mapNotNull { c -> c.id?.let { it to c } }.toMap()
+        val clientesPorNombre = mutableMapOf<String, ClienteResponseDto>()
+        clientesRaw.forEach { c ->
+            val nombreCompleto = c.nombreCompleto?.takeIf { it.isNotBlank() }
+                ?: listOfNotNull(c.primerNombre, c.apellidoPaterno).joinToString(" ").takeIf { it.isNotBlank() }
+            if (nombreCompleto != null) {
+                clientesPorNombre[normalizarNombreCliente(nombreCompleto)] = c
+            }
+        }
+
+        fun identificacionAutoritativa(clienteId: Long?, nombreCrudo: String?, identificacionEmbebida: String?): String? {
+            val porId = clienteId?.let { clientesPorId[it] }?.dni?.let { limpiarDni(it) }
+            if (porId != null) return porId
+            val porNombre = nombreCrudo
+                ?.let { clientesPorNombre[normalizarNombreCliente(it)] }
+                ?.dni?.let { limpiarDni(it) }
+            if (porNombre != null) return porNombre
+            return limpiarDni(identificacionEmbebida)
+        }
+
+        /**
+         * Busca (o crea) el ClienteReporteDto correspondiente a [nombreCrudo] / [identificacionCruda]
+         * usando únicamente los índices de DNI/nombre. Se usa como respaldo cuando no hay forma de
+         * enlazar el registro a una factura ya procesada (ver [facturaIdToCliente]/[facturaNumeroToCliente]).
+         */
+        fun resolverCliente(nombreCrudo: String?, identificacionCruda: String?): ClienteReporteDto? {
+            val nombreLimpio = nombreCrudo?.trim()?.takeIf { it.isNotBlank() } ?: "Consumidor Final"
+            val nombreNorm = normalizarNombreCliente(nombreLimpio)
+            if (nombreNorm.contains("consumidor final") || nombreNorm.contains("consumidorfinal")) return null
+
+            val dni = limpiarDni(identificacionCruda)
+
+            // 1) Si ya conocemos este DNI/RUC, es el mismo cliente sin importar cómo venga el nombre.
+            var cliente = dni?.let { dniIndex[it] }
+            // 2) Si no, intentamos emparejar por nombre normalizado.
+            if (cliente == null) cliente = nombreIndex[nombreNorm]
+            // 3) Si tampoco existe, es un cliente nuevo.
+            if (cliente == null) {
+                cliente = ClienteReporteDto().apply {
+                    this.key = dni?.let { "dni_$it" } ?: "nom_$nombreNorm"
+                    this.nombre = nombreLimpio
+                    this.identificacion = dni
+                }
+                clientesUnicos.add(cliente)
+            }
+
+            // Registra/actualiza ambos índices y completa datos faltantes, para que la próxima vez
+            // que aparezca este cliente (por cualquiera de las dos vías) se encuentre este mismo registro.
+            if (dni != null) dniIndex[dni] = cliente
+            nombreIndex[nombreNorm] = cliente
+            if (cliente.identificacion.isNullOrBlank() && !dni.isNullOrBlank()) {
+                cliente.identificacion = dni
+            }
+            if (cliente.nombre.isBlank() || cliente.nombre == "Cliente") {
+                cliente.nombre = nombreLimpio
+            }
+
+            return cliente
+        }
+
+        /**
+         * Registra a [cliente] bajo el DNI/nombre indicados en TODOS los índices, aunque haya sido
+         * resuelto por el enlace de factura y no por [resolverCliente]. Así, si más adelante aparece
+         * otra cuenta por cobrar del mismo cliente sin factura enlazable, igual se encontrará por
+         * DNI o por nombre en vez de crear un cliente nuevo.
+         */
+        fun registrarAlias(cliente: ClienteReporteDto, nombreCrudo: String?, identificacionCruda: String?) {
+            val dni = limpiarDni(identificacionCruda)
+            if (dni != null) dniIndex[dni] = cliente
+            val nombreLimpio = nombreCrudo?.trim()?.takeIf { it.isNotBlank() }
+            if (nombreLimpio != null) nombreIndex[normalizarNombreCliente(nombreLimpio)] = cliente
+            if (cliente.identificacion.isNullOrBlank() && !dni.isNullOrBlank()) {
+                cliente.identificacion = dni
+            }
+        }
 
         facturasRaw.forEach { f ->
-            val nombreCrudo = f.nombreClienteFormateado ?: "Consumidor Final"
-            val key = normalizarNombreCliente(nombreCrudo)
+            val cliObj = f.cliente
+            val nombreCrudo = f.nombreClienteFormateado ?: cliObj?.nombreCompleto ?:
+            (listOfNotNull(cliObj?.primerNombre, cliObj?.apellidoPaterno).joinToString(" ").takeIf { it.isNotBlank() }) ?: "Consumidor Final"
+            val identificacion = identificacionAutoritativa(cliObj?.id, nombreCrudo, f.cliente?.dni ?: cliObj?.dni)
 
-            if (key.contains("consumidor final") || key.contains("consumidorfinal")) return@forEach
+            val cliente = resolverCliente(nombreCrudo, identificacion) ?: return@forEach
 
-            val cliente = mapClientes.getOrPut(key) {
-                ClienteReporteDto().apply {
-                    this.key = key
-                    this.nombre = nombreCrudo
-                    this.identificacion = f.cliente?.dni
-                }
-            }
+            // Enlaza esta factura concreta (por id y por número) con el cliente resuelto, para que
+            // la cuenta por cobrar que la referencie más abajo apunte siempre al mismo registro.
+            f.id?.let { facturaIdToCliente[it] = cliente }
+            f.numeroFactura?.takeIf { it.isNotBlank() }?.let { facturaNumeroToCliente[it] = cliente }
+
             cliente.numFacturas += 1
             cliente.totalFacturado += f.totalCalculado
 
@@ -348,35 +449,51 @@ class RendimientoComercialActivity : AppCompatActivity() {
             val cal = parseFecha(f.fechaEmision)
             val fechaStr = if (cal != null) String.format(Locale.US, "%02d/%02d/%04d", cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.YEAR)) else "—"
 
-            cliente.facturas.add(
-                FacturaClienteResumenDto(
-                    id = f.id,
-                    numero = f.numeroFactura ?: "S/N",
-                    fecha = fechaStr,
-                    tipo = f.metodoPago ?: "OTRO",
-                    monto = f.totalCalculado,
-                    estado = f.estadoFormateado,
-                    detalles = dets,
-                    descuentoGlobal = f.totalDescuento ?: 0.0,
-                    showDetalles = false
+            if (cliente.facturas.none { it.id == f.id || (it.numero == f.numeroFactura && f.numeroFactura != null) }) {
+                cliente.facturas.add(
+                    FacturaClienteResumenDto(
+                        id = f.id,
+                        numero = f.numeroFactura ?: "S/N",
+                        fecha = fechaStr,
+                        tipo = f.metodoPago ?: "OTRO",
+                        monto = f.totalCalculado,
+                        estado = f.estadoFormateado,
+                        detalles = dets,
+                        descuentoGlobal = f.totalDescuento ?: 0.0,
+                        showDetalles = false
+                    )
                 )
-            )
+            }
         }
 
         cuentasRaw.forEach { c ->
             val cliObj = c.factura?.cliente
-            val nombreCrudo = c.clienteNombre ?: cliObj?.nombreCompleto ?: cliObj?.nombre ?: cliObj?.razonSocial ?:
+            val nombreCrudo = c.clienteNombre ?: cliObj?.nombreCompleto ?: cliObj?.nombre ?:
             (listOfNotNull(cliObj?.primerNombre, cliObj?.apellidoPaterno).joinToString(" ").takeIf { it.isNotBlank() }) ?: "Cliente"
+            // ClienteDto (el "cliente" embebido en la factura de la cuenta por cobrar) no trae id,
+            // así que aquí solo podemos enriquecer la identificación por nombre.
+            val identificacion = identificacionAutoritativa(null, nombreCrudo, c.dniCliente ?: cliObj?.dni)
 
-            val key = normalizarNombreCliente(nombreCrudo)
-            if (key.contains("consumidor final") || key.contains("consumidorfinal")) return@forEach
+            val numeroFacturaCredito = c.numeroFactura ?: c.factura?.numeroFactura ?: "S/N"
+            val facturaIdCredito = c.factura?.id
 
-            val cliente = mapClientes.getOrPut(key) {
-                ClienteReporteDto().apply {
-                    this.key = key
-                    this.nombre = nombreCrudo
-                    this.identificacion = c.numeroFactura ?: c.factura?.numeroFactura
-                }
+            // 1) Prioridad máxima: si esta cuenta por cobrar viene de una factura que YA procesamos,
+            //    usamos ese mismo cliente directamente. Esto es lo que evita el duplicado clásico:
+            //    antes, si el nombre venía formateado distinto (o sin DNI) entre la factura y la
+            //    cuenta, se creaba un "cliente" nuevo con solo la cuenta de crédito, separado del
+            //    que tenía las facturas.
+            // 2) Solo si no hay forma de enlazarla a una factura conocida, caemos al viejo
+            //    emparejamiento por DNI/nombre.
+            val clienteViaFactura = facturaIdCredito?.let { facturaIdToCliente[it] }
+                ?: numeroFacturaCredito.takeIf { it != "S/N" }?.let { facturaNumeroToCliente[it] }
+
+            val cliente = clienteViaFactura ?: resolverCliente(nombreCrudo, identificacion) ?: return@forEach
+
+            // Si se resolvió por el enlace de factura, igual registramos su DNI/nombre en los
+            // índices para que otra cuenta del mismo cliente sin factura enlazable lo siga
+            // encontrando por esa vía.
+            if (clienteViaFactura != null) {
+                registrarAlias(cliente, nombreCrudo, identificacion)
             }
 
             val montoTotal = c.montoTotal ?: 0.0
@@ -390,28 +507,28 @@ class RendimientoComercialActivity : AppCompatActivity() {
             val cal = parseFecha(c.fechaVencimiento)
             val fechaVencStr = if (cal != null) String.format(Locale.US, "%02d/%02d/%04d", cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.YEAR)) else "—"
 
-            val numeroFacturaCredito = c.numeroFactura ?: c.factura?.numeroFactura ?: "S/N"
-            val facturaIdCredito = c.factura?.id
             val facturaRelacionada = cliente.facturas.find { facturaIdCredito != null && it.id == facturaIdCredito }
                 ?: cliente.facturas.find { it.numero == numeroFacturaCredito }
 
-            cliente.creditos.add(
-                CreditoClienteResumenDto(
-                    id = c.id,
-                    factura = numeroFacturaCredito,
-                    montoTotal = montoTotal,
-                    saldoPendiente = saldoPendiente,
-                    fechaVencimiento = fechaVencStr,
-                    estado = c.estado ?: "PENDIENTE",
-                    detalles = facturaRelacionada?.detalles ?: emptyList(),
-                    descuentoGlobal = facturaRelacionada?.descuentoGlobal ?: 0.0,
-                    metodoPago = facturaRelacionada?.tipo,
-                    showDetalles = false
+            if (cliente.creditos.none { it.id == c.id || it.factura == numeroFacturaCredito }) {
+                cliente.creditos.add(
+                    CreditoClienteResumenDto(
+                        id = c.id,
+                        factura = numeroFacturaCredito,
+                        montoTotal = montoTotal,
+                        saldoPendiente = saldoPendiente,
+                        fechaVencimiento = fechaVencStr,
+                        estado = c.estado ?: "PENDIENTE",
+                        detalles = facturaRelacionada?.detalles ?: emptyList(),
+                        descuentoGlobal = facturaRelacionada?.descuentoGlobal ?: 0.0,
+                        metodoPago = facturaRelacionada?.tipo,
+                        showDetalles = false
+                    )
                 )
-            )
+            }
         }
 
-        reporteClientesCompleto = mapClientes.values.sortedWith(
+        reporteClientesCompleto = clientesUnicos.sortedWith(
             compareByDescending<ClienteReporteDto> { it.saldoPendiente }
                 .thenByDescending { it.totalFacturado }
         )
@@ -518,7 +635,8 @@ class RendimientoComercialActivity : AppCompatActivity() {
                 estado = doc.estado,
                 total = doc.monto,
                 descuentoGlobal = doc.descuentoGlobal,
-                items = items
+                items = items,
+                clienteIdentificacion = cliente.identificacion
             )
             DetalleFacturaDialogHelper.mostrar(this, datos)
         }
@@ -594,9 +712,7 @@ class RendimientoComercialActivity : AppCompatActivity() {
         renderTabList(defaultTabIsCredito)
 
         val btnExportarPdfCliente: ImageButton = dialog.findViewById(R.id.btnExportarPdfCliente)
-        btnExportarPdfCliente.setOnClickListener {
-            exportarPdfCliente(cliente)
-        }
+        btnExportarPdfCliente.setOnClickListener { exportarPdfCliente(cliente) }
 
         dialog.findViewById<ImageView>(R.id.btnModalCloseTop).setOnClickListener { dialog.dismiss() }
         dialog.findViewById<MaterialButton>(R.id.btnModalCerrar).setOnClickListener { dialog.dismiss() }
@@ -909,7 +1025,7 @@ class RendimientoComercialActivity : AppCompatActivity() {
             layoutParams = LinearLayout.LayoutParams(dp(40f).toInt(), dp(40f).toInt()).apply { marginStart = dp(10f).toInt() }
             background = GradientDrawable().apply { cornerRadius = dp(10f); setColor(Color.parseColor(bgHex)) }
         }
-        val ivIcono = android.widget.ImageView(this).apply {
+        val ivIcono = ImageView(this).apply {
             layoutParams = FrameLayout.LayoutParams(dp(20f).toInt(), dp(20f).toInt()).apply { gravity = Gravity.CENTER }
             setImageResource(iconoRes)
             imageTintList = android.content.res.ColorStateList.valueOf(Color.parseColor(accentHex))
@@ -1327,7 +1443,6 @@ class RendimientoComercialActivity : AppCompatActivity() {
         }
     }
 
-    // Exportar PDF General del Directorio de Clientes
     private fun exportarPdfClientesGeneral() {
         if (exportandoPdf || isLoading) return
         exportandoPdf = true
@@ -1715,7 +1830,6 @@ class RendimientoComercialActivity : AppCompatActivity() {
         return archivo
     }
 
-    // Generador de PDF general para el Directorio de Clientes
     private fun generarPdfDirectorioClientes(): File {
         val pageWidth = 595
         val pageHeight = 842

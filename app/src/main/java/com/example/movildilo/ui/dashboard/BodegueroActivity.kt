@@ -1,3 +1,4 @@
+// BodegueroActivity.kt
 package com.example.movildilo.ui.dashboard
 
 import android.content.Intent
@@ -17,6 +18,7 @@ import com.example.movildilo.data.model.dto.CategoriaDto
 import com.example.movildilo.data.model.dto.InventarioResponseDto
 import com.example.movildilo.data.model.dto.ProductoResponseDto
 import com.example.movildilo.ia.ZoeBottomSheetDialog
+import com.example.movildilo.ui.Kardex.KardexActivity
 import com.example.movildilo.ui.auth.LoginActivity
 import com.example.movildilo.ui.bodegas.BodegasActivity
 import com.example.movildilo.ui.propietario.*
@@ -51,6 +53,7 @@ class BodegueroActivity : AppCompatActivity() {
     private lateinit var cardBodegas: LinearLayout
     private lateinit var cardProveedores: LinearLayout
     private lateinit var cardAbastecimiento: LinearLayout
+    private lateinit var cardMovimientos: LinearLayout
     private lateinit var cardCategorias: LinearLayout
 
     private lateinit var btnAdminPerfil: LinearLayout
@@ -78,6 +81,7 @@ class BodegueroActivity : AppCompatActivity() {
         initViews()
         cargarDatosUsuarioLocal()
         setupListeners()
+        verificarEstadoSuspension()
 
         if (negocioId != -1L) {
             cargarContextoAlmacenYDashboard()
@@ -104,6 +108,7 @@ class BodegueroActivity : AppCompatActivity() {
         cardBodegas = findViewById(R.id.cardBodegas)
         cardProveedores = findViewById(R.id.cardProveedores)
         cardAbastecimiento = findViewById(R.id.cardAbastecimiento)
+        cardMovimientos = findViewById(R.id.cardMovimientos)
         cardCategorias = findViewById(R.id.cardCategorias)
 
         btnAdminPerfil = findViewById(R.id.btnAdminPerfil)
@@ -126,8 +131,14 @@ class BodegueroActivity : AppCompatActivity() {
 
     private fun setupListeners() {
         btnLogout.setOnClickListener { confirmarCerrarSesion() }
+
         btnNotifications.setOnClickListener {
-            Toast.makeText(this, "No tienes notificaciones pendientes", Toast.LENGTH_SHORT).show()
+            val alertasActuales = alertasTexto
+            MaterialAlertDialogBuilder(this)
+                .setTitle("Notificaciones y Alertas")
+                .setMessage(alertasActuales)
+                .setPositiveButton("Entendido", null)
+                .show()
         }
 
         val abrirPerfil = View.OnClickListener {
@@ -142,9 +153,38 @@ class BodegueroActivity : AppCompatActivity() {
         cardBodegas.setOnClickListener { abrirModulo(BodegasActivity::class.java) }
         cardProveedores.setOnClickListener { abrirModulo(ProveedoresActivity::class.java) }
         cardAbastecimiento.setOnClickListener { abrirModulo(ComprasActivity::class.java) }
+        cardMovimientos.setOnClickListener { abrirModulo(KardexActivity::class.java) }
         cardCategorias.setOnClickListener { abrirModulo(CategoriasActivity::class.java) }
 
         fabZoe.setOnClickListener { abrirChatZoe() }
+    }
+
+    private fun verificarEstadoSuspension() {
+        val authHeader = sessionManager.getAuthHeader() ?: return
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.apiService.getMiPerfil(authHeader)
+                if (response.isSuccessful) {
+                    val usuario = response.body()
+                    if (usuario?.suspendido == true) {
+                        MaterialAlertDialogBuilder(this@BodegueroActivity)
+                            .setTitle("Cuenta o Negocio Suspendido")
+                            .setMessage("El acceso a este negocio se encuentra suspendido. ¿Qué deseas hacer?")
+                            .setCancelable(false)
+                            .setPositiveButton("Salir del negocio") { dialog, _ ->
+                                dialog.dismiss()
+                                sessionManager.clearSession()
+                                val intent = Intent(this@BodegueroActivity, LoginActivity::class.java)
+                                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                startActivity(intent)
+                                finish()
+                            }
+                            .setNegativeButton("Esperar", null)
+                            .show()
+                    }
+                }
+            } catch (_: Exception) {}
+        }
     }
 
     private fun abrirModulo(actividadDestino: Class<*>) {
@@ -193,9 +233,9 @@ class BodegueroActivity : AppCompatActivity() {
                 contextoNegocioTexto = construirResumenAlmacen(productos, categorias, inventario, bodegas.size)
 
                 alertasTexto = if (alertas.isNotEmpty()) {
-                    alertas.take(15).joinToString("; ") { a ->
+                    alertas.take(15).joinToString("\n• ") { a ->
                         "${a.productoNombre ?: "Producto"} caduca el ${a.fechaCaducidad ?: "N/D"}"
-                    }
+                    }.let { "• $it" }
                 } else {
                     "No hay productos próximos a caducar en los siguientes 30 días."
                 }

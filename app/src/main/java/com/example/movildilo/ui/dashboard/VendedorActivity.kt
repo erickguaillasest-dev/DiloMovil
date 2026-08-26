@@ -45,7 +45,6 @@ class VendedorActivity : AppCompatActivity() {
     private lateinit var cardFacturas: LinearLayout
     private lateinit var cardClientes: LinearLayout
     private lateinit var cardCuentasPorCobrar: LinearLayout
-
     private lateinit var cardRendimiento: LinearLayout
 
     private lateinit var sessionManager: SessionManager
@@ -77,6 +76,7 @@ class VendedorActivity : AppCompatActivity() {
         initViews()
         setupListeners()
         cargarDatosHeader()
+        verificarEstadoSuspension()
 
         if (negocioId != -1L) {
             cargarResumenVentas()
@@ -133,6 +133,34 @@ class VendedorActivity : AppCompatActivity() {
         fabZoe.setOnClickListener { abrirChatZoe() }
     }
 
+    private fun verificarEstadoSuspension() {
+        val authHeader = sessionManager.getAuthHeader() ?: return
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.apiService.getMiPerfil(authHeader)
+                if (response.isSuccessful) {
+                    val usuario = response.body()
+                    if (usuario?.suspendido == true) {
+                        MaterialAlertDialogBuilder(this@VendedorActivity)
+                            .setTitle("Cuenta o Negocio Suspendido")
+                            .setMessage("El acceso a este negocio se encuentra suspendido. ¿Qué deseas hacer?")
+                            .setCancelable(false)
+                            .setPositiveButton("Salir del negocio") { dialog, _ ->
+                                dialog.dismiss()
+                                sessionManager.clearSession()
+                                val intent = Intent(this@VendedorActivity, LoginActivity::class.java)
+                                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                startActivity(intent)
+                                finish()
+                            }
+                            .setNegativeButton("Esperar", null)
+                            .show()
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
     private fun abrirChatZoe() {
         val dialogZoe = ZoeBottomSheetDialog(
             usuarioNombre = usuarioNombre,
@@ -175,8 +203,7 @@ class VendedorActivity : AppCompatActivity() {
                     fotoUsuarioUrl = construirUrlFoto(usuario.fotoPerfil)
                     actualizarAvatarHeader()
                 }
-            } catch (e: Exception) {
-            }
+            } catch (e: Exception) {}
         }
     }
 

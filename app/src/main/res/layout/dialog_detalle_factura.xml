@@ -132,6 +132,15 @@
                             android:textStyle="bold"
                             tools:text="Juan Pérez" />
 
+                        <TextView
+                            android:id="@+id/tvClienteIdentificacionDetalle"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:textColor="#64748B"
+                            android:textSize="12sp"
+                            tools:text="CI/RUC: 0150747970" />
+
                         <View
                             android:layout_width="match_parent"
                             android:layout_height="1dp"

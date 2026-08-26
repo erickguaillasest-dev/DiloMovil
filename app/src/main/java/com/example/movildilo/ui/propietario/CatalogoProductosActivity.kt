@@ -50,7 +50,6 @@ class CatalogoProductosActivity : AppCompatActivity() {
     private var listaFiltrada = mutableListOf<ProductoDto>()
     private var listaCategoriasBD = mutableListOf<CategoriaDto>()
 
-    // Variables para el retraso (debounce) en la búsqueda y evitar lentitud al teclear
     private val searchHandler = Handler(Looper.getMainLooper())
     private var searchRunnable: Runnable? = null
 
@@ -130,7 +129,6 @@ class CatalogoProductosActivity : AppCompatActivity() {
             override fun afterTextChanged(s: Editable?) {}
         })
 
-        // Buscador optimizado con Debounce (retardo de 250ms) para evitar congelamientos al escribir rápido
         etBuscarProducto.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -176,10 +174,13 @@ class CatalogoProductosActivity : AppCompatActivity() {
                     (prod.codigoPrincipal?.lowercase()?.contains(textoBusqueda) == true) ||
                     (prod.marca?.lowercase()?.contains(textoBusqueda) == true)
 
-            val coincideCategoria = categoriaSeleccionada.isEmpty() ||
-                    categoriaSeleccionada.equals("Todas", ignoreCase = true) ||
-                    prod.categoria?.trim().equals(categoriaSeleccionada, ignoreCase = true) ||
-                    (categoriaDtoSeleccionada != null && prod.categoriaId == categoriaDtoSeleccionada.id)
+            val esTodas = categoriaSeleccionada.isEmpty() ||
+                    categoriaSeleccionada.equals("Todas", ignoreCase = true)
+
+            val coincideCategoria = esTodas ||
+                    (prod.categoria != null && prod.categoria.trim().equals(categoriaSeleccionada, ignoreCase = true)) ||
+                    (categoriaDtoSeleccionada != null && prod.categoriaId == categoriaDtoSeleccionada.id) ||
+                    (categoriaDtoSeleccionada != null && prod.categoria?.trim() == categoriaDtoSeleccionada.id.toString())
 
             coincideTexto && coincideCategoria
         }

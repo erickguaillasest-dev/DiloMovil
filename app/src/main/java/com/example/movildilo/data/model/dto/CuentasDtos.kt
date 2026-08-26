@@ -11,6 +11,7 @@ data class CuentaPorCobrarResponseDto(
     @SerializedName("numeroFactura") val numeroFactura: String?,
     @SerializedName("factura") val factura: FacturaDto?,
     @SerializedName("nombreCliente", alternate = ["clienteNombre"]) val clienteNombre: String?,
+    @SerializedName("dniCliente", alternate = ["dni", "identificacion"]) val dniCliente: String?,
     @SerializedName("cuotas") val cuotas: List<CuotaDto>?,
     var isExpanded: Boolean = false
 )
@@ -26,7 +27,8 @@ data class ClienteDto(
     @SerializedName("apellidoPaterno") val apellidoPaterno: String?,
     @SerializedName("nombreCompleto") val nombreCompleto: String? = null,
     @SerializedName("nombre") val nombre: String? = null,
-    @SerializedName("razonSocial") val razonSocial: String? = null
+    @SerializedName("razonSocial", alternate = ["razon_social"]) val razonSocial: String? = null, // <- Soluciona el error de referencia
+    @SerializedName("dni", alternate = ["identificacion", "ruc", "cedula"]) val dni: String? = null
 )
 
 data class CuotaDto(

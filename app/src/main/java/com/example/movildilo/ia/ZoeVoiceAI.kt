@@ -61,7 +61,7 @@ object ZoeVoiceAI {
             put("model", MODELO)
             put("messages", mensajes)
             put("temperature", 0.0)
-            put("max_tokens", 450)
+            put("max_tokens", 800)
         }
 
         val mediaType = MediaType.parse("application/json; charset=utf-8")
@@ -170,8 +170,9 @@ object ZoeVoiceAI {
               "vaciarCarrito": true o false
             }
 
-            REGLAS:
-            1. Si dice "consumidor final" o "sin datos", cliente es "CONSUMIDOR_FINAL".
+         
+         REGLAS:
+            1. CLIENTE: extrae el nombre completo tal como figura en la lista de clientes provista, o la cédula exacta si el usuario la dictó. Si dice "consumidor final" o "sin datos", pon "CONSUMIDOR_FINAL". Si no se menciona cliente en absoluto, pon null en lugar de inventar uno.
             2. Si solo dicta números para identificar al cliente, es su cédula: ponla en "cliente".
             3. "emitirFactura": true SOLO si el usuario pide EXPLÍCITAMENTE y sin ambigüedad terminar/cerrar/emitir la factura completa como acción final (ej. "emite la factura", "ya está, emítela", "guarda la factura", "eso es todo, cóbrala"). NO actives "emitirFactura" solo porque la frase contenga palabras sueltas como "listo", "ok", "dale", "cobra" o "cobrar" si esas palabras están describiendo otra cosa (por ejemplo "cóbrale a Juan" es solo el nombre del cliente, no una orden de emitir). Ante la duda, deja "emitirFactura" en false: es preferible preguntar antes de cerrar la factura.
             4. "eliminarProducto" SOLO se activa si el usuario usa literalmente la palabra "elimina" o "eliminar" (ej. "elimina el pan", "elimina 2 panes", "eliminar la coca cola"). Palabras como "quita", "borra", "saca" o un descuento NO activan "eliminarProducto"; en esos casos déjalo en null. Cuando sí aplica, pon el nombre del producto en "eliminarProducto" y NO lo repitas en "items".
@@ -183,7 +184,7 @@ object ZoeVoiceAI {
             7. Si no menciona algún campo, ese campo va en null (o "items": [] si no menciona ningún producto).
             8. PRODUCTOS: solo agrega un producto a "items" si el usuario lo nombró explílicamente pidiendo agregarlo. Reconoce CUALQUIER verbo o frase que signifique "agregar al ticket/factura/carrito", entre otros: "agrégame", "agrega", "ponme", "pon en el ticket", "mete", "métele", "incluye", "carga", "anota", "manda", "quiero", "dame", "necesito", "sube" (ej. "ponme dos cocas", "agrégame una leche", "mete tres panes al ticket", "incluye una máscara", "quiero tres panes", "cambia a la bodega norte y agrégame dos panes"). NUNCA inventes ni supongas un producto que el usuario no mencionó. Cada frase se interpreta sola, solo con lo que esa frase dice. Si la frase solo da el cliente, la forma de pago, la bodega o una palabra de confirmación, "items" va vacío.
             8b. NOMBRE DEL PRODUCTO: en "producto" pon el nombre o palabra clave del producto tal como lo dijo el usuario, SIN el verbo ni palabras sueltas como "el", "la", "producto", "al ticket", "por favor" (ej. si dice "agrégame el producto máscara" pon "producto": "mascara", no "el producto mascara"). El usuario puede decir solo una PARTE del nombre real del producto (ej. dice "máscara" y el catálogo tiene "Zen Máscara Facial 50ml"): eso es válido y esperado, no hace falta que coincida exacto ni completo con la lista de Productos — el sistema se encarga de buscar la coincidencia más parecida.
-            9. DESCUENTOS: si el usuario pide un descuento para UN producto puntual (ej. "2 coca colas con 10% de descuento", "la leche con un 5 por ciento menos"), pon ese número entero (0-100, sin el símbolo %) en "descuentoPorcentaje" DENTRO de ese item. Si pide un descuento para TODA la factura o el ticket completo (ej. "aplícale un 15% de descuento a todo", "dale un 10 por ciento de descuento general"), pon ese número entero en "descuentoGlobalPorcentaje" (a nivel raíz, no dentro de items). Si no menciona ningún descuento, ambos van en null.
+            9. DESCUENTOS: si el usuario pide un descuento para UN producto puntual (ej. "2 coca colas con 10% de descuento", "la leche con un 5 por ciento menos"), pon ese número entero (0-100, sin el símbolo %) en "descuentoPorcentaje" DENTRO de ese item. Si pide un descuento para TODA la factura o el ticket completo (ej. "aplícale un 15% de descuento a todo", "dale un 10 por ciento de descuento general"), pon ese número entero en "descuentoGlobalPorcentaje" (a nivel raíz, no dentro de items). Si no menciona ningún descuento, ambos van in null.
             10. NO devuelvas texto fuera del JSON. No expliques nada. No uses ```.
             11. Si pide vaciar todo el ticket o borrar todos los productos (ej. "borra todo", "elimina los productos del ticket", "vaciar carrito", "limpiar ticket"), pon "vaciarCarrito": true.
             12. BODEGA: si el usuario pide cambiar de bodega/almacén (ej. "cambia a la bodega norte", "usa la bodega centro", "de la bodega dos"), extrae el nombre en "bodega" aunque no agregue ningún producto en esa misma frase.

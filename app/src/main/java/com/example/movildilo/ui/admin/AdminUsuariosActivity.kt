@@ -23,6 +23,7 @@ import com.example.movildilo.data.model.dto.UsuarioMeDto
 import com.example.movildilo.ui.adapters.UsuariosAdapter
 import com.example.movildilo.utils.FormValidator
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 
 interface OnUsuarioActualizadoListener {
@@ -119,9 +120,7 @@ class AdminUsuariosActivity : AppCompatActivity(), OnUsuarioActualizadoListener 
                 if (response.isSuccessful) {
                     parroquias = (response.body() ?: emptyList()).toMutableList()
                 }
-            } catch (_: Exception) {
-                // Si falla la carga, la app continúa funcional
-            }
+            } catch (_: Exception) {}
         }
     }
 
@@ -172,6 +171,37 @@ class AdminUsuariosActivity : AppCompatActivity(), OnUsuarioActualizadoListener 
 
         tvTotalUsuarios.text = "${listaFiltrada.size} usuarios"
         adapter.actualizarLista(listaFiltrada)
+    }
+
+    fun cambiarEstadoSuspension(usuario: UsuarioMeDto) {
+        val authHeader = sessionManager.getAuthHeader() ?: return
+        val nuevoEstado = !(usuario.suspendido == true)
+        val mensaje = if (nuevoEstado) "¿Deseas suspender este usuario?" else "¿Deseas activar este usuario?"
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Cambiar estado de cuenta")
+            .setMessage(mensaje)
+            .setPositiveButton("Sí") { dialog, _ ->
+                dialog.dismiss()
+                progressBar.visibility = View.VISIBLE
+                lifecycleScope.launch {
+                    try {
+                        val response = RetrofitClient.apiService.suspenderUsuario(authHeader, usuario.id!!, nuevoEstado)
+                        progressBar.visibility = View.GONE
+                        if (response.isSuccessful) {
+                            Toast.makeText(this@AdminUsuariosActivity, "Estado actualizado correctamente", Toast.LENGTH_SHORT).show()
+                            cargarUsuarios()
+                        } else {
+                            Toast.makeText(this@AdminUsuariosActivity, "No se pudo actualizar el estado", Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) {
+                        progressBar.visibility = View.GONE
+                        Toast.makeText(this@AdminUsuariosActivity, "Error de red: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
     }
 
     override fun onUsuarioActualizado() {

@@ -37,10 +37,9 @@ class AdminActivity : AppCompatActivity() {
     private lateinit var cardNegocios: LinearLayout
     private lateinit var cardUsuarios: LinearLayout
     private lateinit var cardConfiguracionIva: LinearLayout
+    private lateinit var cardParroquias: LinearLayout
 
     private lateinit var sessionManager: SessionManager
-
-    private lateinit var  cardParroquias: LinearLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,6 +52,7 @@ class AdminActivity : AppCompatActivity() {
         setupListeners()
         cargarDatosHeader()
         cargarMetricasGlobales()
+        verificarEstadoSuspendido()
     }
 
     private fun initViews() {
@@ -70,7 +70,6 @@ class AdminActivity : AppCompatActivity() {
         cardUsuarios = findViewById(R.id.cardUsuarios)
         cardConfiguracionIva = findViewById(R.id.cardConfiguracionIva)
         cardParroquias = findViewById(R.id.cardParroquias)
-
     }
 
     private fun setupListeners() {
@@ -118,8 +117,23 @@ class AdminActivity : AppCompatActivity() {
                             .into(ivAvatar)
                     }
                 }
-            } catch (e: Exception) {
-            }
+            } catch (e: Exception) {}
+        }
+    }
+
+    private fun verificarEstadoSuspendido() {
+        val authHeader = sessionManager.getAuthHeader() ?: return
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.apiService.getMiPerfil(authHeader)
+                if (response.isSuccessful && response.body()?.suspendido == true) {
+                    sessionManager.clearSession()
+                    val intent = Intent(this@AdminActivity, LoginActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    startActivity(intent)
+                    finish()
+                }
+            } catch (_: Exception) {}
         }
     }
 

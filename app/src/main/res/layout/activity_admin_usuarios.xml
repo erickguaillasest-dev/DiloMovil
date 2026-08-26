@@ -24,6 +24,7 @@
             android:layout_centerVertical="true"
             app:backgroundTint="#1E293B"
             app:cornerRadius="12dp"
+            android:layout_marginTop="19dp"
             app:icon="@android:drawable/ic_menu_revert"
             app:iconSize="20dp"
             app:iconTint="@color/white" />
@@ -33,6 +34,7 @@
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
             android:layout_marginStart="12dp"
+            android:layout_marginTop="19dp"
             android:layout_toEndOf="@id/btnRegresar"
             android:orientation="vertical">
 

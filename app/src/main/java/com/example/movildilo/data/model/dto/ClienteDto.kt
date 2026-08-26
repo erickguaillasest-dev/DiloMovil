@@ -1,12 +1,16 @@
 package com.example.movildilo.data.model.dto
 
+import com.google.gson.annotations.SerializedName
+
 data class ClienteResponseDto(
     val id: Long? = null,
+    @SerializedName("dni", alternate = ["identificacion", "cedula", "ruc"])
     val dni: String?,
     val primerNombre: String?,
     val segundoNombre: String? = null,
     val apellidoPaterno: String?,
     val apellidoMaterno: String? = null,
+
     val email: String? = null,
     val contrasena: String? = null,
     val fechaNacimiento: String? = null,

@@ -16,7 +16,8 @@ data class UsuarioMeDto(
     @SerializedName("fotoPerfil") val fotoPerfil: String? = null,
     @SerializedName("nameParroquia") val nameParroquia: String? = null,
     @SerializedName("idParroquia", alternate = ["id_parroquia"]) val idParroquia: Long? = null,
-    @SerializedName("parroquia") val parroquia: ParroquiaResponseDto? = null
+    @SerializedName("parroquia") val parroquia: ParroquiaResponseDto? = null,
+    @SerializedName("suspendido") val suspendido: Boolean? = null
 )
 
 
