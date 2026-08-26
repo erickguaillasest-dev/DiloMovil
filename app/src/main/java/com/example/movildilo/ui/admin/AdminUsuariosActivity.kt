@@ -107,6 +107,9 @@ class AdminUsuariosActivity : AppCompatActivity(), OnUsuarioActualizadoListener 
             onClickUsuario = { usuario ->
                 UsuarioDialog.newInstanceEditar(usuario)
                     .show(supportFragmentManager, "UsuarioDialog")
+            },
+            onSuspenderUsuario = { usuario ->
+                cambiarEstadoSuspension(usuario)
             }
         )
         rvUsuarios.layoutManager = LinearLayoutManager(this)

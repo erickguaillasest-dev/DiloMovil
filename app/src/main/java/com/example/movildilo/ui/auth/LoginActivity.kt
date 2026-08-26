@@ -145,13 +145,15 @@ class LoginActivity : AppCompatActivity() {
                     val body = response.body()
                     if (body != null) {
 
+                        // 1. PRIORIDAD ABSOLUTA: Verificar si la cuenta está suspendida
                         if (body.suspendido == true) {
                             setLoading(false)
                             sessionManager.clearSession()
-                            Toast.makeText(this@LoginActivity, "Tu cuenta se encuentra suspendida. No puedes iniciar sesión.", Toast.LENGTH_LONG).show()
+                            CuentaSuspendidaDialog(this@LoginActivity).show()
                             return@launch
                         }
 
+                        // 2. Verificar estado pendiente
                         val rolAux = body.rol?.uppercase()?.trim() ?: ""
                         if (rolAux == "PENDIENTE" || rolAux == "PENDING") {
                             setLoading(false)
@@ -184,7 +186,7 @@ class LoginActivity : AppCompatActivity() {
                                     if (suspendidoServidor) {
                                         setLoading(false)
                                         sessionManager.clearSession()
-                                        Toast.makeText(this@LoginActivity, "Tu cuenta se encuentra suspendida.", Toast.LENGTH_LONG).show()
+                                        CuentaSuspendidaDialog(this@LoginActivity).show()
                                         return@launch
                                     }
 
@@ -264,13 +266,18 @@ class LoginActivity : AppCompatActivity() {
                     setLoading(false)
 
                     val errorBodyStr = response.errorBody()?.string() ?: ""
-                    if (errorBodyStr.contains("suspendido", ignoreCase = true) || response.code() == 403 && errorBodyStr.contains("suspendido", ignoreCase = true)) {
+
+                    // VALIDACIÓN ESTRICTA DE SUSPENSIÓN ANTE CUALQUIER RESPUESTA DE ERROR (403, 400, etc.)
+                    if (errorBodyStr.contains("suspendido", ignoreCase = true) ||
+                        errorBodyStr.contains("suspension", ignoreCase = true) ||
+                        response.code() == 403 && errorBodyStr.contains("suspendido", ignoreCase = true)) {
                         sessionManager.clearSession()
-                        Toast.makeText(this@LoginActivity, "Tu cuenta se encuentra suspendida.", Toast.LENGTH_LONG).show()
+                        CuentaSuspendidaDialog(this@LoginActivity).show()
                         return@launch
                     }
 
-                    if (errorBodyStr.contains("pendiente", ignoreCase = true) || response.code() == 403) {
+                    // Validación exclusiva para solicitudes pendientes
+                    if (errorBodyStr.contains("pendiente", ignoreCase = true) || errorBodyStr.contains("pending", ignoreCase = true)) {
                         sessionManager.clearSession()
                         SolicitudPendienteDialog(this@LoginActivity).show()
                         return@launch
@@ -278,9 +285,16 @@ class LoginActivity : AppCompatActivity() {
 
                     val mensaje = when (response.code()) {
                         401 -> "Tu correo o contraseña son incorrectos. Por favor, intenta de nuevo."
+                        403 -> "Tu cuenta se encuentra suspendida o no autorizada."
                         else -> "Error del servidor (código ${response.code()})"
                     }
-                    Toast.makeText(this@LoginActivity, mensaje, Toast.LENGTH_SHORT).show()
+
+                    if (response.code() == 403) {
+                        sessionManager.clearSession()
+                        CuentaSuspendidaDialog(this@LoginActivity).show()
+                    } else {
+                        Toast.makeText(this@LoginActivity, mensaje, Toast.LENGTH_SHORT).show()
+                    }
                 }
             } catch (e: IOException) {
                 setLoading(false)

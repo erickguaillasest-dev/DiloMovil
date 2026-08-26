@@ -166,8 +166,6 @@ class CatalogoProductosActivity : AppCompatActivity() {
             it.nombre.equals(categoriaSeleccionada, ignoreCase = true)
         }
 
-        listaFiltrada.clear()
-
         val resultado = listaOriginal.filter { prod ->
             val coincideTexto = textoBusqueda.isEmpty() ||
                     (prod.nombre?.lowercase()?.contains(textoBusqueda) == true) ||
@@ -177,15 +175,20 @@ class CatalogoProductosActivity : AppCompatActivity() {
             val esTodas = categoriaSeleccionada.isEmpty() ||
                     categoriaSeleccionada.equals("Todas", ignoreCase = true)
 
+            // CORRECCIÓN: Se validan de forma flexible las coincidencias de categoría por nombre o ID
             val coincideCategoria = esTodas ||
                     (prod.categoria != null && prod.categoria.trim().equals(categoriaSeleccionada, ignoreCase = true)) ||
                     (categoriaDtoSeleccionada != null && prod.categoriaId == categoriaDtoSeleccionada.id) ||
-                    (categoriaDtoSeleccionada != null && prod.categoria?.trim() == categoriaDtoSeleccionada.id.toString())
+                    (categoriaDtoSeleccionada != null && prod.categoria?.trim().equals(categoriaDtoSeleccionada.id.toString()))
 
             coincideTexto && coincideCategoria
         }
 
-        listaFiltrada.addAll(resultado)
+        // IMPORTANTE: se crea una lista NUEVA (no se reutiliza/mutea la anterior) para que
+        // DiffUtil pueda comparar la lista vieja del adapter contra una lista realmente distinta.
+        // Si se reutiliza el mismo objeto, el adapter y la actividad terminan apuntando a la
+        // misma referencia y DiffUtil no detecta cambios -> el RecyclerView nunca se actualiza.
+        listaFiltrada = resultado.toMutableList()
         adapter.actualizarLista(listaFiltrada)
     }
 

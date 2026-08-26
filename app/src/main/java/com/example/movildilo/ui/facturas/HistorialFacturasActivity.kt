@@ -118,6 +118,9 @@ class HistorialFacturasActivity : AppCompatActivity() {
     private var etDescuentoItemRef: TextInputEditText? = null
     private var etDescuentoGlobalRef: TextInputEditText? = null
     private var tvDescuentoGlobalMontoRef: TextView? = null
+    private var tvSubtotalRef: TextView? = null
+    private var tvBaseImponibleRef: TextView? = null
+    private var tvIvaRef: TextView? = null
     private var tvStockRef: TextView? = null
     private var tvTotalRef: TextView? = null
     private var tvItemsCountRef: TextView? = null
@@ -344,6 +347,9 @@ class HistorialFacturasActivity : AppCompatActivity() {
         val etDescuentoItem = dialogView.findViewById<TextInputEditText>(R.id.etDescuentoItemFactura)
         val etDescuentoGlobal = dialogView.findViewById<TextInputEditText>(R.id.etDescuentoGlobalFactura)
         val tvDescuentoGlobalMonto = dialogView.findViewById<TextView>(R.id.tvDescuentoGlobalMonto)
+        val tvSubtotal = dialogView.findViewById<TextView>(R.id.tvSubtotalFacturaDialogo)
+        val tvBaseImponible = dialogView.findViewById<TextView>(R.id.tvBaseImponibleFacturaDialogo)
+        val tvIva = dialogView.findViewById<TextView>(R.id.tvIvaFacturaDialogo)
         val tvStock = dialogView.findViewById<TextView>(R.id.tvStockDisponible)
         val btnAgregar = dialogView.findViewById<MaterialButton>(R.id.btnAgregarAlCarrito)
         val rvCarrito = dialogView.findViewById<RecyclerView>(R.id.rvCarritoFactura)
@@ -372,6 +378,9 @@ class HistorialFacturasActivity : AppCompatActivity() {
         etDescuentoItemRef = etDescuentoItem
         etDescuentoGlobalRef = etDescuentoGlobal
         tvDescuentoGlobalMontoRef = tvDescuentoGlobalMonto
+        tvSubtotalRef = tvSubtotal
+        tvBaseImponibleRef = tvBaseImponible
+        tvIvaRef = tvIva
         tvStockRef = tvStock
         tvTotalRef = tvTotal
         tvItemsCountRef = tvItemsCount
@@ -644,17 +653,30 @@ class HistorialFacturasActivity : AppCompatActivity() {
     private fun montoDescuentoGlobal(): Double =
         subtotalCarritoConDescuentosDeLinea() * (facturaDescuentoGlobalPorcentaje.coerceIn(0.0, 100.0) / 100.0)
 
+    private fun baseImponibleCalculada(): Double =
+        (subtotalCarritoConDescuentosDeLinea() - montoDescuentoGlobal()).coerceAtLeast(0.0)
+
+    private fun ivaCalculado(): Double = baseImponibleCalculada() * 0.15
+
     private fun totalCarritoFinal(): Double {
-        val total = subtotalCarritoConDescuentosDeLinea() - montoDescuentoGlobal()
+        val total = baseImponibleCalculada() + ivaCalculado()
         return if (total > 0) total else 0.0
     }
 
     private fun actualizarUiCarrito() {
         carritoAdapter?.actualizar(carritoTemporal)
+        val subtotal = subtotalCarritoConDescuentosDeLinea()
         val montoDescGlobal = montoDescuentoGlobal()
+        val baseImponible = baseImponibleCalculada()
+        val iva = ivaCalculado()
         val total = totalCarritoFinal()
+
+        tvSubtotalRef?.text = String.format(Locale.US, "$%.2f", subtotal)
+        tvBaseImponibleRef?.text = String.format(Locale.US, "$%.2f", baseImponible)
+        tvIvaRef?.text = String.format(Locale.US, "$%.2f", iva)
         tvTotalRef?.text = "A COBRAR: ${String.format(Locale.US, "$%.2f", total)}"
         tvItemsCountRef?.text = "${carritoTemporal.size} items"
+
         if (montoDescGlobal > 0.0) {
             tvDescuentoGlobalMontoRef?.visibility = View.VISIBLE
             tvDescuentoGlobalMontoRef?.text = "Descuento global aplicado: -${String.format(Locale.US, "$%.2f", montoDescGlobal)}"
@@ -1079,8 +1101,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
     private fun procesarComandoVoz(transcriptOriginal: String) {
         val transcript = limpiarTexto(transcriptOriginal)
 
-        // Fix 3: Asegurar que si estamos en SELECCIONAR_OPCION, procesemos únicamente la selección
-        // y no reinterpretemos el comando de forma general o repetida.
         if (voiceState == VoiceStep.SELECCIONAR_OPCION && productosOpcionesPendientes.isNotEmpty()) {
             procesarSeleccionOpcionPorVoz(transcript)
             return
@@ -1264,7 +1284,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
     }
 
     private fun aplicarResultadoIA(datos: ResultadoVozFactura, quiereEmitirPalabra: Boolean, fraseOriginal: String = "") {
-        // Fix 1: Filtrar y deduplicar estrictamente los ítems devueltos por la IA
         val itemsUnicos = datos.items
             .filter { !it.producto.isNullOrBlank() }
             .distinctBy { limpiarTexto(it.producto) }
@@ -1662,7 +1681,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
         val txtIa = limpiarTexto(nombreIa)
         if (txtIa.isBlank()) return emptyList()
 
-        // Fix 2: Priorizar coincidencias exactas (nombre o código principal) antes de evaluar genéricos o ambigüedades
         val exactos = dedupProductos(productosList.filter { limpiarTexto(it.nombre) == txtIa })
         if (exactos.size == 1) return exactos
         if (exactos.isNotEmpty()) return exactos

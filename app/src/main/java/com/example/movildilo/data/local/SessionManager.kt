@@ -5,7 +5,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.util.Base64
 import com.example.movildilo.data.model.dto.LoginResponseDto
-import com.example.movildilo.ui.auth.LoginActivity // ⚠️ Ajusta la ruta de tu LoginActivity si está en otro paquete
+import com.example.movildilo.ui.auth.LoginActivity
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import org.json.JSONObject
@@ -21,6 +21,14 @@ class SessionManager(private val context: Context) {
 
     fun isSolicitudPendiente(): Boolean {
         return prefs.getBoolean("solicitud_pendiente", false)
+    }
+
+    fun setCuentaSuspendida(suspendida: Boolean) {
+        prefs.edit().putBoolean("cuenta_suspendida", suspendida).apply()
+    }
+
+    fun isCuentaSuspendida(): Boolean {
+        return prefs.getBoolean("cuenta_suspendida", false)
     }
 
     fun saveToken(token: String?, tokenType: String?) {
@@ -41,11 +49,6 @@ class SessionManager(private val context: Context) {
         return if (!token.isNullOrEmpty()) "$tokenType $token" else null
     }
 
-    // --- VERIFICACIÓN Y EXPIRACIÓN DEL TOKEN JWT ---
-
-    /**
-     * Decodifica el payload del JWT localmente para verificar si el token expiró.
-     */
     fun isTokenExpired(): Boolean {
         val token = getToken() ?: return true
         val parts = token.split(".")
@@ -69,10 +72,6 @@ class SessionManager(private val context: Context) {
         }
     }
 
-    /**
-     * Limpia la sesión y redirige al usuario a la pantalla de Login,
-     * eliminando el historial de actividades previas.
-     */
     fun redirectToLogin(ctx: Context = context) {
         clearSession()
         val intent = Intent(ctx, LoginActivity::class.java).apply {
@@ -81,9 +80,6 @@ class SessionManager(private val context: Context) {
         ctx.startActivity(intent)
     }
 
-    /**
-     * Verifica si el token expiró. De ser así, redirige automáticamente al Login.
-     */
     fun checkAndRedirectIfExpired(ctx: Context = context): Boolean {
         if (!isLoggedIn() || isTokenExpired()) {
             redirectToLogin(ctx)
@@ -91,8 +87,6 @@ class SessionManager(private val context: Context) {
         }
         return false
     }
-
-    // --- MANEJO DE USUARIO (Compatibilidad con Mapa) ---
 
     fun saveUser(usuarioInfo: Any) {
         val json = gson.toJson(usuarioInfo)
@@ -161,8 +155,6 @@ class SessionManager(private val context: Context) {
         }
     }
 
-    // --- MÉTODOS AUXILIARES DE ROLES ---
-
     fun getUserEmail(): String? {
         val emailDirecto = prefs.getString("user_email", null)
         if (!emailDirecto.isNullOrEmpty()) return emailDirecto
@@ -206,8 +198,6 @@ class SessionManager(private val context: Context) {
 
         return false
     }
-
-    // --- MÉTODOS AUXILIARES DE NEGOCIO ---
 
     fun getNegocioId(): Long {
         val directId = prefs.getLong("negocio_id", -1L)
@@ -253,8 +243,6 @@ class SessionManager(private val context: Context) {
     fun removeNegocioId() {
         prefs.edit().remove("negocio_id").apply()
     }
-
-    // --- ESTADO Y LIMPIEZA DE SESIÓN ---
 
     fun isLoggedIn(): Boolean {
         val hasToken = !getToken().isNullOrEmpty()
