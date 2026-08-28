@@ -6,7 +6,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.movildilo.R
-import com.example.movildilo.data.model.dto.DetalleFacturaResponseDto
+import com.example.movildilo.data.model.dto.facturacion.DetalleFacturaResponseDto
 import java.util.Locale
 
 class ProductosFacturaAdapter(

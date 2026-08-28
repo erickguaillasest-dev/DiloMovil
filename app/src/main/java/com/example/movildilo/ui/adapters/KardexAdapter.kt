@@ -7,7 +7,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.movildilo.R
-import com.example.movildilo.data.model.dto.KardexMovimientoDto
+import com.example.movildilo.data.model.dto.inventario.KardexMovimientoDto
 import com.google.android.material.card.MaterialCardView
 import java.util.Locale
 import kotlin.math.abs

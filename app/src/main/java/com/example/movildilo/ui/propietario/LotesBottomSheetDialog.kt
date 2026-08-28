@@ -13,7 +13,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
-import com.example.movildilo.data.model.dto.LoteResponseDto
+import com.example.movildilo.data.model.dto.inventario.LoteResponseDto
 import com.example.movildilo.ui.adapters.KardexAdapter
 import com.example.movildilo.ui.adapters.LotesAdapter
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment

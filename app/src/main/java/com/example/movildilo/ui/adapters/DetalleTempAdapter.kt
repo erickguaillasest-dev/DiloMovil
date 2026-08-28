@@ -7,7 +7,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.movildilo.R
-import com.example.movildilo.data.model.dto.DetalleCompraRequestDto
+import com.example.movildilo.data.model.dto.facturacion.DetalleCompraRequestDto
 import java.util.Locale
 
 class DetalleTempAdapter(

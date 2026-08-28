@@ -25,8 +25,11 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
-import com.example.movildilo.data.model.dto.CategoriaDto
+import com.example.movildilo.data.model.dto.inventario.CategoriaDto
+import com.example.movildilo.ia.ZoeActionRouter
+import com.example.movildilo.ia.ZoeBottomSheetDialog
 import com.example.movildilo.ui.adapters.CategoriasAdapter
+import com.example.movildilo.utils.Constants
 import com.example.movildilo.utils.FormValidator
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.Dispatchers
@@ -75,8 +78,8 @@ class CategoriasActivity : AppCompatActivity() {
             }
         }
 
-        if (intent.getStringExtra(com.example.movildilo.ia.ZoeActionRouter.EXTRA_ACCION) ==
-            com.example.movildilo.ia.ZoeActionRouter.Accion.CREAR_CATEGORIA
+        if (intent.getStringExtra(ZoeActionRouter.EXTRA_ACCION) ==
+            ZoeActionRouter.Accion.CREAR_CATEGORIA
         ) {
             btnNuevaCategoria.postDelayed({ abrirModalDialog(null) }, 500)
         }
@@ -86,6 +89,23 @@ class CategoriasActivity : AppCompatActivity() {
         } else {
             Toast.makeText(this, "No se encontró el ID del negocio", Toast.LENGTH_SHORT).show()
         }
+
+        if (intent.getBooleanExtra(ZoeActionRouter.EXTRA_MANTENER_ZOE_ABIERTA, false)) {
+            abrirChatZoe()
+        }
+    }
+
+    private fun abrirChatZoe() {
+        val userMap = sessionManager.getUserMap()
+        val nombreUsuario = userMap?.get("primerNombre")?.toString() ?: userMap?.get("nombre")?.toString() ?: "Usuario"
+        val dialogZoe = ZoeBottomSheetDialog(
+            usuarioNombre = nombreUsuario,
+            negocioNombre = "Mi Empresa",
+            contextoNegocioTexto = "Estás visualizando las categorías de productos.",
+            alertasTexto = "Sin alertas recientes.",
+            groqApiKey = Constants.GROQ_API_KEY_CHAT
+        )
+        dialogZoe.show(supportFragmentManager, "ZoeChatBottomSheet")
     }
 
     private fun initViews() {

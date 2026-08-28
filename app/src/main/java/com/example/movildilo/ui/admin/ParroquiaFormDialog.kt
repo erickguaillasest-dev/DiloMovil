@@ -6,7 +6,7 @@ import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import com.example.movildilo.R
-import com.example.movildilo.data.model.dto.ParroquiaResponseDto
+import com.example.movildilo.data.model.dto.negocio.ParroquiaResponseDto
 import com.example.movildilo.utils.FormValidator
 import com.google.android.material.button.MaterialButton
 

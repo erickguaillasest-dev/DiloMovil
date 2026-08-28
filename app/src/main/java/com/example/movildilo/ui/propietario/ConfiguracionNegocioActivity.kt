@@ -17,7 +17,10 @@ import com.bumptech.glide.Glide
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
-import com.example.movildilo.data.model.dto.NegocioResponseDto
+import com.example.movildilo.data.model.dto.negocio.NegocioResponseDto
+import com.example.movildilo.ia.ZoeActionRouter
+import com.example.movildilo.ia.ZoeBottomSheetDialog
+import com.example.movildilo.utils.Constants
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.checkbox.MaterialCheckBox
@@ -99,8 +102,8 @@ class ConfiguracionNegocioActivity : AppCompatActivity() {
             mostrarAlertaSinNegocio()
         }
 
-        if (intent.getStringExtra(com.example.movildilo.ia.ZoeActionRouter.EXTRA_ACCION) ==
-            com.example.movildilo.ia.ZoeActionRouter.Accion.EDITAR_NEGOCIO
+        if (intent.getStringExtra(ZoeActionRouter.EXTRA_ACCION) ==
+            ZoeActionRouter.Accion.EDITAR_NEGOCIO
         ) {
             etRazonSocial.postDelayed({
                 etRazonSocial.requestFocus()
@@ -111,6 +114,23 @@ class ConfiguracionNegocioActivity : AppCompatActivity() {
                 ).show()
             }, 700)
         }
+
+        if (intent.getBooleanExtra(ZoeActionRouter.EXTRA_MANTENER_ZOE_ABIERTA, false)) {
+            abrirChatZoe()
+        }
+    }
+
+    private fun abrirChatZoe() {
+        val userMap = sessionManager.getUserMap()
+        val nombreUsuario = userMap?.get("primerNombre")?.toString() ?: userMap?.get("nombre")?.toString() ?: "Usuario"
+        val dialogZoe = ZoeBottomSheetDialog(
+            usuarioNombre = nombreUsuario,
+            negocioNombre = "Mi Empresa",
+            contextoNegocioTexto = "Estás visualizando la configuración del negocio.",
+            alertasTexto = "Sin alertas recientes.",
+            groqApiKey = Constants.GROQ_API_KEY_CHAT
+        )
+        dialogZoe.show(supportFragmentManager, "ZoeChatBottomSheet")
     }
 
     private fun initViews() {

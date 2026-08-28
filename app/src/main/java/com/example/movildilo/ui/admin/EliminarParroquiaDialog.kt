@@ -2,7 +2,7 @@ package com.example.movildilo.ui.admin
 
 import android.content.Context
 import androidx.appcompat.app.AlertDialog
-import com.example.movildilo.data.model.dto.ParroquiaResponseDto
+import com.example.movildilo.data.model.dto.negocio.ParroquiaResponseDto
 
 class EliminarParroquiaDialog(
     private val context: Context,

@@ -1,7 +1,7 @@
 package com.example.movildilo.data.api
 
-import com.example.movildilo.data.model.dto.GroqRequest
-import com.example.movildilo.data.model.dto.GroqResponse
+import com.example.movildilo.data.model.dto.ia.GroqRequest
+import com.example.movildilo.data.model.dto.ia.GroqResponse
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory

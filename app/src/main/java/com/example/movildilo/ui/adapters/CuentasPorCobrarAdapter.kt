@@ -10,8 +10,8 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.movildilo.R
-import com.example.movildilo.data.model.dto.CuentaPorCobrarResponseDto
-import com.example.movildilo.data.model.dto.CuotaDto
+import com.example.movildilo.data.model.dto.facturacion.CuentaPorCobrarResponseDto
+import com.example.movildilo.data.model.dto.facturacion.CuotaDto
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.button.MaterialButton
 import java.text.SimpleDateFormat

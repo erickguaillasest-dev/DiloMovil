@@ -12,7 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
-import com.example.movildilo.data.model.dto.UnirseNegocioRequestDto
+import com.example.movildilo.data.model.dto.negocio.UnirseNegocioRequestDto
 import com.example.movildilo.ui.dashboard.AdminActivity
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView

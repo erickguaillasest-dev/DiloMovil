@@ -27,8 +27,8 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.DialogFragment
 import com.bumptech.glide.Glide
 import com.example.movildilo.R
-import com.example.movildilo.data.model.dto.CategoriaDto
-import com.example.movildilo.data.model.dto.ProductoDto
+import com.example.movildilo.data.model.dto.inventario.CategoriaDto
+import com.example.movildilo.data.model.dto.inventario.ProductoDto
 import com.example.movildilo.utils.FormValidator
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder

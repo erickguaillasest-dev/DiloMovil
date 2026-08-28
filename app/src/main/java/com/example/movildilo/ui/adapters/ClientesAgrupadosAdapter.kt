@@ -7,7 +7,7 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.movildilo.R
-import com.example.movildilo.data.model.dto.ClienteAgrupado
+import com.example.movildilo.data.model.dto.usuarios.ClienteAgrupado
 
 class ClientesAgrupadosAdapter(
     private var lista: List<ClienteAgrupado>,

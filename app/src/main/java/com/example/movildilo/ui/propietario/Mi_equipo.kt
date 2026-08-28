@@ -25,8 +25,11 @@ import com.bumptech.glide.Glide
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
-import com.example.movildilo.data.model.dto.MiembroResponseDto
+import com.example.movildilo.data.model.dto.usuarios.MiembroResponseDto
+import com.example.movildilo.ia.ZoeActionRouter
+import com.example.movildilo.ia.ZoeBottomSheetDialog
 import com.example.movildilo.ui.adapters.MiembroEquipoAdapter
+import com.example.movildilo.utils.Constants
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.async
@@ -85,8 +88,8 @@ class Mi_equipo : AppCompatActivity() {
                 .show()
         }
 
-        if (intent.getStringExtra(com.example.movildilo.ia.ZoeActionRouter.EXTRA_ACCION) ==
-            com.example.movildilo.ia.ZoeActionRouter.Accion.VER_EQUIPO
+        if (intent.getStringExtra(ZoeActionRouter.EXTRA_ACCION) ==
+            ZoeActionRouter.Accion.VER_EQUIPO
         ) {
             tvCodigoAcceso.postDelayed({
                 Toast.makeText(
@@ -96,6 +99,23 @@ class Mi_equipo : AppCompatActivity() {
                 ).show()
             }, 600)
         }
+
+        if (intent.getBooleanExtra(ZoeActionRouter.EXTRA_MANTENER_ZOE_ABIERTA, false)) {
+            abrirChatZoe()
+        }
+    }
+
+    private fun abrirChatZoe() {
+        val userMap = sessionManager.getUserMap()
+        val nombreUsuario = userMap?.get("primerNombre")?.toString() ?: userMap?.get("nombre")?.toString() ?: "Usuario"
+        val dialogZoe = ZoeBottomSheetDialog(
+            usuarioNombre = nombreUsuario,
+            negocioNombre = "Mi Empresa",
+            contextoNegocioTexto = "Estás visualizando tu equipo de trabajo.",
+            alertasTexto = "Sin alertas recientes.",
+            groqApiKey = Constants.GROQ_API_KEY_CHAT
+        )
+        dialogZoe.show(supportFragmentManager, "ZoeChatBottomSheet")
     }
 
     override fun onResume() {

@@ -22,7 +22,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
-import com.example.movildilo.data.model.dto.InventarioResponseDto
+import com.example.movildilo.data.model.dto.inventario.InventarioResponseDto
 import com.example.movildilo.ui.adapters.InventarioAdapter
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -252,7 +252,7 @@ class InventarioBodegasActivity : AppCompatActivity() {
         val btnGuardar = view.findViewById<MaterialButton>(R.id.btnGuardarStockMin)
         val btnCancelar = view.findViewById<MaterialButton>(R.id.btnCancelarStockMin)
 
-        tvPregunta.text = "¿Cuál es cái mínimo permitido para \"${item.productoNombre ?: "este producto"}\" en ${item.bodegaNombre ?: "la bodega"}?"
+        tvPregunta.text = "¿Cuál es stock mínimo permitido para \"${item.productoNombre ?: "este producto"}\" en ${item.bodegaNombre ?: "la bodega"}?"
         etNuevoStock.setText((item.stockMinimo ?: 5).toString())
 
         val alertDialog = MaterialAlertDialogBuilder(this)

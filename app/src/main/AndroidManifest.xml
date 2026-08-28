@@ -90,7 +90,7 @@
             android:exported="false"
             android:windowSoftInputMode="adjustNothing" />
         <activity
-            android:name=".ui.propietario.CatalogoProductosActivity"
+            android:name=".ui.productos.CatalogoProductosActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize"/>
         <activity
@@ -107,11 +107,11 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize"/>
         <activity
-            android:name=".ui.propietario.ProveedoresActivity"
+            android:name=".ui.proveedores.ProveedoresActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize"/>
         <activity
-            android:name=".ui.propietario.ComprasActivity"
+            android:name=".ui.abastecimiento.ComprasActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 

@@ -15,8 +15,8 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.LifecycleCoroutineScope
 import com.example.movildilo.R
 import com.example.movildilo.data.api.ApiService
-import com.example.movildilo.data.model.dto.BodegaDto
-import com.example.movildilo.data.model.dto.BodegaRequest
+import com.example.movildilo.data.model.dto.inventario.BodegaDto
+import com.example.movildilo.data.model.dto.inventario.BodegaRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

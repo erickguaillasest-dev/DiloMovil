@@ -8,7 +8,7 @@ import android.widget.TextView
 import androidx.appcompat.widget.PopupMenu
 import androidx.recyclerview.widget.RecyclerView
 import com.example.movildilo.R
-import com.example.movildilo.data.model.dto.MiembroResponseDto
+import com.example.movildilo.data.model.dto.usuarios.MiembroResponseDto
 
 class MiembrosAdapter(
     private var listaMiembros: List<MiembroResponseDto>,

@@ -1,6 +1,5 @@
 package com.example.movildilo.ui.admin
 
-import android.app.Dialog
 import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Bundle
@@ -19,7 +18,7 @@ import com.bumptech.glide.Glide
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
-import com.example.movildilo.data.model.dto.NegocioResponseDto
+import com.example.movildilo.data.model.dto.negocio.NegocioResponseDto
 import com.example.movildilo.utils.FormValidator
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView

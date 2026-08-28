@@ -7,7 +7,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.movildilo.R
-import com.example.movildilo.data.model.dto.DocumentoUiModel
+import com.example.movildilo.data.model.dto.usuarios.DocumentoUiModel
 import java.lang.String.format
 import java.util.Locale
 

@@ -18,10 +18,12 @@ import com.example.movildilo.R
 import com.example.movildilo.data.api.ApiService
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
-import com.example.movildilo.data.model.dto.BodegaDto
+import com.example.movildilo.data.model.dto.inventario.BodegaDto
 import com.example.movildilo.ia.ZoeActionRouter
+import com.example.movildilo.ia.ZoeBottomSheetDialog
 import com.example.movildilo.ui.adapters.BodegaAdapter
 import com.example.movildilo.ui.bodegas.EliminarBodegaDialog
+import com.example.movildilo.utils.Constants
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -78,6 +80,25 @@ class BodegasActivity : AppCompatActivity() {
         ) {
             rvBodegas.postDelayed({ abrirModalCrear() }, 500)
         }
+
+        findViewById<View>(R.id.btnInvocarZoeHeader)?.setOnClickListener { abrirChatZoe() }
+
+        if (intent.getBooleanExtra(ZoeActionRouter.EXTRA_MANTENER_ZOE_ABIERTA, false)) {
+            abrirChatZoe()
+        }
+    }
+
+    private fun abrirChatZoe() {
+        val userMap = sessionManager.getUserMap()
+        val nombreUsuario = userMap?.get("primerNombre")?.toString() ?: userMap?.get("nombre")?.toString() ?: "Usuario"
+        val dialogZoe = ZoeBottomSheetDialog(
+            usuarioNombre = nombreUsuario,
+            negocioNombre = "Mi Empresa",
+            contextoNegocioTexto = "Estás visualizando las bodegas del negocio.",
+            alertasTexto = "Sin alertas recientes.",
+            groqApiKey = Constants.GROQ_API_KEY_CHAT
+        )
+        dialogZoe.show(supportFragmentManager, "ZoeChatBottomSheet")
     }
 
     private fun setupRecyclerView() {

@@ -11,7 +11,7 @@ import android.widget.TextView
 import androidx.appcompat.widget.PopupMenu
 import androidx.recyclerview.widget.RecyclerView
 import com.example.movildilo.R
-import com.example.movildilo.data.model.dto.MiembroResponseDto
+import com.example.movildilo.data.model.dto.usuarios.MiembroResponseDto
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 

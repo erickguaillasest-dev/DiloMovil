@@ -6,7 +6,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.movildilo.R
-import com.example.movildilo.data.model.dto.CompraResponseDto
+import com.example.movildilo.data.model.dto.facturacion.CompraResponseDto
 import java.util.Locale
 
 class CompraAdapter(

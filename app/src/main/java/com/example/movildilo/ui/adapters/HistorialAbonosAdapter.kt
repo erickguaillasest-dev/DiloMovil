@@ -7,7 +7,7 @@ import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.movildilo.R
-import com.example.movildilo.data.model.dto.HistorialAbonoDto
+import com.example.movildilo.data.model.dto.facturacion.HistorialAbonoDto
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone

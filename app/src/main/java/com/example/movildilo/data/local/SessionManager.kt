@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.util.Base64
-import com.example.movildilo.data.model.dto.LoginResponseDto
+import com.example.movildilo.data.model.dto.auth.LoginResponseDto
 import com.example.movildilo.ui.auth.LoginActivity
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken

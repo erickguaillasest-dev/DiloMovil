@@ -2,14 +2,14 @@ package com.example.movildilo.data.repository
 
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
-import com.example.movildilo.data.model.dto.ClienteResponseDto
-import com.example.movildilo.data.model.dto.FacturaRequestDto
-import com.example.movildilo.data.model.dto.FacturaResponseDto
-import com.example.movildilo.data.model.dto.LoginRequestDto
-import com.example.movildilo.data.model.dto.LoginResponseDto
-import com.example.movildilo.data.model.dto.ParroquiaResponseDto
-import com.example.movildilo.data.model.dto.ProductoDto
-import com.example.movildilo.data.model.dto.ProductoResponseDto
+import com.example.movildilo.data.model.dto.usuarios.ClienteResponseDto
+import com.example.movildilo.data.model.dto.facturacion.FacturaRequestDto
+import com.example.movildilo.data.model.dto.facturacion.FacturaResponseDto
+import com.example.movildilo.data.model.dto.auth.LoginRequestDto
+import com.example.movildilo.data.model.dto.auth.LoginResponseDto
+import com.example.movildilo.data.model.dto.negocio.ParroquiaResponseDto
+import com.example.movildilo.data.model.dto.inventario.ProductoDto
+import com.example.movildilo.data.model.dto.inventario.ProductoResponseDto
 import com.google.gson.Gson
 import okhttp3.MediaType
 import okhttp3.MultipartBody

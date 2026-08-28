@@ -13,7 +13,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.movildilo.R
-import com.example.movildilo.data.model.dto.ProductoDto
+import com.example.movildilo.data.model.dto.inventario.ProductoDto
 import java.util.Locale
 
 class ProductosAdapter(

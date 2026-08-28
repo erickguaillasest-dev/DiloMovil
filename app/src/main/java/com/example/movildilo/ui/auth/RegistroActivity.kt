@@ -6,7 +6,6 @@ import android.net.Uri
 import android.os.Bundle
 import android.text.method.HideReturnsTransformationMethod
 import android.text.method.PasswordTransformationMethod
-import android.util.Patterns
 import android.widget.*
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -14,8 +13,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
-import com.example.movildilo.data.model.dto.RegistroDto
-import com.example.movildilo.data.model.dto.ParroquiaResponseDto
+import com.example.movildilo.data.model.dto.auth.RegistroDto
+import com.example.movildilo.data.model.dto.negocio.ParroquiaResponseDto
 import com.example.movildilo.utils.FormValidator
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.floatingactionbutton.FloatingActionButton

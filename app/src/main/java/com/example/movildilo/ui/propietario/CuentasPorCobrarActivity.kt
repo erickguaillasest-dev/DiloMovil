@@ -22,7 +22,14 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
-import com.example.movildilo.data.model.dto.*
+import com.example.movildilo.data.model.dto.facturacion.CuentaPorCobrarResponseDto
+import com.example.movildilo.data.model.dto.facturacion.CuotaDto
+import com.example.movildilo.data.model.dto.facturacion.PagoRequestDto
+import com.example.movildilo.data.model.dto.usuarios.ClienteAgrupado
+import com.example.movildilo.data.model.dto.usuarios.CreditoClienteResumenDto
+import com.example.movildilo.ia.ZoeActionRouter
+import com.example.movildilo.ia.ZoeBottomSheetDialog
+import com.example.movildilo.utils.Constants
 import com.example.movildilo.ui.adapters.ClientesAgrupadosAdapter
 import com.example.movildilo.ui.adapters.CuentasPorCobrarAdapter
 import com.example.movildilo.ui.adapters.FacturasClienteModalAdapter
@@ -92,6 +99,23 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         setupListeners()
         setupTabs()
         cargarCuentas()
+
+        if (intent.getBooleanExtra(ZoeActionRouter.EXTRA_MANTENER_ZOE_ABIERTA, false)) {
+            abrirChatZoe()
+        }
+    }
+
+    private fun abrirChatZoe() {
+        val userMap = sessionManager.getUserMap()
+        val nombreUsuario = userMap?.get("primerNombre")?.toString() ?: userMap?.get("nombre")?.toString() ?: "Usuario"
+        val dialogZoe = ZoeBottomSheetDialog(
+            usuarioNombre = nombreUsuario,
+            negocioNombre = "Mi Empresa",
+            contextoNegocioTexto = "Estás visualizando las cuentas por cobrar.",
+            alertasTexto = "Sin alertas recientes.",
+            groqApiKey = Constants.GROQ_API_KEY_CHAT
+        )
+        dialogZoe.show(supportFragmentManager, "ZoeChatBottomSheet")
     }
 
     private fun initViews() {

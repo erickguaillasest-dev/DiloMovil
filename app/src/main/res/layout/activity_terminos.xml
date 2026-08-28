@@ -93,7 +93,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Última actualización: Julio 2026"
+                            android:text="Última actualización: Agosto 2026"
                             android:textColor="#64748B"
                             android:textSize="12sp"
                             android:textStyle="italic" />
@@ -102,81 +102,55 @@
                             android:layout_width="match_parent"
                             android:layout_height="1dp"
                             android:layout_marginTop="12dp"
-                            android:layout_marginBottom="12dp"
+                            android:layout_marginBottom="16dp"
                             android:background="#F1F5F9" />
 
-                        <!-- SECCIÓN 1 -->
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="1. Aceptación de los Términos"
-                            android:textColor="#0F172A"
-                            android:textSize="15sp"
-                            android:textStyle="bold" />
-
+                        <!-- INTRODUCCIÓN -->
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
                             android:layout_marginBottom="16dp"
+                            android:text="Al crear una cuenta en Dilo, aceptas las siguientes políticas:"
+                            android:textColor="#334155"
+                            android:textSize="14sp" />
+
+                        <!-- VIÑETA 1 -->
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="12dp"
                             android:lineSpacingExtra="3dp"
-                            android:text="Al acceder y utilizar la aplicación Dilo, el usuario acepta de manera expresa y sin reservas todos los términos, condiciones y políticas aquí descritas. Si no está de acuerdo con estos términos, deberá abstenerse de utilizar el sistema."
+                            android:text="• La información ingresada debe ser veraz y te haces responsable de su autenticidad."
                             android:textColor="#334155"
                             android:textSize="13sp" />
 
-                        <!-- SECCIÓN 2 -->
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="2. Uso del Sistema y Cuentas"
-                            android:textColor="#0F172A"
-                            android:textSize="15sp"
-                            android:textStyle="bold" />
-
+                        <!-- VIÑETA 2 -->
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
-                            android:layout_marginBottom="16dp"
+                            android:layout_marginBottom="12dp"
                             android:lineSpacingExtra="3dp"
-                            android:text="El usuario es responsable de mantener la confidencialidad de sus credenciales de acceso (DNI, contraseña y firma electrónica). Queda estrictamente prohibido el uso fraudulento de los módulos de inventario, facturación y gestión de negocios."
+                            android:text="• Tus datos serán tratados conforme a nuestra estricta política de privacidad."
                             android:textColor="#334155"
                             android:textSize="13sp" />
 
-                        <!-- SECCIÓN 3 -->
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="3. Protección de Datos y Privacidad"
-                            android:textColor="#0F172A"
-                            android:textSize="15sp"
-                            android:textStyle="bold" />
-
+                        <!-- VIÑETA 3 -->
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
-                            android:layout_marginBottom="16dp"
+                            android:layout_marginBottom="12dp"
                             android:lineSpacingExtra="3dp"
-                            android:text="Los datos registrados de clientes, productos, movimientos comerciales e impuestos son almacenados bajo strictly medidas de seguridad. Dilo no compartirá ni comercializará su información privada con terceros."
+                            android:text="• Cláusula para negocios: Si utilizas esta cuenta en calidad de dueño de negocio para la emisión de comprobantes, aceptas que se cobrará una tarifa de $0.45 USD por cada factura realizada a través del sistema."
                             android:textColor="#334155"
                             android:textSize="13sp" />
 
-                        <!-- SECCIÓN 4 -->
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="4. Modificaciones del Servicio"
-                            android:textColor="#0F172A"
-                            android:textSize="15sp"
-                            android:textStyle="bold" />
-
+                        <!-- VIÑETA 4 -->
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
+                            android:layout_marginBottom="12dp"
                             android:lineSpacingExtra="3dp"
-                            android:text="Nos reservamos el derecho de actualizar o modificar estos términos en cualquier momento. Los cambios relevantes serán notificados dentro de la aplicación."
+                            android:text="• Dilo se reserva el derecho de suspender cuentas por actividades fraudulentas."
                             android:textColor="#334155"
                             android:textSize="13sp" />
 
@@ -190,7 +164,7 @@
                     android:layout_height="50dp"
                     android:layout_marginBottom="20dp"
                     android:backgroundTint="#EA580C"
-                    android:text="Entendido y Acepto"
+                    android:text="He leído y entendido"
                     android:textAllCaps="false"
                     android:textColor="@color/white"
                     android:textSize="14sp"

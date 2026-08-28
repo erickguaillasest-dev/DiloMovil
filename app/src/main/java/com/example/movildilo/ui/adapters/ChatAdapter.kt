@@ -9,7 +9,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.movildilo.R
-import com.example.movildilo.data.model.dto.ChatItem
+import com.example.movildilo.data.model.dto.ia.ChatItem
 
 class ChatAdapter(
     private val listaMensajes: MutableList<ChatItem>

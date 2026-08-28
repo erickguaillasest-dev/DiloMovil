@@ -5,7 +5,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Color
-import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -20,7 +19,6 @@ import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.text.Editable
 import android.text.TextWatcher
-import android.view.Gravity
 import android.view.View
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -28,7 +26,6 @@ import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
 import android.widget.Filter
 import android.widget.ImageView
-import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -40,21 +37,22 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.movildilo.R
 import com.example.movildilo.ai.ResultadoVozFactura
 import com.example.movildilo.ai.ZoeVoiceAI
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
-import com.example.movildilo.data.model.dto.BodegaDto
-import com.example.movildilo.data.model.dto.ClienteResponseDto
-import com.example.movildilo.data.model.dto.DetalleFacturaRequestDto
-import com.example.movildilo.data.model.dto.DetalleFacturaResponseDto
-import com.example.movildilo.data.model.dto.FacturaRequestDto
-import com.example.movildilo.data.model.dto.FacturaResponseDto
-import com.example.movildilo.data.model.dto.InventarioResponseDto
-import com.example.movildilo.data.model.dto.ItemCarritoFactura
-import com.example.movildilo.data.model.dto.NegocioResponseDto
-import com.example.movildilo.data.model.dto.ProductoResponseDto
+import com.example.movildilo.data.model.dto.inventario.BodegaDto
+import com.example.movildilo.data.model.dto.usuarios.ClienteResponseDto
+import com.example.movildilo.data.model.dto.facturacion.DetalleFacturaRequestDto
+import com.example.movildilo.data.model.dto.facturacion.DetalleFacturaResponseDto
+import com.example.movildilo.data.model.dto.facturacion.FacturaRequestDto
+import com.example.movildilo.data.model.dto.facturacion.FacturaResponseDto
+import com.example.movildilo.data.model.dto.inventario.InventarioResponseDto
+import com.example.movildilo.data.model.dto.facturacion.ItemCarritoFactura
+import com.example.movildilo.data.model.dto.negocio.NegocioResponseDto
+import com.example.movildilo.data.model.dto.inventario.ProductoResponseDto
 import com.example.movildilo.ui.adapters.FacturaCarritoAdapter
 import com.example.movildilo.ui.adapters.FacturasAdapter
 import com.google.android.material.button.MaterialButton
@@ -76,6 +74,16 @@ private data class AmbiguoPendiente(
     val descuentoPorcentaje: Double
 )
 
+// Data class auxiliar para emular la estructura de cálculo de Angular
+private data class TotalesCarrito(
+    val subtotalBruto: Double,
+    val baseImponible: Double,
+    val baseExenta: Double,
+    val montoIva: Double,
+    val total: Double,
+    val descuentoGlobalMonto: Double
+)
+
 class HistorialFacturasActivity : AppCompatActivity() {
 
     private lateinit var btnRegresar: View
@@ -83,17 +91,23 @@ class HistorialFacturasActivity : AppCompatActivity() {
     private lateinit var rvFacturas: RecyclerView
     private lateinit var layoutLoading: View
     private lateinit var layoutVacio: View
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
 
     private lateinit var sessionManager: SessionManager
     private lateinit var adapter: FacturasAdapter
     private var negocioId: Long = -1L
     private lateinit var fabNuevaFactura: View
 
+    private var tvIvaLabelDialogo: TextView? = null
+
     private var clientesList: List<ClienteResponseDto> = emptyList()
     private var bodegasList: List<BodegaDto> = emptyList()
     private var productosList: List<ProductoResponseDto> = emptyList()
     private var inventarioList: List<InventarioResponseDto> = emptyList()
     private var negocioActual: NegocioResponseDto? = null
+
+    // Se inicializa en 15.0 por defecto, igual que en web
+    private var porcentajeIvaActual: Double = 15.0
 
     private var facturaClienteId: Long? = null
     private var facturaEsConsumidorFinal: Boolean = false
@@ -187,6 +201,19 @@ class HistorialFacturasActivity : AppCompatActivity() {
         btnInvocarZoeHeader.setOnClickListener { abrirDialogoNuevaFactura(iniciarConVoz = true) }
         fabNuevaFactura.setOnClickListener { abrirDialogoNuevaFactura(iniciarConVoz = false) }
 
+        swipeRefreshLayout.setOnRefreshListener {
+            if (negocioId != -1L) {
+                cargarCatalogosFactura {
+                    cargarFacturas {
+                        swipeRefreshLayout.isRefreshing = false
+                    }
+                }
+            } else {
+                swipeRefreshLayout.isRefreshing = false
+                Toast.makeText(this, "No se encontró un negocio activo en la sesión.", Toast.LENGTH_SHORT).show()
+            }
+        }
+
         if (negocioId != -1L) {
             cargarCatalogosFactura { cargarFacturas() }
         } else {
@@ -201,6 +228,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
         layoutLoading = findViewById(R.id.layoutLoading)
         layoutVacio = findViewById(R.id.layoutVacio)
         fabNuevaFactura = findViewById(R.id.fabNuevaFactura)
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout)
     }
 
     private fun setupRecyclerView() {
@@ -269,8 +297,13 @@ class HistorialFacturasActivity : AppCompatActivity() {
         tts.setPitch(1.0f)
     }
 
+    // CARGA DE CATÁLOGOS E IVA
     private fun cargarCatalogosFactura(onListo: (() -> Unit)? = null) {
-        val authHeader = sessionManager.getAuthHeader() ?: return
+        val authHeader = sessionManager.getAuthHeader()
+        if (authHeader == null) {
+            onListo?.invoke()
+            return
+        }
 
         lifecycleScope.launch {
             try {
@@ -295,8 +328,25 @@ class HistorialFacturasActivity : AppCompatActivity() {
 
             try {
                 val respNegocio = RetrofitClient.apiService.getNegocio(authHeader, negocioId)
-                if (respNegocio.isSuccessful) negocioActual = respNegocio.body()
+                if (respNegocio.isSuccessful) {
+                    negocioActual = respNegocio.body()
+                }
             } catch (_: Exception) {}
+
+            try {
+                val respIva = RetrofitClient.apiService.getIva(authHeader)
+                if (respIva.isSuccessful) {
+                    val ivaActualTexto = respIva.body()?.get("ivaActual")
+                    if (!ivaActualTexto.isNullOrBlank()) {
+                        val ivaDecimal = ivaActualTexto.toDoubleOrNull()
+                        if (ivaDecimal != null) {
+                            porcentajeIvaActual = ivaDecimal * 100.0
+                        }
+                    }
+                }
+            } catch (_: Exception) {
+
+            }
 
             onListo?.invoke()
         }
@@ -329,6 +379,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
         resetearEstadoFactura()
 
         val dialogView = layoutInflater.inflate(R.layout.dialog_nueva_factura, null)
+
 
         val btnCerrarModal = dialogView.findViewById<ImageView>(R.id.btnCerrarModal)
         val spCliente = dialogView.findViewById<AutoCompleteTextView>(R.id.spClienteFactura)
@@ -384,6 +435,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
         tvStockRef = tvStock
         tvTotalRef = tvTotal
         tvItemsCountRef = tvItemsCount
+        tvIvaLabelDialogo = dialogView.findViewById(R.id.tvIvaLabelDialogo)
         layoutEmptyCartRef = layoutEmptyCart
         rvCarritoRef = rvCarrito
 
@@ -648,41 +700,81 @@ class HistorialFacturasActivity : AppCompatActivity() {
         actualizarUiCarrito()
     }
 
-    private fun subtotalCarritoConDescuentosDeLinea(): Double = carritoTemporal.sumOf { it.subtotalConDescuento }
+    // -----------------------------------------------------------------------------------------
+    // REFACTORIZACIÓN: CÁLCULOS EXACTOS DE IVA BASADOS EN LA IMPLEMENTACIÓN DE ANGULAR (WEB)
+    // -----------------------------------------------------------------------------------------
+    private fun calcularTotalesCarrito(): TotalesCarrito {
+        var subtotalGravado = 0.0
+        var subtotalExento = 0.0
 
-    private fun montoDescuentoGlobal(): Double =
-        subtotalCarritoConDescuentosDeLinea() * (facturaDescuentoGlobalPorcentaje.coerceIn(0.0, 100.0) / 100.0)
+        carritoTemporal.forEach { item ->
+            val subtotalLinea = item.subtotalConDescuento
 
-    private fun baseImponibleCalculada(): Double =
-        (subtotalCarritoConDescuentosDeLinea() - montoDescuentoGlobal()).coerceAtLeast(0.0)
+            // Si el DTO de producto incorpora la propiedad grabaIva se puede obtener de la lista.
+            // Para mantener consistencia estricta con los cálculos proporcionales, consideramos 'true' por defecto.
+            // TODO: Reemplazar 'true' con 'producto?.grabaIva ?: true' cuando el DTO ProductoResponseDto tenga este campo.
+            val grabaIva = true
 
-    private fun ivaCalculado(): Double = baseImponibleCalculada() * 0.15
+            if (grabaIva) {
+                subtotalGravado += subtotalLinea
+            } else {
+                subtotalExento += subtotalLinea
+            }
+        }
 
-    private fun totalCarritoFinal(): Double {
-        val total = baseImponibleCalculada() + ivaCalculado()
-        return if (total > 0) total else 0.0
+        val subtotalBruto = subtotalGravado + subtotalExento
+
+        // Cálculo del descuento global proporcional
+        val pctDescGlobal = facturaDescuentoGlobalPorcentaje.coerceIn(0.0, 100.0) / 100.0
+        val descGlobalMonto = if (pctDescGlobal > 0.0) {
+            (subtotalBruto * pctDescGlobal).coerceAtMost(subtotalBruto)
+        } else {
+            0.0
+        }
+
+        val descSobreGravado = if (subtotalBruto > 0) descGlobalMonto * (subtotalGravado / subtotalBruto) else 0.0
+        val descSobreExento = if (subtotalBruto > 0) descGlobalMonto * (subtotalExento / subtotalBruto) else 0.0
+
+        val baseImponible = (subtotalGravado - descSobreGravado).coerceAtLeast(0.0)
+        val baseExenta = (subtotalExento - descSobreExento).coerceAtLeast(0.0)
+
+        // Cálculo del IVA
+        val montoIva = baseImponible * (porcentajeIvaActual / 100.0)
+        val total = baseImponible + baseExenta + montoIva
+
+        return TotalesCarrito(
+            subtotalBruto = subtotalBruto,
+            baseImponible = baseImponible,
+            baseExenta = baseExenta,
+            montoIva = montoIva,
+            total = if (total > 0) total else 0.0,
+            descuentoGlobalMonto = descGlobalMonto
+        )
     }
 
     private fun actualizarUiCarrito() {
         carritoAdapter?.actualizar(carritoTemporal)
-        val subtotal = subtotalCarritoConDescuentosDeLinea()
-        val montoDescGlobal = montoDescuentoGlobal()
-        val baseImponible = baseImponibleCalculada()
-        val iva = ivaCalculado()
-        val total = totalCarritoFinal()
 
-        tvSubtotalRef?.text = String.format(Locale.US, "$%.2f", subtotal)
-        tvBaseImponibleRef?.text = String.format(Locale.US, "$%.2f", baseImponible)
-        tvIvaRef?.text = String.format(Locale.US, "$%.2f", iva)
-        tvTotalRef?.text = "A COBRAR: ${String.format(Locale.US, "$%.2f", total)}"
+        val totales = calcularTotalesCarrito()
+
+        tvSubtotalRef?.text = String.format(Locale.US, "$%.2f", totales.subtotalBruto)
+        tvBaseImponibleRef?.text = String.format(Locale.US, "$%.2f", totales.baseImponible)
+        tvIvaRef?.text = String.format(Locale.US, "$%.2f", totales.montoIva)
+
+        // Actualizamos de forma dinámica el LABEL del IVA
+        val porcentajeIvaFmt = String.format(Locale.US, "%.0f", porcentajeIvaActual)
+        tvIvaLabelDialogo?.text = "IVA ($porcentajeIvaFmt%)"
+
+        tvTotalRef?.text = "A COBRAR: ${String.format(Locale.US, "$%.2f", totales.total)}"
         tvItemsCountRef?.text = "${carritoTemporal.size} items"
 
-        if (montoDescGlobal > 0.0) {
+        if (totales.descuentoGlobalMonto > 0.0) {
             tvDescuentoGlobalMontoRef?.visibility = View.VISIBLE
-            tvDescuentoGlobalMontoRef?.text = "Descuento global aplicado: -${String.format(Locale.US, "$%.2f", montoDescGlobal)}"
+            tvDescuentoGlobalMontoRef?.text = "Descuento global aplicado: -${String.format(Locale.US, "$%.2f", totales.descuentoGlobalMonto)}"
         } else {
             tvDescuentoGlobalMontoRef?.visibility = View.GONE
         }
+
         val vacio = carritoTemporal.isEmpty()
         layoutEmptyCartRef?.visibility = if (vacio) View.VISIBLE else View.GONE
         rvCarritoRef?.visibility = if (vacio) View.GONE else View.VISIBLE
@@ -695,6 +787,11 @@ class HistorialFacturasActivity : AppCompatActivity() {
     }
 
     private fun emitirFactura(confirmadaPorVoz: Boolean = false) {
+        val cuotasStr = etCuotasRef?.text?.toString()?.trim().orEmpty()
+        if (facturaMetodoPago == "TARJETA_CREDITO") {
+            facturaCuotas = cuotasStr.toIntOrNull() ?: 0
+        }
+
         if ((facturaClienteId == null && !facturaEsConsumidorFinal) || carritoTemporal.isEmpty()) {
             if (confirmadaPorVoz) {
                 avanzarPaso(VoiceStep.ESCUCHANDO, "Todavía faltan datos: cliente o productos. ¿Qué agregamos?")
@@ -716,10 +813,14 @@ class HistorialFacturasActivity : AppCompatActivity() {
             if (confirmadaPorVoz) {
                 avanzarPaso(VoiceStep.ESCUCHANDO, "Falta elegir las cuotas de la tarjeta. ¿En cuántas cuotas?")
             } else {
+                etCuotasRef?.error = "Ingresa las cuotas"
                 Toast.makeText(this, "Selecciona en cuántas cuotas se paga con la tarjeta.", Toast.LENGTH_LONG).show()
             }
             return
+        } else {
+            etCuotasRef?.error = null
         }
+
         if (confirmadaPorVoz) {
             procesarEmisionFactura()
             return
@@ -751,11 +852,14 @@ class HistorialFacturasActivity : AppCompatActivity() {
             return
         }
 
+        // Enviamos el dto para su guardado final. El descuento proporcional fue mostrado al usuario en Ui,
+        // pero se envía únicamente el global para que la base recalcule de ser necesario
+        val totales = calcularTotalesCarrito()
         val payload = FacturaRequestDto(
             clienteId = facturaClienteId,
             metodoPago = facturaMetodoPago,
             numeroCuotas = if (facturaMetodoPago == "TARJETA_CREDITO") facturaCuotas else null,
-            descuentoGlobal = montoDescuentoGlobal(),
+            descuentoGlobal = totales.descuentoGlobalMonto,
             detalles = carritoTemporal.map {
                 DetalleFacturaRequestDto(
                     productoId = it.productoId,
@@ -825,7 +929,8 @@ class HistorialFacturasActivity : AppCompatActivity() {
                 VoiceStep.ESCUCHANDO to "El ticket está vacío. ¿Qué producto agregamos?"
 
             else -> {
-                val totalFmt = String.format(Locale.US, "%.2f", totalCarritoFinal())
+                val totalFinal = calcularTotalesCarrito().total
+                val totalFmt = String.format(Locale.US, "%.2f", totalFinal)
                 VoiceStep.CONFIRMAR to "El precio total a cobrar con el descuento aplicado es de $totalFmt dólares. ¿Deseas emitir la factura o agregar algo más?"
             }
         }
@@ -1136,7 +1241,8 @@ class HistorialFacturasActivity : AppCompatActivity() {
         if (voiceState == VoiceStep.CONFIRMAR) {
             if (esRespuestaAfirmativa(transcript) || quiereEmitirPalabra) {
                 voiceState = VoiceStep.OFF
-                hablar("¡Listo! Emitiendo factura por un total de ${String.format(Locale.US, "%.2f", totalCarritoFinal())} dólares.")
+                val totalFinal = calcularTotalesCarrito().total
+                hablar("¡Listo! Emitiendo factura por un total de ${String.format(Locale.US, "%.2f", totalFinal)} dólares.")
                 voiceHandler.postDelayed({ emitirFactura(confirmadaPorVoz = true) }, 800)
                 return
             }
@@ -1246,7 +1352,8 @@ class HistorialFacturasActivity : AppCompatActivity() {
                 return
             }
 
-            val totalFmt = String.format(Locale.US, "%.2f", totalCarritoFinal())
+            val totalFinal = calcularTotalesCarrito().total
+            val totalFmt = String.format(Locale.US, "%.2f", totalFinal)
             avanzarPaso(VoiceStep.CONFIRMAR, "${mensajePrefijo}Agregado ${producto.nombre}. El total a cobrar con descuento es $totalFmt dólares. ¿Deseas emitir ya o agregar algo más?")
         } else {
             avanzarPaso(VoiceStep.ESCUCHANDO, "Selecciona primero una bodega para agregar el producto.")
@@ -1313,7 +1420,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
                     mensaje = "Quité $nombreQuitado por completo del ticket."
                 }
                 actualizarUiCarrito()
-                val totalFmt = String.format(Locale.US, "%.2f", totalCarritoFinal())
+                val totalFmt = String.format(Locale.US, "%.2f", calcularTotalesCarrito().total)
                 if (carritoTemporal.isEmpty()) {
                     avanzarPaso(VoiceStep.ESCUCHANDO, "$mensaje El ticket quedó vacío. ¿Qué agregamos?")
                 } else {
@@ -1474,7 +1581,8 @@ class HistorialFacturasActivity : AppCompatActivity() {
         val prefijo = if (alertas.isNotEmpty()) "Entendido, ${alertas.joinToString(", y ")}. " else ""
         val quiereEmitir = quiereEmitirPalabra || datos.emitirFactura
 
-        val totalFmt = String.format(Locale.US, "%.2f", totalCarritoFinal())
+        val totalFinal = calcularTotalesCarrito().total
+        val totalFmt = String.format(Locale.US, "%.2f", totalFinal)
 
         if (quiereEmitir) {
             val (pasoValidacion, mensajeValidacion) = calcularPasoYMensaje()
@@ -1758,7 +1866,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
             estado = fac.estadoFormateado,
             total = fac.totalCalculado,
             descuentoGlobal = fac.totalDescuento ?: 0.0,
-            porcentajeIva = 15.0,
+            porcentajeIva = porcentajeIvaActual,
             items = items,
             mostrarBotonImprimir = true,
             onImprimir = { prepararGeneracionPDF(fac) }
@@ -1767,8 +1875,13 @@ class HistorialFacturasActivity : AppCompatActivity() {
         DetalleFacturaDialogHelper.mostrar(this, datos)
     }
 
-    private fun cargarFacturas() {
-        val authHeader = sessionManager.getAuthHeader() ?: return
+    private fun cargarFacturas(onListo: (() -> Unit)? = null) {
+        val authHeader = sessionManager.getAuthHeader()
+        if (authHeader == null) {
+            onListo?.invoke()
+            return
+        }
+
         layoutLoading.visibility = View.VISIBLE
 
         lifecycleScope.launch(Dispatchers.IO) {
@@ -1797,6 +1910,8 @@ class HistorialFacturasActivity : AppCompatActivity() {
                     layoutLoading.visibility = View.GONE
                     Toast.makeText(this@HistorialFacturasActivity, "Error de red: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
                 }
+            } finally {
+                onListo?.invoke()
             }
         }
     }
@@ -1816,9 +1931,10 @@ class HistorialFacturasActivity : AppCompatActivity() {
 
     private fun imprimirFacturaPDF(fac: FacturaResponseDto) {
         val detalles = fac.detalles ?: emptyList()
-        val tasaIva = 0.15
-        val porcentajeIvaFmt = "15"
+        val tasaIva = porcentajeIvaActual / 100.0
+        val porcentajeIvaFmt = String.format(Locale.US, "%.0f", porcentajeIvaActual)
 
+        // Se integra el cálculo para bases imponibles (gravado y exento) tal como se hace en Angular (web)
         var gravado = 0.0
         var exento = 0.0
 
@@ -1827,17 +1943,36 @@ class HistorialFacturasActivity : AppCompatActivity() {
             val pUnit = item.precioUnitario ?: 0.0
             val desc = item.descuento ?: 0.0
             val sub = item.subtotalItem ?: ((cant * pUnit) - desc)
-            gravado += sub
+
+            // NOTA: Se asume que grabaIva existe; por defecto aplicamos a gravado
+            // En versiones posteriores reemplazar 'true' por 'item.grabaIva ?: item.producto?.grabaIva ?: true'
+            val grabaIva = true
+
+            if (grabaIva) {
+                gravado += sub
+            } else {
+                exento += sub
+            }
         }
 
         val totalBruto = gravado + exento
         val descGlobalIn = fac.totalDescuento ?: 0.0
         val descGlobal = descGlobalIn.coerceAtMost(totalBruto)
 
-        val baseImponible = (gravado - descGlobal).coerceAtLeast(0.0)
-        val iva = baseImponible * tasaIva
-        val subtotalSinIva = baseImponible
-        val total = fac.totalCalculado.takeIf { it > 0 } ?: (subtotalSinIva + iva)
+        // Cálculo de descuento proporcional
+        val descGrav = if (totalBruto > 0) descGlobal * (gravado / totalBruto) else 0.0
+        val descEx = descGlobal - descGrav
+
+        val baseImponible = (gravado - descGrav).coerceAtLeast(0.0)
+        val baseExenta = (exento - descEx).coerceAtLeast(0.0)
+
+        val ivaCalculado = baseImponible * tasaIva
+        val subtotalSinIva = baseImponible + baseExenta
+        val totalCalculado = baseImponible + baseExenta + ivaCalculado
+
+        // Usamos los totales calculados o fallbacks
+        val total = fac.totalCalculado.takeIf { it > 0 } ?: totalCalculado
+
         val filasProductos = StringBuilder()
 
         if (detalles.isNotEmpty()) {
@@ -1988,7 +2123,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
                         </div>
                         <div class="total-row">
                             <span>IVA (${porcentajeIvaFmt}%)</span>
-                            <span class="font-bold">$${String.format(Locale.US, "%.2f", iva)}</span>
+                            <span class="font-bold">$${String.format(Locale.US, "%.2f", ivaCalculado)}</span>
                         </div>
                         <div class="total-row grand-total">
                             <span>TOTAL</span>

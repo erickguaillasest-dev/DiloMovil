@@ -19,10 +19,13 @@ import com.bumptech.glide.Glide
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
-import com.example.movildilo.data.model.dto.CambiarPasswordRequestDto
-import com.example.movildilo.data.model.dto.EditarPerfilRequestDto
-import com.example.movildilo.data.model.dto.ParroquiaResponseDto
-import com.example.movildilo.data.model.dto.UsuarioMeDto
+import com.example.movildilo.data.model.dto.auth.CambiarPasswordRequestDto
+import com.example.movildilo.data.model.dto.usuarios.EditarPerfilRequestDto
+import com.example.movildilo.data.model.dto.negocio.ParroquiaResponseDto
+import com.example.movildilo.data.model.dto.usuarios.UsuarioMeDto
+import com.example.movildilo.ia.ZoeActionRouter
+import com.example.movildilo.ia.ZoeBottomSheetDialog
+import com.example.movildilo.utils.Constants
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.imageview.ShapeableImageView
 import com.google.android.material.textfield.TextInputEditText
@@ -300,10 +303,27 @@ class Perfil : AppCompatActivity() {
     }
 
     private fun manejarAccionDeZoe() {
-        when (intent.getStringExtra(com.example.movildilo.ia.ZoeActionRouter.EXTRA_ACCION)) {
-            com.example.movildilo.ia.ZoeActionRouter.Accion.EDITAR_PERFIL -> activarModoEdicion()
-            com.example.movildilo.ia.ZoeActionRouter.Accion.CAMBIAR_PASSWORD -> toggleChangePassword()
+        when (intent.getStringExtra(ZoeActionRouter.EXTRA_ACCION)) {
+            ZoeActionRouter.Accion.EDITAR_PERFIL -> activarModoEdicion()
+            ZoeActionRouter.Accion.CAMBIAR_PASSWORD -> toggleChangePassword()
         }
+
+        if (intent.getBooleanExtra(ZoeActionRouter.EXTRA_MANTENER_ZOE_ABIERTA, false)) {
+            abrirChatZoe()
+        }
+    }
+
+    private fun abrirChatZoe() {
+        val userMap = sessionManager.getUserMap()
+        val nombreUsuario = userMap?.get("primerNombre")?.toString() ?: userMap?.get("nombre")?.toString() ?: "Usuario"
+        val dialogZoe = ZoeBottomSheetDialog(
+            usuarioNombre = nombreUsuario,
+            negocioNombre = "Mi Empresa",
+            contextoNegocioTexto = "Estás visualizando tu perfil.",
+            alertasTexto = "Sin alertas recientes.",
+            groqApiKey = Constants.GROQ_API_KEY_CHAT
+        )
+        dialogZoe.show(supportFragmentManager, "ZoeChatBottomSheet")
     }
 
     private fun construirUrlFoto(rutaFoto: String?): String? {

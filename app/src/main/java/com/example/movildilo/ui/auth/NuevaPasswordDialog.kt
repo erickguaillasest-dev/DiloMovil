@@ -10,7 +10,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.LifecycleCoroutineScope
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
-import com.example.movildilo.data.model.dto.ResetPasswordRequestDto
+import com.example.movildilo.data.model.dto.auth.ResetPasswordRequestDto
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
 

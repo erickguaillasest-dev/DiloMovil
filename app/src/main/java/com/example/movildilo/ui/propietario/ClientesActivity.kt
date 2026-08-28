@@ -26,8 +26,11 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
-import com.example.movildilo.data.model.dto.ClienteResponseDto
+import com.example.movildilo.data.model.dto.usuarios.ClienteResponseDto
+import com.example.movildilo.ia.ZoeActionRouter
+import com.example.movildilo.ia.ZoeBottomSheetDialog
 import com.example.movildilo.ui.adapters.ClientesAdapter
+import com.example.movildilo.utils.Constants
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
@@ -91,11 +94,28 @@ class ClientesActivity : AppCompatActivity() {
             Toast.makeText(this, "No se detectó un negocio activo", Toast.LENGTH_SHORT).show()
         }
 
-        if (intent.getStringExtra(com.example.movildilo.ia.ZoeActionRouter.EXTRA_ACCION) ==
-            com.example.movildilo.ia.ZoeActionRouter.Accion.CREAR_CLIENTE
+        if (intent.getStringExtra(ZoeActionRouter.EXTRA_ACCION) ==
+            ZoeActionRouter.Accion.CREAR_CLIENTE
         ) {
             rvClientes.postDelayed({ abrirModalFormulario(null) }, 500)
         }
+
+        if (intent.getBooleanExtra(ZoeActionRouter.EXTRA_MANTENER_ZOE_ABIERTA, false)) {
+            abrirChatZoe()
+        }
+    }
+
+    private fun abrirChatZoe() {
+        val userMap = sessionManager.getUserMap()
+        val nombreUsuario = userMap?.get("primerNombre")?.toString() ?: userMap?.get("nombre")?.toString() ?: "Usuario"
+        val dialogZoe = ZoeBottomSheetDialog(
+            usuarioNombre = nombreUsuario,
+            negocioNombre = "Mi Empresa",
+            contextoNegocioTexto = "Estás visualizando la lista de clientes.",
+            alertasTexto = "Sin alertas recientes.",
+            groqApiKey = Constants.GROQ_API_KEY_CHAT
+        )
+        dialogZoe.show(supportFragmentManager, "ZoeChatBottomSheet")
     }
 
     private fun initViews() {

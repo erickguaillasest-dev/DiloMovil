@@ -8,9 +8,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.movildilo.R
-import com.example.movildilo.data.model.dto.NegocioResponseDto
-import com.google.gson.JsonArray
-import com.google.gson.JsonPrimitive
+import com.example.movildilo.data.model.dto.negocio.NegocioResponseDto
 import java.util.Locale
 
 class NegocioAdminAdapter(

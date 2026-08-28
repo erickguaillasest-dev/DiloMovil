@@ -8,7 +8,7 @@ import android.widget.ImageButton
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.movildilo.R
-import com.example.movildilo.data.model.dto.InventarioResponseDto
+import com.example.movildilo.data.model.dto.inventario.InventarioResponseDto
 import com.google.android.material.button.MaterialButton
 import java.util.Locale
 

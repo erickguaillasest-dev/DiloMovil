@@ -33,10 +33,7 @@ class ZoeSpeechHelper(private val context: Context) {
         }
 
         private val ACENTOS_DISPONIBLES = listOf(
-            AcentoVoz("es", "AR", "acento argentino", listOf(
-                "acento argentino", "habla como argentino", "hablame como argentino",
-                "con acento argentino", "voz argentina", "che", "vuelve a tu acento original"
-            )),
+            AcentoVoz("es", "AR", "acento argentino", listOf("acento argentino", "habla como argentino")),
             AcentoVoz("es", "MX", "acento mexicano", listOf("acento mexicano", "voz mexicana")),
             AcentoVoz("es", "ES", "acento español", listOf("acento español", "voz española")),
             AcentoVoz("es", "US", "acento neutro", listOf("acento neutro", "voz neutra")),
@@ -44,12 +41,10 @@ class ZoeSpeechHelper(private val context: Context) {
         )
 
         fun detectarAcentoPedido(texto: String): AcentoVoz? {
-            val normalizado = java.text.Normalizer.normalize(texto.trim().lowercase(), java.text.Normalizer.Form.NFD)
-                .replace(Regex("\\p{Mn}+"), "")
+            val normalizado = java.text.Normalizer.normalize(texto.trim().lowercase(), java.text.Normalizer.Form.NFD).replace(Regex("\\p{Mn}+"), "")
             return ACENTOS_DISPONIBLES.firstOrNull { acento ->
                 acento.frases.any { frase ->
-                    val fraseNorm = java.text.Normalizer.normalize(frase, java.text.Normalizer.Form.NFD)
-                        .replace(Regex("\\p{Mn}+"), "")
+                    val fraseNorm = java.text.Normalizer.normalize(frase, java.text.Normalizer.Form.NFD).replace(Regex("\\p{Mn}+"), "")
                     normalizado.contains(fraseNorm)
                 }
             }
@@ -77,9 +72,21 @@ class ZoeSpeechHelper(private val context: Context) {
                 return@TextToSpeech
             }
             val tts = textToSpeech
-            tts?.setLanguage(Locale("es", "AR"))
-            tts?.setSpeechRate(1.05f)
-            tts?.setPitch(1.05f)
+
+            val vocesDisponibles = try { tts?.voices } catch (e: Exception) { null }
+            val vozFemenina = vocesDisponibles?.firstOrNull {
+                it.locale.language.startsWith("es") &&
+                        (it.name.contains("female", true) || it.name.contains("mujer", true) || it.name.contains("Natural", true) || it.name.contains("Online", true))
+            } ?: vocesDisponibles?.firstOrNull { it.locale.language.startsWith("es") }
+
+            if (vozFemenina != null) {
+                tts?.voice = vozFemenina
+            } else {
+                tts?.setLanguage(Locale("es", "AR"))
+            }
+
+            tts?.setSpeechRate(1.0f)
+            tts?.setPitch(1.08f)
             ttsListo = true
             onListo?.invoke()
         }
@@ -88,28 +95,40 @@ class ZoeSpeechHelper(private val context: Context) {
     fun listoParaHablar(): Boolean = ttsListo
 
     fun hablar(texto: String, alTerminar: (() -> Unit)? = null) {
+        // Bloqueo estricto del micrófono antes de comenzar a hablar para no escucharse a sí misma.
+        detenerEscucha()
+        detenerEscuchaDeComandos()
+
         val limpio = texto
             .replace(Regex("\\*\\*(.*?)\\*\\*"), "$1")
-            .replace(Regex("[#_`|]"), "")
+            .replace(Regex("[#_`|~]"), "")
             .replace(Regex("id\\s*:\\s*\\d+", RegexOption.IGNORE_CASE), "")
             .replace(Regex("\\([^)]*\\)"), "")
             .replace(Regex("\\[[^\\]]*\\]"), "")
             .replace(Regex("[⚠✖•]"), "")
-            .replace("$", " pesos ")
+            .replace("$", " dólares ")
+            .replace("%", " por ciento ")
             .replace(Regex("-{2,}"), "")
             .replace(Regex("\\s+"), " ")
             .trim()
+
         val tts = textToSpeech
         if (tts == null || !ttsListo || limpio.isBlank()) {
-            alTerminar?.invoke()
+            manejadorPrincipal.postDelayed({ alTerminar?.invoke() }, 100)
             return
         }
+
         val utteranceId = "zoe_${System.currentTimeMillis()}"
         tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {}
-            override fun onDone(utteranceId: String?) { manejadorPrincipal.post { alTerminar?.invoke() } }
+            override fun onDone(utteranceId: String?) {
+                // Genera un delay real antes de reactivar el mic, asegurando que el altavoz se detuvo
+                manejadorPrincipal.postDelayed({ alTerminar?.invoke() }, 600)
+            }
             @Deprecated("Deprecated in Java")
-            override fun onError(utteranceId: String?) { manejadorPrincipal.post { alTerminar?.invoke() } }
+            override fun onError(utteranceId: String?) {
+                manejadorPrincipal.postDelayed({ alTerminar?.invoke() }, 600)
+            }
         })
         tts.speak(limpio, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
     }
@@ -119,6 +138,8 @@ class ZoeSpeechHelper(private val context: Context) {
     }
 
     fun escuchar(onResultado: (String) -> Unit, onError: (String) -> Unit, onEmpezoAEscuchar: (() -> Unit)? = null) {
+        detenerHabla()
+
         if (!SpeechRecognizer.isRecognitionAvailable(context)) {
             onError("El reconocimiento de voz no está disponible.")
             return
@@ -135,9 +156,9 @@ class ZoeSpeechHelper(private val context: Context) {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, "es-AR")
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
-            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 10000L) // 10 segundos mínimos
-            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 5000L) // 5s de silencio completo
-            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 4000L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 15000L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 8000L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 6000L)
         }
 
         speechRecognizer?.setRecognitionListener(object : RecognitionListener {

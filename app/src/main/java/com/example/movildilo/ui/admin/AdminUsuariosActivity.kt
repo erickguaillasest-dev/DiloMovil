@@ -18,8 +18,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
-import com.example.movildilo.data.model.dto.ParroquiaResponseDto
-import com.example.movildilo.data.model.dto.UsuarioMeDto
+import com.example.movildilo.data.model.dto.negocio.ParroquiaResponseDto
+import com.example.movildilo.data.model.dto.usuarios.UsuarioMeDto
 import com.example.movildilo.ui.adapters.UsuariosAdapter
 import com.example.movildilo.utils.FormValidator
 import com.google.android.material.button.MaterialButton
