@@ -18,13 +18,14 @@
         android:orientation="horizontal"
         android:padding="12dp">
 
-        <!-- Icono de Dinero en caja verde -->
         <FrameLayout
+            android:id="@+id/frameIconoAbono"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:background="@drawable/bg_icon_cash_green">
 
             <TextView
+                android:id="@+id/tvIconoAbono"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
@@ -32,7 +33,6 @@
                 android:textSize="18sp" />
         </FrameLayout>
 
-        <!-- Información de Abono y Fecha/Usuario -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -57,6 +57,16 @@
                 android:text="24/Aug/2026, 09:35 AM • Recibió: usuario@gmail.com"
                 android:textColor="#64748B"
                 android:textSize="11sp" />
+
+            <TextView
+                android:id="@+id/tvRefAbono"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Ref: TR-456789"
+                android:textColor="#94A3B8"
+                android:textSize="11sp"
+                android:visibility="gone" />
         </LinearLayout>
 
         <!-- Monto Recibido -->

@@ -16,7 +16,8 @@ class ProductosFacturaAdapter(
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvNombre: TextView = view.findViewById(R.id.tvNombreProductoItem)
         val tvCantidad: TextView = view.findViewById(R.id.tvCantidadProductoItem)
-        val tvPrecio: TextView = view.findViewById(R.id.tvPrecioProductoItem)
+        val tvPrecioUnit: TextView = view.findViewById(R.id.tvPrecioUnitProductoItem)
+        val tvSubtotal: TextView = view.findViewById(R.id.tvSubtotalProductoItem)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -30,11 +31,13 @@ class ProductosFacturaAdapter(
 
         val nombre = item.nombreProducto ?: item.producto?.nombre ?: "Producto"
         val cantidad = item.cantidad ?: 1
-        val subtotal = item.subtotalItem ?: ((item.precioUnitario ?: 0.0) * cantidad)
+        val precioUnitario = item.precioUnitario ?: 0.0
+        val subtotal = precioUnitario * cantidad
 
         holder.tvNombre.text = nombre
-        holder.tvCantidad.text = "Cant: $cantidad"
-        holder.tvPrecio.text = String.format(Locale.US, "$%.2f", subtotal)
+        holder.tvCantidad.text = cantidad.toString()
+        holder.tvPrecioUnit.text = String.format(Locale.US, "$%.2f", precioUnitario)
+        holder.tvSubtotal.text = String.format(Locale.US, "$%.2f", subtotal)
     }
 
     override fun getItemCount(): Int = lista.size

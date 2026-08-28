@@ -13,6 +13,7 @@ data class CuentaPorCobrarResponseDto(
     @SerializedName("nombreCliente", alternate = ["clienteNombre"]) val clienteNombre: String?,
     @SerializedName("dniCliente", alternate = ["dni", "identificacion"]) val dniCliente: String?,
     @SerializedName("cuotas") val cuotas: List<CuotaDto>?,
+    @SerializedName("historialAbonos") val historialAbonos: List<HistorialAbonoDto>?,
     var isExpanded: Boolean = false
 )
 
@@ -27,7 +28,7 @@ data class ClienteDto(
     @SerializedName("apellidoPaterno") val apellidoPaterno: String?,
     @SerializedName("nombreCompleto") val nombreCompleto: String? = null,
     @SerializedName("nombre") val nombre: String? = null,
-    @SerializedName("razonSocial", alternate = ["razon_social"]) val razonSocial: String? = null, // <- Soluciona el error de referencia
+    @SerializedName("razonSocial", alternate = ["razon_social"]) val razonSocial: String? = null,
     @SerializedName("dni", alternate = ["identificacion", "ruc", "cedula"]) val dni: String? = null
 )
 
@@ -37,7 +38,18 @@ data class CuotaDto(
     @SerializedName("fechaVencimiento") val fechaVencimiento: String?,
     @SerializedName("montoCuota") val montoCuota: Double?,
     @SerializedName("saldoPendienteCuota") val saldoPendienteCuota: Double?,
-    @SerializedName("estado") val estado: String?
+    @SerializedName("estado") val estado: String?,
+    @SerializedName("metodoPago", alternate = ["metodo_pago"]) val metodoPago: String?,
+    @SerializedName("fechaActualizacion", alternate = ["fecha_actualizacion", "fechaAbono", "fecha_abono"]) val fechaActualizacion: String?
+)
+
+data class HistorialAbonoDto(
+    @SerializedName("id") val id: Long?,
+    @SerializedName("metodoPago", alternate = ["metodo_pago"]) val metodoPago: String?,
+    @SerializedName("fechaAbono", alternate = ["fecha_abono"]) val fechaAbono: String?,
+    @SerializedName("usuarioRecibio", alternate = ["usuario_recibio"]) val usuarioRecibio: String?,
+    @SerializedName("referencia") val referencia: String?,
+    @SerializedName("montoAbonado", alternate = ["monto_abonado", "montoPago", "monto_pago"]) val montoAbonado: Double?
 )
 
 data class PagoRequestDto(

@@ -38,7 +38,6 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
 
     private lateinit var sessionManager: SessionManager
     private var negocioId: Long = 0
-
     private lateinit var btnRegresar: ImageButton
     private lateinit var tvTotalPorCobrar: TextView
     private lateinit var tvTotalAbonado: TextView
@@ -531,15 +530,32 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
 
         val layoutContenedorCuotas = view.findViewById<LinearLayout>(R.id.layoutContenedorCuotas)
         val rvHistorial = view.findViewById<RecyclerView>(R.id.rvHistorialAbonos)
+        val layoutHistorialVacio = view.findViewById<LinearLayout>(R.id.layoutHistorialVacio)
         val rvProductos = view.findViewById<RecyclerView>(R.id.rvProductosComprados)
         val pbProductos = view.findViewById<ProgressBar>(R.id.pbProductos)
+        val layoutResumenProductos = view.findViewById<LinearLayout>(R.id.layoutResumenProductos)
+        val tvDescuentoFactura = view.findViewById<TextView>(R.id.tvDescuentoFactura)
+        val tvSubtotalFacturaProductos = view.findViewById<TextView>(R.id.tvSubtotalFacturaProductos)
+        val tvIvaFactura = view.findViewById<TextView>(R.id.tvIvaFactura)
+        val tvTotalFacturaProductos = view.findViewById<TextView>(R.id.tvTotalFacturaProductos)
 
         rvHistorial.layoutManager = LinearLayoutManager(this)
         rvProductos.layoutManager = LinearLayoutManager(this)
 
         val todasLasCuotas = cuenta.cuotas ?: emptyList()
-        val emailUsuario = sessionManager.getUserEmail() ?: ""
-        rvHistorial.adapter = HistorialAbonosAdapter(todasLasCuotas, emailUsuario)
+
+        val historialAbonosOrdenado = (cuenta.historialAbonos ?: emptyList())
+            .sortedByDescending { it.fechaAbono ?: "" }
+
+        rvHistorial.adapter = HistorialAbonosAdapter(historialAbonosOrdenado)
+
+        if (historialAbonosOrdenado.isEmpty()) {
+            rvHistorial.visibility = View.GONE
+            layoutHistorialVacio.visibility = View.VISIBLE
+        } else {
+            rvHistorial.visibility = View.VISIBLE
+            layoutHistorialVacio.visibility = View.GONE
+        }
 
         val etMonto = view.findViewById<EditText>(R.id.etMontoAbono)
         val spMetodo = view.findViewById<Spinner>(R.id.spMetodoPago)
@@ -629,7 +645,10 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
                     1 -> containerHistorial.visibility = View.VISIBLE
                     2 -> {
                         containerProductos.visibility = View.VISIBLE
-                        cargarProductosFactura(cuenta, rvProductos, pbProductos)
+                        cargarProductosFactura(
+                            cuenta, rvProductos, pbProductos, layoutResumenProductos,
+                            tvDescuentoFactura, tvSubtotalFacturaProductos, tvIvaFactura, tvTotalFacturaProductos
+                        )
                     }
                 }
             }
@@ -699,10 +718,20 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         etMonto.requestFocus()
     }
 
-    private fun cargarProductosFactura(cuenta: CuentaPorCobrarResponseDto, rvProductos: RecyclerView, pb: ProgressBar) {
+    private fun cargarProductosFactura(
+        cuenta: CuentaPorCobrarResponseDto,
+        rvProductos: RecyclerView,
+        pb: ProgressBar,
+        layoutResumen: LinearLayout,
+        tvDescuento: TextView,
+        tvSubtotal: TextView,
+        tvIva: TextView,
+        tvTotal: TextView
+    ) {
         val numFactura = cuenta.numeroFactura ?: cuenta.factura?.numeroFactura ?: return
         val token = sessionManager.getAuthHeader() ?: return
         pb.visibility = View.VISIBLE
+        layoutResumen.visibility = View.GONE
 
         lifecycleScope.launch {
             try {
@@ -714,6 +743,18 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
                     }
                     val detalles = facturaEncontrada?.detalles ?: emptyList()
                     rvProductos.adapter = ProductosFacturaAdapter(detalles)
+
+                    val subtotalBruto = detalles.sumOf { (it.precioUnitario ?: 0.0) * (it.cantidad ?: 0) }
+                    val descuento = facturaEncontrada?.totalDescuento ?: 0.0
+                    val subtotalNeto = subtotalBruto - descuento
+                    val iva = subtotalNeto * 0.15
+                    val total = facturaEncontrada?.totalFactura ?: (subtotalNeto + iva)
+
+                    tvDescuento.text = String.format(Locale.US, "-$%.2f", descuento)
+                    tvSubtotal.text = String.format(Locale.US, "$%.2f", subtotalNeto)
+                    tvIva.text = String.format(Locale.US, "$%.2f", iva)
+                    tvTotal.text = String.format(Locale.US, "$%.2f", total)
+                    layoutResumen.visibility = View.VISIBLE
                 }
             } catch (e: Exception) {
                 pb.visibility = View.GONE
