@@ -79,133 +79,140 @@
                 android:textSize="12sp" />
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- CARD CONTENEDOR PRINCIPAL -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardContainer"
+        <!-- SWIPE REFRESH LAYOUT -->
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/swipeRefreshLayout"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_margin="12dp"
             android:layout_weight="1"
-            app:cardBackgroundColor="#FFFFFF"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="2dp"
-            app:strokeColor="#E2E8F0"
-            app:strokeWidth="1dp">
+            android:layout_margin="12dp">
 
-            <androidx.constraintlayout.widget.ConstraintLayout
+            <!-- CARD CONTENEDOR PRINCIPAL -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardContainer"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:padding="12dp">
+                app:cardBackgroundColor="#FFFFFF"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:strokeColor="#E2E8F0"
+                app:strokeWidth="1dp">
 
-                <!-- BARRA DE BÚSQUEDA -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/cardSearch"
-                    android:layout_width="0dp"
-                    android:layout_height="46dp"
-                    app:cardBackgroundColor="#F8FAFC"
-                    app:cardCornerRadius="10dp"
-                    app:cardElevation="0dp"
-                    app:strokeColor="#CBD5E1"
-                    app:strokeWidth="1dp"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent">
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:padding="12dp">
 
-                    <EditText
-                        android:id="@+id/etSearch"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:background="@android:color/transparent"
-                        android:drawableStart="@android:drawable/ic_menu_search"
-                        android:drawablePadding="10dp"
-                        android:drawableTint="#64748B"
-                        android:hint="Buscar por nombre, DNI o correo..."
-                        android:imeOptions="actionSearch"
-                        android:inputType="text"
-                        android:paddingHorizontal="12dp"
-                        android:textColor="#0F172A"
-                        android:textColorHint="#94A3B8"
-                        android:textSize="13sp" />
-                </com.google.android.material.card.MaterialCardView>
+                    <!-- BARRA DE BÚSQUEDA -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cardSearch"
+                        android:layout_width="0dp"
+                        android:layout_height="46dp"
+                        app:cardBackgroundColor="#F8FAFC"
+                        app:cardCornerRadius="10dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="#CBD5E1"
+                        app:strokeWidth="1dp"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent">
 
-                <!-- SPINNER DE CARGA -->
-                <LinearLayout
-                    android:id="@+id/layoutLoading"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:orientation="vertical"
-                    android:visibility="gone"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/cardSearch"
-                    tools:visibility="gone">
+                        <EditText
+                            android:id="@+id/etSearch"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:background="@android:color/transparent"
+                            android:drawableStart="@android:drawable/ic_menu_search"
+                            android:drawablePadding="10dp"
+                            android:drawableTint="#64748B"
+                            android:hint="Buscar por nombre, DNI o correo..."
+                            android:imeOptions="actionSearch"
+                            android:inputType="text"
+                            android:paddingHorizontal="12dp"
+                            android:textColor="#0F172A"
+                            android:textColorHint="#94A3B8"
+                            android:textSize="13sp" />
+                    </com.google.android.material.card.MaterialCardView>
 
-                    <ProgressBar
-                        android:id="@+id/progressBar"
-                        android:layout_width="38dp"
-                        android:layout_height="38dp"
-                        android:indeterminateTint="#EA580C" />
-
-                    <TextView
+                    <!-- SPINNER DE CARGA -->
+                    <LinearLayout
+                        android:id="@+id/layoutLoading"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="Cargando cartera de clientes..."
-                        android:textColor="#64748B"
-                        android:textSize="13sp" />
-                </LinearLayout>
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:visibility="gone"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/cardSearch"
+                        tools:visibility="gone">
 
-                <!-- MENSAJE SIN RESULTADOS -->
-                <LinearLayout
-                    android:id="@+id/layoutEmptyState"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:orientation="vertical"
-                    android:padding="24dp"
-                    android:visibility="gone"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/cardSearch"
-                    tools:visibility="gone">
+                        <ProgressBar
+                            android:id="@+id/progressBar"
+                            android:layout_width="38dp"
+                            android:layout_height="38dp"
+                            android:indeterminateTint="#EA580C" />
 
-                    <TextView
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="Cargando cartera de clientes..."
+                            android:textColor="#64748B"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <!-- MENSAJE SIN RESULTADOS -->
+                    <LinearLayout
+                        android:id="@+id/layoutEmptyState"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="👤"
-                        android:textSize="36sp" />
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:padding="24dp"
+                        android:visibility="gone"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/cardSearch"
+                        tools:visibility="gone">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="No se encontraron clientes."
-                        android:textColor="#64748B"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="👤"
+                            android:textSize="36sp" />
 
-                <!-- RECYCLERVIEW DE CLIENTES -->
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/rvClientes"
-                    android:layout_width="0dp"
-                    android:layout_height="0dp"
-                    android:layout_marginTop="12dp"
-                    android:clipToPadding="false"
-                    android:paddingBottom="80dp"
-                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/cardSearch"
-                    tools:listitem="@layout/item_cliente" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="No se encontraron clientes."
+                            android:textColor="#64748B"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
 
-            </androidx.constraintlayout.widget.ConstraintLayout>
+                    <!-- RECYCLERVIEW DE CLIENTES -->
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvClientes"
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
+                        android:layout_marginTop="12dp"
+                        android:clipToPadding="false"
+                        android:paddingBottom="80dp"
+                        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/cardSearch"
+                        tools:listitem="@layout/item_cliente" />
 
-        </com.google.android.material.card.MaterialCardView>
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     </LinearLayout>
 

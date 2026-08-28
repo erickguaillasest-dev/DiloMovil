@@ -21,11 +21,13 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
 import com.example.movildilo.data.model.dto.CategoriaDto
 import com.example.movildilo.ui.adapters.CategoriasAdapter
+import com.example.movildilo.utils.FormValidator
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -40,6 +42,7 @@ class CategoriasActivity : AppCompatActivity() {
     private lateinit var layoutLoading: FrameLayout
     private lateinit var btnNuevaCategoria: MaterialButton
     private lateinit var btnRegresar: ImageButton
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
 
     private val listaOriginal = mutableListOf<CategoriaDto>()
     private val listaFiltrada = mutableListOf<CategoriaDto>()
@@ -62,6 +65,16 @@ class CategoriasActivity : AppCompatActivity() {
         btnRegresar.setOnClickListener { finish() }
         btnNuevaCategoria.setOnClickListener { abrirModalDialog(null) }
 
+        swipeRefreshLayout.setOnRefreshListener {
+            if (negocioId > 0) {
+                cargarCategorias {
+                    swipeRefreshLayout.isRefreshing = false
+                }
+            } else {
+                swipeRefreshLayout.isRefreshing = false
+            }
+        }
+
         if (intent.getStringExtra(com.example.movildilo.ia.ZoeActionRouter.EXTRA_ACCION) ==
             com.example.movildilo.ia.ZoeActionRouter.Accion.CREAR_CATEGORIA
         ) {
@@ -82,6 +95,7 @@ class CategoriasActivity : AppCompatActivity() {
         layoutLoading = findViewById(R.id.layoutLoading)
         btnNuevaCategoria = findViewById(R.id.btnNuevaCategoria)
         btnRegresar = findViewById(R.id.btnRegresar)
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout)
     }
 
     private fun setupRecyclerView() {
@@ -104,8 +118,10 @@ class CategoriasActivity : AppCompatActivity() {
         })
     }
 
-    private fun cargarCategorias() {
-        mostrarLoading(true)
+    private fun cargarCategorias(onComplete: (() -> Unit)? = null) {
+        if (!swipeRefreshLayout.isRefreshing) {
+            mostrarLoading(true)
+        }
         val token = sessionManager.getAuthHeader() ?: ""
 
         lifecycleScope.launch(Dispatchers.IO) {
@@ -125,6 +141,10 @@ class CategoriasActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     mostrarLoading(false)
                     Toast.makeText(this@CategoriasActivity, "Fallo de red: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                }
+            } finally {
+                withContext(Dispatchers.Main) {
+                    onComplete?.invoke()
                 }
             }
         }
@@ -165,7 +185,6 @@ class CategoriasActivity : AppCompatActivity() {
             etDescripcion.setText(categoriaExistente?.descripcion ?: "")
         }
 
-
         ViewCompat.setOnApplyWindowInsetsListener(dialogView) { v, insets ->
             val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
             v.setPadding(0, 0, 0, imeInsets.bottom)
@@ -183,28 +202,39 @@ class CategoriasActivity : AppCompatActivity() {
             val nombre = etNombre.text.toString().trim()
             val descripcion = etDescripcion.text.toString().trim()
 
-            val errorNombre = com.example.movildilo.utils.FormValidator.requerido(nombre, "El nombre de la categoría")
-                ?: com.example.movildilo.utils.FormValidator.longitudMinima(nombre, 2, "El nombre de la categoría")
-                ?: com.example.movildilo.utils.FormValidator.longitudMaxima(nombre, 60, "El nombre de la categoría")
+            val errorNombre = FormValidator.requerido(nombre, "El nombre de la categoría")
+                ?: FormValidator.longitudMinima(nombre, 2, "El nombre de la categoría")
+                ?: FormValidator.longitudMaxima(nombre, 60, "El nombre de la categoría")
                 ?: run {
                     val yaExiste = listaOriginal.any {
-                        com.example.movildilo.utils.FormValidator.normalizar(it.nombre) == com.example.movildilo.utils.FormValidator.normalizar(nombre) &&
+                        FormValidator.normalizar(it.nombre) == FormValidator.normalizar(nombre) &&
                                 it.id != categoriaExistente?.id
                     }
                     if (yaExiste) "Ya existe una categoría con ese nombre." else null
                 }
-                ?: com.example.movildilo.utils.FormValidator.longitudMaxima(descripcion, 250, "La descripción")
+
+            val errorDescripcion = FormValidator.longitudMaxima(descripcion, 250, "La descripción")
 
             if (errorNombre != null) {
                 etNombre.error = errorNombre
                 etNombre.requestFocus()
                 return@setOnClickListener
+            } else {
+                etNombre.error = null
+            }
+
+            if (errorDescripcion != null) {
+                etDescripcion.error = errorDescripcion
+                etDescripcion.requestFocus()
+                return@setOnClickListener
+            } else {
+                etDescripcion.error = null
             }
 
             val requestDto = CategoriaDto(
                 id = categoriaExistente?.id,
                 nombre = nombre,
-                descripcion = descripcion
+                descripcion = if (descripcion.isEmpty()) null else descripcion
             )
 
             alertDialog.dismiss()

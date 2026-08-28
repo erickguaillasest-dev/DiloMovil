@@ -18,6 +18,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
@@ -44,6 +45,7 @@ class InventarioBodegasActivity : AppCompatActivity() {
     private lateinit var spinnerFiltroBodega: AutoCompleteTextView
     private lateinit var rvInventario: RecyclerView
     private lateinit var layoutLoading: View
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
 
     private lateinit var sessionManager: SessionManager
     private lateinit var adapter: InventarioAdapter
@@ -56,7 +58,6 @@ class InventarioBodegasActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_inventario_bodegas)
 
-
         sessionManager = SessionManager(this)
         negocioId = sessionManager.getNegocioId()
 
@@ -67,6 +68,16 @@ class InventarioBodegasActivity : AppCompatActivity() {
         btnRegresar.setOnClickListener { finish() }
         btnIrKardex.setOnClickListener {
             startActivity(Intent(this, KardexActivity::class.java))
+        }
+
+        swipeRefreshLayout.setOnRefreshListener {
+            if (negocioId > 0L) {
+                cargarInventarioDesdeApi {
+                    swipeRefreshLayout.isRefreshing = false
+                }
+            } else {
+                swipeRefreshLayout.isRefreshing = false
+            }
         }
 
         if (negocioId > 0L) {
@@ -85,6 +96,7 @@ class InventarioBodegasActivity : AppCompatActivity() {
         spinnerFiltroBodega = findViewById(R.id.spinnerFiltroBodega)
         rvInventario = findViewById(R.id.rvInventario)
         layoutLoading = findViewById(R.id.layoutLoading)
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout)
     }
 
     private fun setupRecyclerView() {
@@ -117,16 +129,19 @@ class InventarioBodegasActivity : AppCompatActivity() {
         })
     }
 
-    private fun cargarInventarioDesdeApi() {
+    private fun cargarInventarioDesdeApi(onComplete: (() -> Unit)? = null) {
         val authHeader = sessionManager.getAuthHeader()
 
         if (authHeader.isNullOrEmpty()) {
+            onComplete?.invoke()
             Toast.makeText(this, "Sesión no válida o token ausente", Toast.LENGTH_LONG).show()
             mostrarAlertaSesionExpirada()
             return
         }
 
-        mostrarCargando(true)
+        if (!swipeRefreshLayout.isRefreshing) {
+            mostrarCargando(true)
+        }
         Log.d(TAG, "Solicitando inventario para negocio ID: $negocioId")
 
         lifecycleScope.launch(Dispatchers.IO) {
@@ -161,6 +176,10 @@ class InventarioBodegasActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     mostrarCargando(false)
                     Toast.makeText(this@InventarioBodegasActivity, "Error de conexión: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                }
+            } finally {
+                withContext(Dispatchers.Main) {
+                    onComplete?.invoke()
                 }
             }
         }
@@ -233,7 +252,7 @@ class InventarioBodegasActivity : AppCompatActivity() {
         val btnGuardar = view.findViewById<MaterialButton>(R.id.btnGuardarStockMin)
         val btnCancelar = view.findViewById<MaterialButton>(R.id.btnCancelarStockMin)
 
-        tvPregunta.text = "¿Cuál es el mínimo permitido para \"${item.productoNombre ?: "este producto"}\" en ${item.bodegaNombre ?: "la bodega"}?"
+        tvPregunta.text = "¿Cuál es cái mínimo permitido para \"${item.productoNombre ?: "este producto"}\" en ${item.bodegaNombre ?: "la bodega"}?"
         etNuevoStock.setText((item.stockMinimo ?: 5).toString())
 
         val alertDialog = MaterialAlertDialogBuilder(this)

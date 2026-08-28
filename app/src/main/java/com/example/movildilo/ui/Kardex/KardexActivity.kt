@@ -12,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
@@ -40,6 +41,7 @@ class KardexActivity : AppCompatActivity() {
     private lateinit var spinnerFiltroBodegaKardex: MaterialAutoCompleteTextView
     private lateinit var rvKardex: RecyclerView
     private lateinit var layoutLoadingKardex: View
+    private lateinit var swipeRefreshLayoutKardex: SwipeRefreshLayout
 
     private lateinit var sessionManager: SessionManager
     private lateinit var adapter: KardexAdapter
@@ -64,6 +66,19 @@ class KardexActivity : AppCompatActivity() {
         setupFiltros()
 
         btnRegresarKardex.setOnClickListener { finish() }
+
+        swipeRefreshLayoutKardex.setOnRefreshListener {
+            if (negocioId > 0L) {
+                cargarCatalogosAuxiliares {
+                    cargarKardexDesdeApi {
+                        swipeRefreshLayoutKardex.isRefreshing = false
+                    }
+                }
+            } else {
+                swipeRefreshLayoutKardex.isRefreshing = false
+                Toast.makeText(this, "No se encontró un negocio activo.", Toast.LENGTH_SHORT).show()
+            }
+        }
 
         btnAbrirNuevoAjuste.setOnClickListener {
             if (negocioId <= 0L) {
@@ -97,6 +112,7 @@ class KardexActivity : AppCompatActivity() {
         spinnerFiltroBodegaKardex = findViewById(R.id.spinnerFiltroBodegaKardex)
         rvKardex = findViewById(R.id.rvKardex)
         layoutLoadingKardex = findViewById(R.id.layoutLoadingKardex)
+        swipeRefreshLayoutKardex = findViewById(R.id.swipeRefreshLayoutKardex)
     }
 
     private fun setupRecyclerView() {
@@ -177,8 +193,11 @@ class KardexActivity : AppCompatActivity() {
         }
     }
 
-    private fun cargarCatalogosAuxiliares() {
-        val authHeader = sessionManager.getAuthHeader() ?: return
+    private fun cargarCatalogosAuxiliares(onComplete: (() -> Unit)? = null) {
+        val authHeader = sessionManager.getAuthHeader() ?: run {
+            onComplete?.invoke()
+            return
+        }
 
         lifecycleScope.launch {
             try {
@@ -210,18 +229,23 @@ class KardexActivity : AppCompatActivity() {
                     "Error al cargar catálogos auxiliares",
                     Toast.LENGTH_SHORT
                 ).show()
+            } finally {
+                onComplete?.invoke()
             }
         }
     }
 
-    private fun cargarKardexDesdeApi() {
+    private fun cargarKardexDesdeApi(onComplete: (() -> Unit)? = null) {
         val authHeader = sessionManager.getAuthHeader()
         if (authHeader.isNullOrEmpty()) {
+            onComplete?.invoke()
             mostrarAlertaSesionExpirada()
             return
         }
 
-        mostrarCargando(true)
+        if (!swipeRefreshLayoutKardex.isRefreshing) {
+            mostrarCargando(true)
+        }
 
         lifecycleScope.launch {
             try {
@@ -270,6 +294,8 @@ class KardexActivity : AppCompatActivity() {
                     "Error de conexión: ${e.localizedMessage}",
                     Toast.LENGTH_SHORT
                 ).show()
+            } finally {
+                onComplete?.invoke()
             }
         }
     }
@@ -355,9 +381,6 @@ class KardexActivity : AppCompatActivity() {
         dialog.show(supportFragmentManager, "AjusteManualDialog")
     }
 
-    /**
-     * Valida los campos del DTO de Ajuste Manual antes de enviarlo a la API.
-     */
     private fun validarAjusteManual(dto: NuevoAjusteRequestDto): Boolean {
         if (negocioId <= 0L) {
             Toast.makeText(this, "No se detectó un negocio válido para registrar el ajuste.", Toast.LENGTH_SHORT).show()

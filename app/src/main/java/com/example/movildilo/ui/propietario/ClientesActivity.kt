@@ -22,6 +22,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
@@ -45,6 +46,7 @@ class ClientesActivity : AppCompatActivity() {
     private lateinit var etSearch: EditText
     private lateinit var btnNuevoCliente: MaterialButton
     private lateinit var btnRegresar: ImageButton
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
 
     private lateinit var clientesAdapter: ClientesAdapter
     private lateinit var sessionManager: SessionManager
@@ -103,6 +105,7 @@ class ClientesActivity : AppCompatActivity() {
         etSearch = findViewById(R.id.etSearch)
         btnNuevoCliente = findViewById(R.id.btnNuevoCliente)
         btnRegresar = findViewById(R.id.btnRegresar)
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout)
     }
 
     private fun setupRecyclerView() {
@@ -119,6 +122,16 @@ class ClientesActivity : AppCompatActivity() {
         btnRegresar.setOnClickListener { finish() }
         btnNuevoCliente.setOnClickListener { abrirModalFormulario(null) }
 
+        swipeRefreshLayout.setOnRefreshListener {
+            if (negocioId != -1L) {
+                cargarClientes {
+                    swipeRefreshLayout.isRefreshing = false
+                }
+            } else {
+                swipeRefreshLayout.isRefreshing = false
+            }
+        }
+
         etSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -128,14 +141,17 @@ class ClientesActivity : AppCompatActivity() {
         })
     }
 
-    private fun cargarClientes() {
+    private fun cargarClientes(onComplete: (() -> Unit)? = null) {
         val authHeader = sessionManager.getAuthHeader()
         if (authHeader == null) {
+            onComplete?.invoke()
             mostrarAlertaSesionExpirada()
             return
         }
 
-        layoutLoading.visibility = View.VISIBLE
+        if (!swipeRefreshLayout.isRefreshing) {
+            layoutLoading.visibility = View.VISIBLE
+        }
         rvClientes.visibility = View.GONE
         layoutEmptyState.visibility = View.GONE
 
@@ -157,6 +173,10 @@ class ClientesActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     layoutLoading.visibility = View.GONE
                     Toast.makeText(this@ClientesActivity, "Error de red: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                }
+            } finally {
+                withContext(Dispatchers.Main) {
+                    onComplete?.invoke()
                 }
             }
         }
@@ -220,7 +240,6 @@ class ClientesActivity : AppCompatActivity() {
         imgAvatarModal = view.findViewById(R.id.imgAvatarCliente)
         val btnCambiarFoto = view.findViewById<View>(R.id.btnCambiarFoto)
 
-        // Contenedores TextInputLayout
         val tilDni = view.findViewById<TextInputLayout>(R.id.tilDni)
         val tilPrimerNombre = view.findViewById<TextInputLayout>(R.id.tilPrimerNombre)
         val tilSegundoNombre = view.findViewById<TextInputLayout>(R.id.tilSegundoNombre)
@@ -232,7 +251,6 @@ class ClientesActivity : AppCompatActivity() {
         val tilFechaNacimiento = view.findViewById<TextInputLayout>(R.id.tilFechaNacimiento)
         val tilDireccion = view.findViewById<TextInputLayout>(R.id.tilDireccion)
 
-        // Inputs de texto
         val etDni = view.findViewById<TextInputEditText>(R.id.etDni)
         val etPrimerNombre = view.findViewById<TextInputEditText>(R.id.etPrimerNombre)
         val etSegundoNombre = view.findViewById<TextInputEditText>(R.id.etSegundoNombre)
@@ -254,7 +272,6 @@ class ClientesActivity : AppCompatActivity() {
             mostrarOpcionesImagen()
         }
 
-        // Carga de datos si es edición
         if (isEditing && cliente != null) {
             etDni.setText(cliente.dni)
             etPrimerNombre.setText(cliente.primerNombre)
@@ -280,7 +297,6 @@ class ClientesActivity : AppCompatActivity() {
             }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
         }
 
-        // TextWatchers para limpiar errores al escribir
         setupErrorClearing(etDni, tilDni)
         setupErrorClearing(etPrimerNombre, tilPrimerNombre)
         setupErrorClearing(etSegundoNombre, tilSegundoNombre)
@@ -303,7 +319,6 @@ class ClientesActivity : AppCompatActivity() {
         btnCancelar.setOnClickListener { dialog.dismiss() }
 
         btnGuardar.setOnClickListener {
-            // Limpiar errores previos
             tilDni.error = null
             tilPrimerNombre.error = null
             tilApellidoPaterno.error = null
@@ -325,7 +340,6 @@ class ClientesActivity : AppCompatActivity() {
 
             var isValid = true
 
-            // Validar Cédula / DNI
             if (dni.isEmpty()) {
                 tilDni.error = "Ingresa la cédula / DNI"
                 isValid = false
@@ -334,25 +348,21 @@ class ClientesActivity : AppCompatActivity() {
                 isValid = false
             }
 
-            // Validar Primer Nombre
             if (primerNombre.isEmpty()) {
                 tilPrimerNombre.error = "El primer nombre es obligatorio"
                 isValid = false
             }
 
-            // Validar Apellido Paterno
             if (apellidoPaterno.isEmpty()) {
                 tilApellidoPaterno.error = "El primer apellido es obligatorio"
                 isValid = false
             }
 
-            // Validar Correo Electrónico (si se ingresa)
             if (email.isNotEmpty() && !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
                 tilEmail.error = "Ingresa un correo electrónico válido"
                 isValid = false
             }
 
-            // Validar Contraseña
             if (!isEditing && contrasena.isEmpty()) {
                 layoutContrasena.error = "La contraseña es obligatoria"
                 isValid = false
@@ -361,7 +371,6 @@ class ClientesActivity : AppCompatActivity() {
                 isValid = false
             }
 
-            // Validar Teléfono (si se ingresa)
             if (telefono.isNotEmpty() && (telefono.length < 9 || !telefono.all { it.isDigit() })) {
                 tilTelefono.error = "Ingresa un número de teléfono válido (9-10 dígitos)"
                 isValid = false
@@ -416,7 +425,6 @@ class ClientesActivity : AppCompatActivity() {
         })
     }
 
-    // Función auxiliar para calcular la edad exacta a partir de "YYYY-MM-DD"
     private fun calcularEdad(fechaNacimientoStr: String): Int {
         return try {
             val partes = fechaNacimientoStr.split("-")

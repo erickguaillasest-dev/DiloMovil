@@ -24,6 +24,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
@@ -56,6 +57,7 @@ class ComprasActivity : AppCompatActivity() {
     private lateinit var tvSinCompras: TextView
     private lateinit var fabNuevaCompra: ExtendedFloatingActionButton
     private lateinit var layoutLoading: View
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
 
     private lateinit var sessionManager: SessionManager
     private lateinit var adapter: CompraAdapter
@@ -82,6 +84,18 @@ class ComprasActivity : AppCompatActivity() {
 
         btnRegresar.setOnClickListener { finish() }
         fabNuevaCompra.setOnClickListener { abrirDialogoNuevaCompra() }
+
+        swipeRefreshLayout.setOnRefreshListener {
+            if (negocioId != -1L) {
+                cargarCatalogos {
+                    cargarCompras {
+                        swipeRefreshLayout.isRefreshing = false
+                    }
+                }
+            } else {
+                swipeRefreshLayout.isRefreshing = false
+            }
+        }
 
         etBuscarCompra.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -112,6 +126,7 @@ class ComprasActivity : AppCompatActivity() {
         tvSinCompras = findViewById(R.id.tvSinCompras)
         fabNuevaCompra = findViewById(R.id.fabNuevaCompra)
         layoutLoading = findViewById(R.id.layoutLoading)
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout)
     }
 
     private fun setupRecyclerView() {
@@ -120,8 +135,11 @@ class ComprasActivity : AppCompatActivity() {
         rvCompras.adapter = adapter
     }
 
-    private fun cargarCompras() {
-        val authHeader = sessionManager.getAuthHeader() ?: return
+    private fun cargarCompras(onComplete: (() -> Unit)? = null) {
+        val authHeader = sessionManager.getAuthHeader() ?: run {
+            onComplete?.invoke()
+            return
+        }
         layoutLoading.visibility = View.VISIBLE
 
         lifecycleScope.launch {
@@ -137,12 +155,17 @@ class ComprasActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 layoutLoading.visibility = View.GONE
                 Toast.makeText(this@ComprasActivity, "Error de conexión: ${e.message}", Toast.LENGTH_LONG).show()
+            } finally {
+                onComplete?.invoke()
             }
         }
     }
 
     private fun cargarCatalogos(onComplete: (() -> Unit)? = null) {
-        val authHeader = sessionManager.getAuthHeader() ?: return
+        val authHeader = sessionManager.getAuthHeader() ?: run {
+            onComplete?.invoke()
+            return
+        }
         lifecycleScope.launch {
             try {
                 val respProv = RetrofitClient.apiService.getProveedores(authHeader, negocioId)

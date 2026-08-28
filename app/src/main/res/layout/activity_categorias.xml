@@ -78,26 +78,39 @@
                 android:textSize="14sp" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- LISTA DE CATEGORÍAS EN TARJETAS -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvCategorias"
+        <!-- SWIPE REFRESH LAYOUT PARA ACTUALIZAR -->
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/swipeRefreshLayout"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
-            android:clipToPadding="false"
-            android:paddingBottom="80dp" />
+            android:layout_weight="1">
 
-        <!-- ESTADO VACÍO -->
-        <TextView
-            android:id="@+id/tvListaVacia"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
-            android:gravity="center"
-            android:text="No se encontraron categorías"
-            android:textColor="#94A3B8"
-            android:textSize="14sp"
-            android:visibility="gone" />
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <!-- LISTA DE CATEGORÍAS EN TARJETAS -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvCategorias"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:clipToPadding="false"
+                    android:paddingBottom="80dp" />
+
+                <!-- ESTADO VACÍO -->
+                <TextView
+                    android:id="@+id/tvListaVacia"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="32dp"
+                    android:gravity="center"
+                    android:text="No se encontraron categorías"
+                    android:textColor="#94A3B8"
+                    android:textSize="14sp"
+                    android:visibility="gone" />
+
+            </FrameLayout>
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     </LinearLayout>
 

@@ -12,10 +12,9 @@ import android.widget.AutoCompleteTextView
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.NestedScrollView
 import androidx.lifecycle.lifecycleScope
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.bumptech.glide.Glide
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
@@ -46,6 +45,7 @@ class Perfil : AppCompatActivity() {
     private val baseServerUrl = "https://dilo-backend-mxlu.onrender.com"
     private lateinit var btnRegresar: ImageView
     private lateinit var scrollView: NestedScrollView
+    private lateinit var swipeRefreshLayoutPerfil: SwipeRefreshLayout
     private lateinit var imgAvatar: ShapeableImageView
     private lateinit var tvCambiarFoto: TextView
     private lateinit var tvNombre: TextView
@@ -108,17 +108,17 @@ class Perfil : AppCompatActivity() {
         setContentView(R.layout.activity_perfil)
 
         scrollView = findViewById(R.id.main)
-
         sessionManager = SessionManager(this)
 
         initViews()
         setupListeners()
-        cargarMiPerfil()
         cargarParroquias()
+        cargarMiPerfil()
     }
 
     private fun initViews() {
         btnRegresar = findViewById(R.id.btnRegresar)
+        swipeRefreshLayoutPerfil = findViewById(R.id.swipeRefreshLayoutPerfil)
         imgAvatar = findViewById(R.id.imgAvatar)
         tvCambiarFoto = findViewById(R.id.tvCambiarFoto)
         tvNombre = findViewById(R.id.tvNombre)
@@ -170,6 +170,14 @@ class Perfil : AppCompatActivity() {
         btnTogglePassword.setOnClickListener { toggleChangePassword() }
         btnGuardarContrasena.setOnClickListener { guardarSoloContrasena() }
 
+        swipeRefreshLayoutPerfil.setOnRefreshListener {
+            cargarParroquias {
+                cargarMiPerfil {
+                    swipeRefreshLayoutPerfil.isRefreshing = false
+                }
+            }
+        }
+
         tvCambiarFoto.setOnClickListener {
             if (isEditing) pickImageLauncher.launch("image/*")
         }
@@ -217,9 +225,10 @@ class Perfil : AppCompatActivity() {
         datePickerDialog.show()
     }
 
-    private fun cargarMiPerfil() {
+    private fun cargarMiPerfil(onComplete: (() -> Unit)? = null) {
         val authHeader = sessionManager.getAuthHeader()
         if (authHeader == null) {
+            onComplete?.invoke()
             Toast.makeText(this, "Sesión expirada, vuelve a iniciar sesión.", Toast.LENGTH_LONG).show()
             finish()
             return
@@ -235,11 +244,13 @@ class Perfil : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 Toast.makeText(this@Perfil, "Error de conexión: ${e.message}", Toast.LENGTH_LONG).show()
+            } finally {
+                onComplete?.invoke()
             }
         }
     }
 
-    private fun cargarParroquias() {
+    private fun cargarParroquias(onComplete: (() -> Unit)? = null) {
         val authHeader = sessionManager.getAuthHeader()
         lifecycleScope.launch {
             try {
@@ -249,6 +260,8 @@ class Perfil : AppCompatActivity() {
                     configurarDropdownParroquias()
                 }
             } catch (e: Exception) {
+            } finally {
+                onComplete?.invoke()
             }
         }
     }

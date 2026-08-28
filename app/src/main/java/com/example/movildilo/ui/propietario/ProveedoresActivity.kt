@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
@@ -44,6 +45,7 @@ class ProveedoresActivity : AppCompatActivity() {
     private lateinit var tvListaVacia: TextView
     private lateinit var btnNuevoProveedor: com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
     private lateinit var btnRegresar: ImageButton
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
 
     private lateinit var tvKpiTotalProveedores: TextView
     private lateinit var tvKpiProveedoresActivos: TextView
@@ -80,6 +82,7 @@ class ProveedoresActivity : AppCompatActivity() {
         tvListaVacia = findViewById(R.id.tvListaVacia)
         btnNuevoProveedor = findViewById(R.id.btnNuevoProveedor)
         btnRegresar = findViewById(R.id.btnRegresar)
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout)
 
         tvKpiTotalProveedores = findViewById(R.id.tvKpiTotalProveedores)
         tvKpiProveedoresActivos = findViewById(R.id.tvKpiProveedoresActivos)
@@ -104,6 +107,12 @@ class ProveedoresActivity : AppCompatActivity() {
         btnRegresar.setOnClickListener { finish() }
         btnNuevoProveedor.setOnClickListener { abrirDialogoProveedor(null) }
 
+        swipeRefreshLayout.setOnRefreshListener {
+            cargarDatosBackend {
+                swipeRefreshLayout.isRefreshing = false
+            }
+        }
+
         etBuscar.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -118,15 +127,18 @@ class ProveedoresActivity : AppCompatActivity() {
         }
     }
 
-    private fun cargarDatosBackend() {
+    private fun cargarDatosBackend(onComplete: (() -> Unit)? = null) {
         val authHeader = sessionManager.getAuthHeader()
 
         if (authHeader.isNullOrBlank() || negocioId <= 0) {
+            onComplete?.invoke()
             Toast.makeText(this, "Sesión no válida o negocio no seleccionado", Toast.LENGTH_SHORT).show()
             return
         }
 
-        layoutLoading.visibility = View.VISIBLE
+        if (!swipeRefreshLayout.isRefreshing) {
+            layoutLoading.visibility = View.VISIBLE
+        }
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
@@ -159,6 +171,10 @@ class ProveedoresActivity : AppCompatActivity() {
                     layoutLoading.visibility = View.GONE
                     Log.e("PROVEEDORES_EXC", "Error de red", e)
                     Toast.makeText(this@ProveedoresActivity, "Error de red: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            } finally {
+                withContext(Dispatchers.Main) {
+                    onComplete?.invoke()
                 }
             }
         }
@@ -213,7 +229,6 @@ class ProveedoresActivity : AppCompatActivity() {
 
         val idsSeleccionados = proveedorParaEditar?.categorias?.mapNotNull { it.id }?.toMutableList() ?: mutableListOf()
 
-        // Función para renderizar los chips dinámicamente según los IDs seleccionados
         fun refrescarChips() {
             chipGroup.removeAllViews()
             idsSeleccionados.forEach { catId ->
@@ -236,7 +251,6 @@ class ProveedoresActivity : AppCompatActivity() {
 
         refrescarChips()
 
-        // Configurar AutoCompleteTextView para buscar y agregar categorías
         val nombresCategorias = listaCategoriasDisponibles.map { it.nombre ?: "" }
         val adapterCat = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, nombresCategorias)
         spinnerBuscarCategoria.setAdapter(adapterCat)

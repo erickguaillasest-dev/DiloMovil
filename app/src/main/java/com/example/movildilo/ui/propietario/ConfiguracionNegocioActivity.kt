@@ -12,6 +12,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.bumptech.glide.Glide
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
@@ -46,6 +47,7 @@ class ConfiguracionNegocioActivity : AppCompatActivity() {
     private lateinit var cbObligadoContabilidad: MaterialCheckBox
     private lateinit var btnGuardarConfiguracion: MaterialButton
     private lateinit var layoutLoading: View
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
 
     private lateinit var sessionManager: SessionManager
     private var negocioId: Long = -1L
@@ -123,6 +125,7 @@ class ConfiguracionNegocioActivity : AppCompatActivity() {
         cbObligadoContabilidad = findViewById(R.id.cbObligadoContabilidad)
         btnGuardarConfiguracion = findViewById(R.id.btnGuardarConfiguracion)
         layoutLoading = findViewById(R.id.layoutLoading)
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout)
     }
 
     private fun setupDropdownCosteo() {
@@ -137,11 +140,26 @@ class ConfiguracionNegocioActivity : AppCompatActivity() {
         }
         btnSubirLogo.setOnClickListener { mostrarOpcionesFoto() }
         btnGuardarConfiguracion.setOnClickListener { guardarCambios() }
+
+        swipeRefreshLayout.setOnRefreshListener {
+            if (negocioId != -1L) {
+                cargarNegocio(negocioId)
+            } else {
+                swipeRefreshLayout.isRefreshing = false
+                mostrarAlertaSinNegocio()
+            }
+        }
     }
 
     private fun cargarNegocio(id: Long) {
-        val authHeader = sessionManager.getAuthHeader() ?: return
-        layoutLoading.visibility = View.VISIBLE
+        val authHeader = sessionManager.getAuthHeader() ?: run {
+            swipeRefreshLayout.isRefreshing = false
+            return
+        }
+
+        if (!swipeRefreshLayout.isRefreshing) {
+            layoutLoading.visibility = View.VISIBLE
+        }
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
@@ -178,6 +196,10 @@ class ConfiguracionNegocioActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     layoutLoading.visibility = View.GONE
                     Toast.makeText(this@ConfiguracionNegocioActivity, "Error de conexión: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            } finally {
+                withContext(Dispatchers.Main) {
+                    swipeRefreshLayout.isRefreshing = false
                 }
             }
         }

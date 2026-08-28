@@ -56,7 +56,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- SECCIÓN DE FILTROS (FIJA ARRIBA) -->
+        <!-- SECCIÓN DE FILTROS -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -140,15 +140,22 @@
 
         </LinearLayout>
 
-        <!-- RECYCLERVIEW MOVIMIENTOS -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvKardex"
+        <!-- SWIPE REFRESH LAYOUT CON RECYCLERVIEW -->
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/swipeRefreshLayoutKardex"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
-            android:clipToPadding="false"
-            android:paddingHorizontal="12dp"
-            android:paddingBottom="80dp" />
+            android:layout_weight="1">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvKardex"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingHorizontal="12dp"
+                android:paddingBottom="80dp" />
+
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     </LinearLayout>
 
@@ -168,7 +175,7 @@
             android:layout_gravity="center" />
     </FrameLayout>
 
-    <!-- BOTÓN FLOTANTE AJUSTE MANUAL EN LA PARTE INFERIOR -->
+    <!-- BOTÓN FLOTANTE AJUSTE MANUAL -->
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
         android:id="@+id/btnAbrirNuevoAjuste"
         android:layout_width="wrap_content"

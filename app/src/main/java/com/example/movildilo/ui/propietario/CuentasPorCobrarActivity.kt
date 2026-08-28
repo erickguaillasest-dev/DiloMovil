@@ -18,6 +18,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
@@ -59,6 +60,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
     private lateinit var layoutSinResultados: LinearLayout
     private lateinit var layoutVacio: LinearLayout
     private lateinit var layoutLoading: FrameLayout
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
 
     private var cuentasBase: List<CuentaPorCobrarResponseDto> = emptyList()
     private var clientesAgrupados: List<ClienteAgrupado> = emptyList()
@@ -116,6 +118,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         layoutSinResultados = findViewById(R.id.layoutSinResultados)
         layoutVacio = findViewById(R.id.layoutVacio)
         layoutLoading = findViewById(R.id.layoutLoading)
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout)
 
         rvCuentasGeneral.layoutManager = LinearLayoutManager(this)
         rvClientesDirectorio.layoutManager = LinearLayoutManager(this)
@@ -136,6 +139,12 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
 
     private fun setupListeners() {
         btnRegresar.setOnClickListener { finish() }
+
+        swipeRefreshLayout.setOnRefreshListener {
+            cargarCuentas {
+                swipeRefreshLayout.isRefreshing = false
+            }
+        }
 
         etBuscar.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) { aplicarFiltros() }
@@ -204,9 +213,15 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         aplicarFiltros()
     }
 
-    private fun cargarCuentas() {
-        val token = sessionManager.getAuthHeader() ?: return
-        layoutLoading.visibility = View.VISIBLE
+    private fun cargarCuentas(onComplete: (() -> Unit)? = null) {
+        val token = sessionManager.getAuthHeader() ?: run {
+            onComplete?.invoke()
+            return
+        }
+
+        if (!swipeRefreshLayout.isRefreshing) {
+            layoutLoading.visibility = View.VISIBLE
+        }
 
         lifecycleScope.launch {
             try {
@@ -232,6 +247,8 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 layoutLoading.visibility = View.GONE
                 Toast.makeText(this@CuentasPorCobrarActivity, "Error de red al cargar datos", Toast.LENGTH_SHORT).show()
+            } finally {
+                onComplete?.invoke()
             }
         }
     }
