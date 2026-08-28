@@ -20,7 +20,7 @@ import com.example.movildilo.data.model.dto.ProductoResponseDto
 import com.example.movildilo.ia.ZoeBottomSheetDialog
 import com.example.movildilo.ui.Kardex.KardexActivity
 import com.example.movildilo.ui.auth.LoginActivity
-import com.example.movildilo.ui.bodegas.BodegasActivity
+import com.example.movildilo.ui.Bodegas.BodegasActivity
 import com.example.movildilo.ui.propietario.*
 import com.example.movildilo.utils.Constants
 import com.google.android.material.button.MaterialButton

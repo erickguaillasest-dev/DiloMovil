@@ -20,13 +20,14 @@
         <!-- AVATAR DEL CLIENTE -->
         <TextView
             android:id="@+id/tvAvatarInicial"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="45dp"
+            android:layout_height="45dp"
             android:background="@drawable/bg_avatar_circulo"
             android:gravity="center"
             android:textColor="@android:color/holo_orange_dark"
             android:textSize="16sp"
             android:textStyle="bold"
+            android:layout_marginTop="20dp"
             app:layout_constraintBottom_toBottomOf="@id/tvNombreClienteGroup"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="@id/tvNombreClienteGroup"

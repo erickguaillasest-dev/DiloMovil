@@ -315,11 +315,22 @@ class ProductoDialog(
 
         val unidadTecnica = listaUnidades.find { it.second.equals(nombreUnidadVisual, ignoreCase = true) }?.first ?: "UNIDADES"
 
+        // 1. Validaciones principales mediante el FormValidator con TextInputLayout
         val ok = FormValidator.validar(
+            FormValidator.Campo(tilCodigo) {
+                FormValidator.requerido(codigo, "El código principal")
+                    ?: FormValidator.longitudMinima(codigo, 3, "El código principal")
+            },
             FormValidator.Campo(tilNombre) {
                 FormValidator.requerido(nombre, "El nombre del producto")
                     ?: FormValidator.longitudMinima(nombre, 2, "El nombre del producto")
                     ?: FormValidator.longitudMaxima(nombre, 100, "El nombre del producto")
+            },
+            FormValidator.Campo(tilMarca) {
+                if (marca != "Sin marca") {
+                    FormValidator.longitudMinima(marca, 2, "La marca")
+                        ?: FormValidator.longitudMaxima(marca, 50, "La marca")
+                } else null
             },
             FormValidator.Campo(tilCategoria) {
                 FormValidator.requerido(nombreCategoria, "La categoría")
@@ -330,10 +341,33 @@ class ProductoDialog(
         )
         if (!ok) return
 
-        val idCategoriaFinal = listaCategoriasBD.find { it.nombre.equals(nombreCategoria, ignoreCase = true) }?.id ?: categoriaSeleccionada?.id
+        // 2. Validación de duplicidad de código (si es un producto nuevo o se modificó el código)
+        if (productoEditar == null || productoEditar.codigoPrincipal != codigo) {
+            val codigoExiste = listaProductosExistentes.any {
+                it.codigoPrincipal.equals(codigo, ignoreCase = true) && it.id != productoEditar?.id
+            }
+            if (codigoExiste) {
+                FormValidator.marcarError(tilCodigo, "Ya existe otro producto registrado con este código")
+                etCodigo.requestFocus()
+                return
+            }
+        }
 
+        // 3. Validación de duplicidad de nombre de producto dentro del negocio
+        val nombreExiste = listaProductosExistentes.any {
+            it.nombre.equals(nombre, ignoreCase = true) && it.id != productoEditar?.id
+        }
+        if (nombreExiste) {
+            FormValidator.marcarError(tilNombre, "Ya existe un producto registrado con este mismo nombre")
+            etNombre.requestFocus()
+            return
+        }
+
+        // 4. Verificación de existencia de categoría seleccionada
+        val idCategoriaFinal = listaCategoriasBD.find { it.nombre.equals(nombreCategoria, ignoreCase = true) }?.id ?: categoriaSeleccionada?.id
         if (idCategoriaFinal == null) {
             Toast.makeText(requireContext(), "Selecciona una categoría válida de la lista", Toast.LENGTH_SHORT).show()
+            spinnerCategoria.requestFocus()
             return
         }
 

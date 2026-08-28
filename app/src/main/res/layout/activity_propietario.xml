@@ -1,10 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.swiperefreshlayout.widget.SwipeRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/swipeRefreshLayout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="#083344"
-    android:fitsSystemWindows="false">
+    android:layout_height="match_parent">
+
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#083344"
+        android:fitsSystemWindows="false">
 
     <RelativeLayout
         android:layout_width="match_parent"
@@ -1001,4 +1007,5 @@
             android:src="@drawable/zoe"
             app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
     </com.google.android.material.card.MaterialCardView>
-</RelativeLayout>
+    </RelativeLayout>
+</androidx.swiperefreshlayout.widget.SwipeRefreshLayout>

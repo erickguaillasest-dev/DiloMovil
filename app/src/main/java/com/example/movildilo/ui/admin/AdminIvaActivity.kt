@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
@@ -27,6 +28,7 @@ class AdminIvaActivity : AppCompatActivity() {
     private lateinit var tilNuevoIva: TextInputLayout
     private lateinit var btnActualizarIva: MaterialButton
     private lateinit var progressBar: ProgressBar
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
 
     private lateinit var sessionManager: SessionManager
     private var ivaActualDecimal: Double = 0.15
@@ -42,6 +44,10 @@ class AdminIvaActivity : AppCompatActivity() {
         btnRegresar.setOnClickListener { finish() }
         btnActualizarIva.setOnClickListener { confirmarActualizarIva() }
 
+        swipeRefreshLayout.setOnRefreshListener {
+            cargarIvaActual()
+        }
+
         cargarIvaActual()
     }
 
@@ -52,16 +58,21 @@ class AdminIvaActivity : AppCompatActivity() {
         tilNuevoIva = findViewById(R.id.tilNuevoIva)
         btnActualizarIva = findViewById(R.id.btnActualizarIva)
         progressBar = findViewById(R.id.progressBar)
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout)
     }
 
     private fun cargarIvaActual() {
-        val authHeader = sessionManager.getAuthHeader() ?: return
+        val authHeader = sessionManager.getAuthHeader() ?: run {
+            swipeRefreshLayout.isRefreshing = false
+            return
+        }
         progressBar.visibility = View.VISIBLE
 
         lifecycleScope.launch {
             try {
                 val response = RetrofitClient.apiService.getIva(authHeader)
                 progressBar.visibility = View.GONE
+                swipeRefreshLayout.isRefreshing = false
                 if (response.isSuccessful) {
                     val bodyMap = response.body()
                     val ivaTexto = bodyMap?.get("ivaActual") ?: bodyMap?.get("iva") ?: "0.15"
@@ -72,6 +83,7 @@ class AdminIvaActivity : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 progressBar.visibility = View.GONE
+                swipeRefreshLayout.isRefreshing = false
                 Toast.makeText(this@AdminIvaActivity, "Error de conexión: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }

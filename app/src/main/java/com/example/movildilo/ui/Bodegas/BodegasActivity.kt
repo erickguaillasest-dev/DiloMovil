@@ -1,4 +1,4 @@
-package com.example.movildilo.ui.bodegas
+package com.example.movildilo.ui.Bodegas
 
 import android.os.Bundle
 import android.text.Editable
@@ -12,14 +12,16 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 
 import com.example.movildilo.R
 import com.example.movildilo.data.api.ApiService
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
 import com.example.movildilo.data.model.dto.BodegaDto
-import com.example.movildilo.ui.Bodegas.BodegaFormDialog
+import com.example.movildilo.ia.ZoeActionRouter
 import com.example.movildilo.ui.adapters.BodegaAdapter
+import com.example.movildilo.ui.bodegas.EliminarBodegaDialog
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -34,6 +36,8 @@ class BodegasActivity : AppCompatActivity() {
 
     private lateinit var sessionManager: SessionManager
     private var negocioId: Long = -1L
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
+
     private var token: String = ""
     private val apiService: ApiService by lazy { RetrofitClient.apiService }
 
@@ -42,7 +46,6 @@ class BodegasActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_bodegas)
 
-
         sessionManager = SessionManager(this)
         negocioId = sessionManager.getNegocioId()
         token = sessionManager.getAuthHeader() ?: ""
@@ -50,6 +53,7 @@ class BodegasActivity : AppCompatActivity() {
         rvBodegas = findViewById(R.id.rvBodegas)
         progressBar = findViewById(R.id.progressBar)
         etBuscar = findViewById(R.id.etBuscar)
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout)
 
         findViewById<View>(R.id.btnRegresar).setOnClickListener {
             finish()
@@ -57,6 +61,7 @@ class BodegasActivity : AppCompatActivity() {
 
         setupRecyclerView()
         setupSearch()
+        setupSwipeRefresh()
 
         findViewById<View>(R.id.btnNuevaBodega).setOnClickListener {
             abrirModalCrear()
@@ -68,8 +73,8 @@ class BodegasActivity : AppCompatActivity() {
             Toast.makeText(this, "No se encontró sesión activa o ID del negocio", Toast.LENGTH_SHORT).show()
         }
 
-        if (intent.getStringExtra(com.example.movildilo.ia.ZoeActionRouter.EXTRA_ACCION) ==
-            com.example.movildilo.ia.ZoeActionRouter.Accion.CREAR_BODEGA
+        if (intent.getStringExtra(ZoeActionRouter.EXTRA_ACCION) ==
+            ZoeActionRouter.Accion.CREAR_BODEGA
         ) {
             rvBodegas.postDelayed({ abrirModalCrear() }, 500)
         }
@@ -85,6 +90,17 @@ class BodegasActivity : AppCompatActivity() {
         rvBodegas.adapter = adapter
     }
 
+    private fun setupSwipeRefresh() {
+        swipeRefreshLayout.setOnRefreshListener {
+            if (negocioId != -1L && token.isNotEmpty()) {
+                etBuscar.setText("")
+                cargarBodegas()
+            } else {
+                swipeRefreshLayout.isRefreshing = false
+            }
+        }
+    }
+
     private fun cargarBodegas() {
         progressBar.visibility = View.VISIBLE
         lifecycleScope.launch(Dispatchers.IO) {
@@ -92,6 +108,7 @@ class BodegasActivity : AppCompatActivity() {
                 val response = apiService.getBodegas(token, negocioId)
                 withContext(Dispatchers.Main) {
                     progressBar.visibility = View.GONE
+                    swipeRefreshLayout.isRefreshing = false
                     if (response.isSuccessful) {
                         adapter.updateList(response.body() ?: emptyList())
                     } else {
@@ -101,6 +118,7 @@ class BodegasActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     progressBar.visibility = View.GONE
+                    swipeRefreshLayout.isRefreshing = false
                     Toast.makeText(this@BodegasActivity, "Error de conexión: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
                 }
             }
@@ -129,6 +147,7 @@ class BodegasActivity : AppCompatActivity() {
                 val response = apiService.buscarBodegas(token, negocioId, termino)
                 withContext(Dispatchers.Main) {
                     progressBar.visibility = View.GONE
+                    swipeRefreshLayout.isRefreshing = false
                     if (response.isSuccessful) {
                         adapter.updateList(response.body() ?: emptyList())
                     } else {
@@ -138,6 +157,7 @@ class BodegasActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     progressBar.visibility = View.GONE
+                    swipeRefreshLayout.isRefreshing = false
                     adapter.updateList(emptyList())
                 }
             }

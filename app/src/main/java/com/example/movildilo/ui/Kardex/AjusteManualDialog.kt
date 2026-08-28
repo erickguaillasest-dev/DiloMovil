@@ -1,30 +1,52 @@
 package com.example.movildilo.ui.Kardex
 
+import android.app.AlertDialog
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.TextPaint
+import android.text.method.LinkMovementMethod
+import android.text.style.ClickableSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
+import android.widget.Button
 import android.widget.EditText
-import android.widget.ImageButton
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.DialogFragment
+import androidx.lifecycle.lifecycleScope
 import com.example.movildilo.R
+import com.example.movildilo.data.api.RetrofitClient
+import com.example.movildilo.data.local.SessionManager
 import com.example.movildilo.data.model.dto.BodegaDto
+import com.example.movildilo.data.model.dto.BodegaRequest
+import com.example.movildilo.data.model.dto.CategoriaDto
 import com.example.movildilo.data.model.dto.InventarioResponseDto
 import com.example.movildilo.data.model.dto.NuevoAjusteRequestDto
 import com.example.movildilo.data.model.dto.ProductoDto
+import com.example.movildilo.data.model.dto.ProductoResponseDto
+import com.example.movildilo.ui.productos.ProductoDialog
+import com.example.movildilo.ui.propietario.ComprasActivity
 import com.example.movildilo.utils.FormValidator
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputLayout
+import com.google.gson.Gson
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType
+import okhttp3.RequestBody
 
 class AjusteManualDialog(
-    private val listaProductosBD: List<ProductoDto>,
-    private val listaBodegasBD: List<BodegaDto>,
+    private val listaProductosBD: MutableList<ProductoDto>,
+    private val listaBodegasBD: MutableList<BodegaDto>,
     private val inventarioTotal: List<InventarioResponseDto> = emptyList(),
     private val onAjusteRegistradoListener: (NuevoAjusteRequestDto) -> Unit
 ) : DialogFragment() {
@@ -42,7 +64,14 @@ class AjusteManualDialog(
     private lateinit var etDocReferenciaAjuste: EditText
     private lateinit var btnRegistrarAjuste: MaterialButton
     private lateinit var btnCancelarAjuste: MaterialButton
-    private lateinit var btnCerrarModal: ImageButton
+
+    private lateinit var tvAvisoInformativo: TextView
+    private lateinit var btnNuevaBodega: TextView
+    private lateinit var btnCrearProducto: TextView
+
+    private lateinit var sessionManager: SessionManager
+    private var negocioId: Long = -1L
+    private val categorias = mutableListOf<CategoriaDto>()
 
     private var productoSeleccionadoId: Long? = null
     private var bodegaOrigenSeleccionadaId: Long? = null
@@ -66,15 +95,34 @@ class AjusteManualDialog(
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        sessionManager = SessionManager(requireContext())
+        negocioId = sessionManager.getNegocioId()
+
         initViews(view)
         setupDropdowns()
+        setupEnlaceAbastecimiento()
         onTipoChange()
 
-        btnCerrarModal.setOnClickListener { dismiss() }
         btnCancelarAjuste.setOnClickListener { dismiss() }
+        btnRegistrarAjuste.setOnClickListener { validarYEnviar() }
 
-        btnRegistrarAjuste.setOnClickListener {
-            validarYEnviar()
+        btnNuevaBodega.setOnClickListener {
+            mostrarDialogoCrearBodega { nuevaBod ->
+                poblarSpinnerBodegaOrigen(listaBodegasBD)
+                spinnerBodega.setText(nuevaBod.nombre, false)
+                bodegaOrigenSeleccionadaId = nuevaBod.id
+                actualizarMaxCantidad()
+            }
+        }
+
+        btnCrearProducto.setOnClickListener {
+            mostrarDialogoCrearProducto { nuevoProd ->
+                val nombresActualizados = listaProductosBD.mapNotNull { it.nombre?.trim() }.filter { it.isNotBlank() }
+                spinnerProducto.setAdapter(ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, nombresActualizados))
+                spinnerProducto.setText(nuevoProd.nombre?.trim() ?: "", false)
+                productoSeleccionadoId = nuevoProd.id
+                onProductoChange()
+            }
         }
     }
 
@@ -82,12 +130,10 @@ class AjusteManualDialog(
         super.onStart()
         dialog?.window?.apply {
             setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
-
             setLayout(
-                (resources.displayMetrics.widthPixels * 0.90).toInt(),
+                (resources.displayMetrics.widthPixels * 0.95).toInt(),
                 ViewGroup.LayoutParams.WRAP_CONTENT
             )
-
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         }
     }
@@ -106,46 +152,54 @@ class AjusteManualDialog(
         etDocReferenciaAjuste = v.findViewById(R.id.etDocReferenciaAjuste)
         btnRegistrarAjuste = v.findViewById(R.id.btnRegistrarAjuste)
         btnCancelarAjuste = v.findViewById(R.id.btnCancelarAjuste)
-        btnCerrarModal = v.findViewById(R.id.btnCerrarModal)
+
+        tvAvisoInformativo = v.findViewById(R.id.tvAvisoInformativo)
+        btnNuevaBodega = v.findViewById(R.id.btnNuevaBodega)
+        btnCrearProducto = v.findViewById(R.id.btnCrearProducto)
+    }
+
+    private fun setupEnlaceAbastecimiento() {
+        val textoCompleto = "ℹ️ Atención: Para ingresar facturas directas de proveedores, utiliza el módulo de Abastecimiento."
+        val spannableString = SpannableString(textoCompleto)
+
+        val inicio = textoCompleto.indexOf("Abastecimiento")
+        if (inicio >= 0) {
+            val fin = inicio + "Abastecimiento".length
+            spannableString.setSpan(object : ClickableSpan() {
+                override fun onClick(widget: View) {
+                    val intent = Intent(requireContext(), ComprasActivity::class.java)
+                    startActivity(intent)
+                    dismiss()
+                }
+
+                override fun updateDrawState(ds: TextPaint) {
+                    super.updateDrawState(ds)
+                    ds.color = Color.parseColor("#2563EB")
+                    ds.isUnderlineText = true
+                }
+            }, inicio, fin, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+
+        tvAvisoInformativo.text = spannableString
+        tvAvisoInformativo.movementMethod = LinkMovementMethod.getInstance()
     }
 
     private fun setupDropdowns() {
-        val adapterTipos =
-            ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, tipos)
+        val adapterTipos = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, tipos)
         spinnerTipoMovimiento.setAdapter(adapterTipos)
         spinnerTipoMovimiento.setText(tipos[0], false)
 
-        spinnerTipoMovimiento.setOnClickListener {
-            (spinnerTipoMovimiento.adapter as? ArrayAdapter<*>)?.filter?.filter(null)
-        }
-        spinnerTipoMovimiento.setOnItemClickListener { _, _, _, _ ->
-            onTipoChange()
-        }
+        spinnerTipoMovimiento.setOnItemClickListener { _, _, _, _ -> onTipoChange() }
 
         val nombresProductos = listaProductosBD.mapNotNull { it.nombre?.trim() }.filter { it.isNotBlank() }
-        val adapterProductos = ArrayAdapter(
-            requireContext(),
-            android.R.layout.simple_dropdown_item_1line,
-            nombresProductos
-        )
-        spinnerProducto.setAdapter(adapterProductos)
-
-        spinnerProducto.setOnClickListener {
-            (spinnerProducto.adapter as? ArrayAdapter<*>)?.filter?.filter(null)
-        }
-
+        spinnerProducto.setAdapter(ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, nombresProductos))
         spinnerProducto.setOnItemClickListener { parent, _, position, _ ->
             val nombreSeleccionado = parent.getItemAtPosition(position).toString()
-            val productoEncontrado = listaProductosBD.find { it.nombre?.trim() == nombreSeleccionado }
-            productoSeleccionadoId = productoEncontrado?.id
+            productoSeleccionadoId = listaProductosBD.find { it.nombre?.trim() == nombreSeleccionado }?.id
             onProductoChange()
         }
 
         poblarSpinnerBodegaOrigen(listaBodegasBD)
-
-        spinnerBodega.setOnClickListener {
-            (spinnerBodega.adapter as? ArrayAdapter<*>)?.filter?.filter(null)
-        }
         spinnerBodega.setOnItemClickListener { parent, _, position, _ ->
             val nombreSeleccionado = parent.getItemAtPosition(position).toString()
             val bodegaEncontrada = bodegasOrigenDisponibles.find { it.nombre.trim() == nombreSeleccionado }
@@ -155,28 +209,16 @@ class AjusteManualDialog(
         }
 
         val nombresBodegas = listaBodegasBD.mapNotNull { it.nombre.trim() }.filter { it.isNotBlank() }
-        val adapterBodegasDestino = ArrayAdapter(
-            requireContext(),
-            android.R.layout.simple_dropdown_item_1line,
-            nombresBodegas
-        )
-        spinnerBodegaDestino.setAdapter(adapterBodegasDestino)
-
-        spinnerBodegaDestino.setOnClickListener {
-            (spinnerBodegaDestino.adapter as? ArrayAdapter<*>)?.filter?.filter(null)
-        }
+        spinnerBodegaDestino.setAdapter(ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, nombresBodegas))
         spinnerBodegaDestino.setOnItemClickListener { parent, _, position, _ ->
             val nombreSeleccionado = parent.getItemAtPosition(position).toString()
-            val bodegaEncontrada = listaBodegasBD.find { it.nombre.trim() == nombreSeleccionado }
-            bodegaDestinoSeleccionadaId = bodegaEncontrada?.id
+            bodegaDestinoSeleccionadaId = listaBodegasBD.find { it.nombre.trim() == nombreSeleccionado }?.id
         }
     }
 
     private fun poblarSpinnerBodegaOrigen(bodegas: List<BodegaDto>) {
         val nombres = bodegas.mapNotNull { it.nombre.trim() }.filter { it.isNotBlank() }
-        val adapter =
-            ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, nombres)
-        spinnerBodega.setAdapter(adapter)
+        spinnerBodega.setAdapter(ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, nombres))
     }
 
     private fun tipoClaveActual(): String {
@@ -262,9 +304,7 @@ class AjusteManualDialog(
                 tvStockDisponible.text = "⚠️ Este producto no tiene stock en ninguna bodega."
                 tvStockDisponible.visibility = View.VISIBLE
             }
-            else -> {
-                maxCantidad = null
-            }
+            else -> maxCantidad = null
         }
     }
 
@@ -290,7 +330,6 @@ class AjusteManualDialog(
         }
     }
 
-    /** Si la cantidad ingresada supera el máximo disponible, la recorta (igual que en la web). */
     private fun validarCantidadContraMaximo() {
         val max = maxCantidad ?: return
         val actual = etCantidadAjuste.text.toString().toIntOrNull() ?: return
@@ -300,9 +339,167 @@ class AjusteManualDialog(
         }
     }
 
+    private fun mostrarDialogoCrearBodega(onCreada: (BodegaDto) -> Unit) {
+        val view = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_bodega, null)
+        val tvTitle = view.findViewById<TextView>(R.id.tvDialogTitle)
+        val etNombre = view.findViewById<EditText>(R.id.etDialogNombre)
+        val etDireccion = view.findViewById<EditText>(R.id.etDialogDireccion)
+        val btnConfirmar = view.findViewById<Button>(R.id.btnDialogConfirmar)
+        val btnCancelar = view.findViewById<Button>(R.id.btnDialogCancelar)
+
+        tvTitle.text = "Nueva Bodega"
+        btnConfirmar.text = "Crear Bodega"
+
+        val dialog = AlertDialog.Builder(requireContext())
+            .setView(view)
+            .create()
+
+        btnConfirmar.setOnClickListener {
+            val nombre = etNombre.text.toString().trim()
+            val direccion = etDireccion.text.toString().trim()
+
+            if (nombre.isEmpty()) {
+                etNombre.error = "El nombre es obligatorio"
+                return@setOnClickListener
+            }
+
+            val request = BodegaRequest(
+                nombre = nombre,
+                direccion = if (direccion.isEmpty()) null else direccion
+            )
+
+            guardarBodegaEnApi(request) { nuevaBodega ->
+                dialog.dismiss()
+                onCreada(nuevaBodega)
+            }
+        }
+
+        btnCancelar.setOnClickListener { dialog.dismiss() }
+        dialog.show()
+
+        dialog.window?.apply {
+            setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        }
+    }
+
+    private fun guardarBodegaEnApi(request: BodegaRequest, onSuccess: (BodegaDto) -> Unit) {
+        val authHeader = sessionManager.getAuthHeader() ?: return
+
+        lifecycleScope.launch {
+            try {
+                val response = withContext(Dispatchers.IO) {
+                    RetrofitClient.apiService.crearBodega(authHeader, negocioId, request)
+                }
+
+                if (response.isSuccessful && response.body() != null) {
+                    val nuevaBodega = response.body()!!
+                    listaBodegasBD.add(nuevaBodega)
+                    Toast.makeText(requireContext(), "Bodega registrada", Toast.LENGTH_SHORT).show()
+                    onSuccess(nuevaBodega)
+                } else {
+                    Toast.makeText(requireContext(), "Error al crear bodega (${response.code()})", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Error de red: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun mostrarDialogoCrearProducto(onCreado: (ProductoResponseDto) -> Unit) {
+        val authHeader = sessionManager.getAuthHeader() ?: return
+
+        lifecycleScope.launch {
+            try {
+                val respCat = withContext(Dispatchers.IO) {
+                    RetrofitClient.apiService.getCategorias(authHeader, negocioId)
+                }
+                if (respCat.isSuccessful) {
+                    categorias.clear()
+                    categorias.addAll(respCat.body() ?: emptyList())
+                }
+            } catch (_: Exception) {}
+
+            lanzarDialogoProducto(onCreado)
+        }
+    }
+
+    private fun lanzarDialogoProducto(onCreado: (ProductoResponseDto) -> Unit) {
+        val listaDtoExistentes = listaProductosBD.map { p ->
+            ProductoDto(
+                id = p.id,
+                codigoPrincipal = p.codigoPrincipal,
+                nombre = p.nombre,
+                marca = p.marca,
+                precioUnitario = p.precioUnitario,
+                costoPromedioActual = p.costoPromedioActual,
+                categoriaId = p.categoriaId,
+                categoria = p.categoria,
+                unidadMedida = p.unidadMedida,
+                grabaIva = p.grabaIva,
+                tieneCaducidad = p.tieneCaducidad,
+                imagen = p.imagen
+            )
+        }
+
+        val dialog = ProductoDialog(
+            productoEditar = null,
+            listaCategoriasBD = categorias,
+            listaProductosExistentes = listaDtoExistentes,
+            onGuardarListener = { productoDto, catId ->
+                guardarProductoEnApi(productoDto, catId, onCreado)
+            }
+        )
+        dialog.show(parentFragmentManager, "ProductoDialog")
+    }
+
+    private fun guardarProductoEnApi(productoDto: ProductoDto, categoriaId: Long?, onSuccess: (ProductoResponseDto) -> Unit) {
+        val authHeader = sessionManager.getAuthHeader() ?: return
+
+        lifecycleScope.launch {
+            try {
+                val productoAEnviar = productoDto.copy(
+                    negocioId = productoDto.negocioId ?: negocioId,
+                    categoriaId = productoDto.categoriaId ?: categoriaId
+                )
+                val json = Gson().toJson(productoAEnviar)
+                val datosBody = RequestBody.create(MediaType.parse("application/json"), json)
+
+                val response = withContext(Dispatchers.IO) {
+                    RetrofitClient.apiService.crearProducto(authHeader, negocioId, datosBody, null)
+                }
+
+                if (response.isSuccessful && response.body() != null) {
+                    val nuevoProd = response.body()!!
+
+                    val pDto = ProductoDto(
+                        id = nuevoProd.id,
+                        codigoPrincipal = nuevoProd.codigoPrincipal,
+                        nombre = nuevoProd.nombre,
+                        marca = nuevoProd.marca,
+                        precioUnitario = nuevoProd.precioUnitario,
+                        costoPromedioActual = nuevoProd.costoPromedio,
+                        categoriaId = nuevoProd.categoriaId,
+                        categoria = nuevoProd.categoria,
+                        unidadMedida = nuevoProd.unidadMedida,
+                        grabaIva = nuevoProd.grabaIva,
+                        tieneCaducidad = nuevoProd.tieneCaducidad,
+                        imagen = nuevoProd.imagen
+                    )
+                    listaProductosBD.add(pDto)
+                    Toast.makeText(requireContext(), "Producto registrado correctamente", Toast.LENGTH_SHORT).show()
+                    onSuccess(nuevoProd)
+                } else {
+                    Toast.makeText(requireContext(), "Error al procesar el producto", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Error de red: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
     private fun validarYEnviar() {
         val tipoClave = tipoClaveActual()
-
         val cantidadTexto = etCantidadAjuste.text.toString().trim()
         val costoTexto = etCostoUnitarioAjuste.text.toString().trim()
         val motivo = etMotivoAjuste.text.toString().trim()
@@ -354,6 +551,7 @@ class AjusteManualDialog(
             if (cantidad > maxCantidad!!) {
                 cantidad = maxCantidad!!
                 etCantidadAjuste.setText(cantidad.toString())
+                Toast.makeText(requireContext(), "La cantidad se ajustó al stock máximo disponible ($maxCantidad)", Toast.LENGTH_SHORT).show()
             }
         }
 

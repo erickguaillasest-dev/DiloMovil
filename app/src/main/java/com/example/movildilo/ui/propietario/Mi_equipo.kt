@@ -127,7 +127,6 @@ class Mi_equipo : AppCompatActivity() {
         btnCopiarCodigo.setOnClickListener { copiarCodigo() }
         btnRegenerarCodigo.setOnClickListener { regenerarCodigo() }
 
-        // Gesto Swipe to Refresh
         swipeRefreshLayout.setOnRefreshListener {
             if (negocioId != -1L) {
                 cargarEquipo(negocioId)

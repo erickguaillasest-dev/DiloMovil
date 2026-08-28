@@ -11,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.bumptech.glide.Glide
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
@@ -24,7 +25,7 @@ import com.example.movildilo.ia.ZoeBottomSheetDialog
 import com.example.movildilo.ui.Kardex.KardexActivity
 import com.example.movildilo.ui.adapters.MiembrosAdapter
 import com.example.movildilo.ui.auth.LoginActivity
-import com.example.movildilo.ui.bodegas.BodegasActivity
+import com.example.movildilo.ui.Bodegas.BodegasActivity
 import com.example.movildilo.ui.facturas.HistorialFacturasActivity
 import com.example.movildilo.ui.propietario.*
 import com.example.movildilo.utils.Constants
@@ -73,7 +74,7 @@ class PropietarioActivity : AppCompatActivity() {
     private lateinit var rvEquipo: RecyclerView
     private lateinit var miembrosAdapter: MiembrosAdapter
     private lateinit var fabZoe: View
-
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
     private lateinit var sessionManager: SessionManager
     private var negocioId: Long = -1L
     private var usuarioNombre: String = "Administrador"
@@ -126,12 +127,22 @@ class PropietarioActivity : AppCompatActivity() {
         btnAdminConfig = findViewById(R.id.btnAdminConfig)
         btnAdminPerfil = findViewById(R.id.btnAdminPerfil)
 
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout)
+
         rvEquipo = findViewById(R.id.rvEquipo)
         fabZoe = findViewById(R.id.fabZoe)
         fabZoe.bringToFront()
     }
 
     private fun setupRecyclerView() {
+        swipeRefreshLayout.setOnRefreshListener {
+            if (negocioId != -1L) {
+                cargarContextoCompletoDashboard()
+            } else {
+                swipeRefreshLayout.isRefreshing = false
+            }
+        }
+
         miembrosAdapter = MiembrosAdapter(
             listaMiembros = emptyList(),
             onCambiarRolClick = {
@@ -225,7 +236,10 @@ class PropietarioActivity : AppCompatActivity() {
     }
 
     private fun cargarContextoCompletoDashboard() {
-        if (negocioId == -1L) return
+        if (negocioId == -1L) {
+            swipeRefreshLayout.isRefreshing = false
+            return
+        }
 
         lifecycleScope.launch(Dispatchers.IO) {
             supervisorScope {
@@ -301,6 +315,8 @@ class PropietarioActivity : AppCompatActivity() {
                     if (!imagenAMostrarEnHeader.isNullOrBlank()) {
                         cargarFotoPerfilUsuario(imagenAMostrarEnHeader)
                     }
+
+                    swipeRefreshLayout.isRefreshing = false
                 }
             }
         }

@@ -2,7 +2,7 @@ package com.example.movildilo.ia
 
 import android.app.Activity
 import android.content.Intent
-import com.example.movildilo.ui.bodegas.BodegasActivity
+import com.example.movildilo.ui.Bodegas.BodegasActivity
 import com.example.movildilo.ui.propietario.CatalogoProductosActivity
 import com.example.movildilo.ui.propietario.CategoriasActivity
 import com.example.movildilo.ui.propietario.ClientesActivity

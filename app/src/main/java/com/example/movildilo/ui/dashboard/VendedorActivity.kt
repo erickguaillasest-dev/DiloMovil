@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.bumptech.glide.Glide
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
@@ -49,6 +50,7 @@ class VendedorActivity : AppCompatActivity() {
 
     private lateinit var sessionManager: SessionManager
     private lateinit var fabZoe: View
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
 
     private val baseServerUrl = "https://dilo-backend-mxlu.onrender.com"
 
@@ -103,6 +105,8 @@ class VendedorActivity : AppCompatActivity() {
         cardCuentasPorCobrar = findViewById(R.id.cardCuentasPorCobrar)
         cardRendimiento = findViewById(R.id.cardRendimiento)
 
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout)
+
         fabZoe = findViewById(R.id.fabZoe)
         fabZoe.bringToFront()
     }
@@ -131,6 +135,15 @@ class VendedorActivity : AppCompatActivity() {
         cardRendimiento.setOnClickListener { abrirModulo(RendimientoComercialActivity::class.java) }
 
         fabZoe.setOnClickListener { abrirChatZoe() }
+
+        swipeRefreshLayout.setOnRefreshListener {
+            if (negocioId != -1L) {
+                cargarDatosHeader()
+                cargarResumenVentas()
+            } else {
+                swipeRefreshLayout.isRefreshing = false
+            }
+        }
     }
 
     private fun verificarEstadoSuspension() {
@@ -274,6 +287,8 @@ class VendedorActivity : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 Toast.makeText(this@VendedorActivity, "Error de conexión: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                swipeRefreshLayout.isRefreshing = false
             }
         }
     }

@@ -32,6 +32,7 @@ import com.example.movildilo.ui.adapters.CompraAdapter
 import com.example.movildilo.ui.adapters.DetalleCompraModalAdapter
 import com.example.movildilo.ui.adapters.DetalleTempAdapter
 import com.example.movildilo.ui.productos.ProductoDialog
+import com.example.movildilo.utils.FormValidator
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.checkbox.MaterialCheckBox
 import com.google.android.material.chip.Chip
@@ -227,14 +228,21 @@ class ComprasActivity : AppCompatActivity() {
         val btnNuevaBodega = view.findViewById<TextView>(R.id.btnNuevaBodega)
         val btnCrearProducto = view.findViewById<TextView>(R.id.btnCrearProducto)
 
+        val tilProveedor = view.findViewById<TextInputLayout>(R.id.tilProveedor)
         val spProveedor = view.findViewById<AutoCompleteTextView>(R.id.spProveedor)
+        val tilBodega = view.findViewById<TextInputLayout>(R.id.tilBodega)
         val spBodega = view.findViewById<AutoCompleteTextView>(R.id.spBodega)
+        val tilNumeroComprobante = view.findViewById<TextInputLayout>(R.id.tilNumeroComprobante)
         val etNumeroComprobante = view.findViewById<TextInputEditText>(R.id.etNumeroComprobante)
+        val tilProducto = view.findViewById<TextInputLayout>(R.id.tilProducto)
         val spProducto = view.findViewById<AutoCompleteTextView>(R.id.spProducto)
+        val tilCantidad = view.findViewById<TextInputLayout>(R.id.tilCantidad)
         val etCantidad = view.findViewById<TextInputEditText>(R.id.etCantidad)
+        val tilCostoUnitario = view.findViewById<TextInputLayout>(R.id.tilCostoUnitario)
         val etCostoUnitario = view.findViewById<TextInputEditText>(R.id.etCostoUnitario)
         val tilFechaCaducidad = view.findViewById<TextInputLayout>(R.id.tilFechaCaducidad)
         val etFechaCaducidad = view.findViewById<TextInputEditText>(R.id.etFechaCaducidad)
+
         val btnAgregarDetalle = view.findViewById<MaterialButton>(R.id.btnAgregarDetalle)
         val rvDetallesTemp = view.findViewById<RecyclerView>(R.id.rvDetallesTemp)
         val tvTotalDialogo = view.findViewById<TextView>(R.id.tvTotalDialogo)
@@ -261,6 +269,7 @@ class ComprasActivity : AppCompatActivity() {
             mostrarDialogoCrearProveedor { nuevoProv ->
                 actualizarAdapterProveedor()
                 spProveedor.setText(nuevoProv.nombreComercial ?: "", false)
+                FormValidator.marcarError(tilProveedor, null)
             }
         }
 
@@ -268,6 +277,7 @@ class ComprasActivity : AppCompatActivity() {
             mostrarDialogoCrearBodega { nuevaBod ->
                 actualizarAdapterBodega()
                 spBodega.setText(nuevaBod.nombre, false)
+                FormValidator.marcarError(tilBodega, null)
             }
         }
 
@@ -275,6 +285,7 @@ class ComprasActivity : AppCompatActivity() {
             mostrarDialogoCrearProducto { nuevoProd ->
                 actualizarAdapterProducto()
                 spProducto.setText("${nuevoProd.codigoPrincipal ?: ""} - ${nuevoProd.nombre ?: ""}", false)
+                FormValidator.marcarError(tilProducto, null)
             }
         }
 
@@ -287,13 +298,18 @@ class ComprasActivity : AppCompatActivity() {
             val requiereCaducidad = productoSeleccionado?.tieneCaducidad == true
             tilFechaCaducidad.visibility = if (requiereCaducidad) View.VISIBLE else View.GONE
             etFechaCaducidad.setText("")
+            FormValidator.marcarError(tilProducto, null)
         }
 
         etFechaCaducidad.setOnClickListener {
             val cal = Calendar.getInstance()
-            DatePickerDialog(this, { _, year, month, day ->
+            val datePicker = DatePickerDialog(this, { _, year, month, day ->
                 etFechaCaducidad.setText(String.format(Locale.US, "%04d-%02d-%02d", year, month + 1, day))
-            }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
+                FormValidator.marcarError(tilFechaCaducidad, null)
+            }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH))
+
+            datePicker.datePicker.minDate = cal.timeInMillis
+            datePicker.show()
         }
 
         val detallesTemp = mutableListOf<Pair<DetalleCompraRequestDto, String>>()
@@ -306,31 +322,56 @@ class ComprasActivity : AppCompatActivity() {
 
         btnAgregarDetalle.setOnClickListener {
             val prod = productoSeleccionado
-            val cantidad = etCantidad.text.toString().toIntOrNull()
-            val costo = etCostoUnitario.text.toString().toDoubleOrNull()
+            val cantidadTxt = etCantidad.text.toString().trim()
+            val costoTxt = etCostoUnitario.text.toString().trim()
+            val fechaCaducidadStr = etFechaCaducidad.text?.toString()?.trim()
 
-            if (prod == null) {
-                Toast.makeText(this, "Selecciona un producto de la lista.", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
+            val errProducto = if (prod == null) "Selecciona un producto válido" else null
+            val errCantidad = FormValidator.numeroEntero(cantidadTxt, "La cantidad", minimo = 1)
+            val errCosto = FormValidator.numeroDecimal(costoTxt, "El costo unitario", minimo = 0.01)
+
+            var errFecha: String? = null
+            if (prod?.tieneCaducidad == true) {
+                if (fechaCaducidadStr.isNullOrBlank()) {
+                    errFecha = "La fecha de caducidad es obligatoria"
+                } else {
+                    try {
+                        val partes = fechaCaducidadStr.split("-")
+                        val calCaducidad = Calendar.getInstance().apply {
+                            set(partes[0].toInt(), partes[1].toInt() - 1, partes[2].toInt(), 0, 0, 0)
+                            set(Calendar.MILLISECOND, 0)
+                        }
+                        val calHoy = Calendar.getInstance().apply {
+                            set(Calendar.HOUR_OF_DAY, 0)
+                            set(Calendar.MINUTE, 0)
+                            set(Calendar.SECOND, 0)
+                            set(Calendar.MILLISECOND, 0)
+                        }
+                        if (calCaducidad.before(calHoy)) {
+                            errFecha = "La fecha no puede ser anterior a hoy"
+                        }
+                    } catch (_: Exception) {
+                        errFecha = "Fecha inválida"
+                    }
+                }
             }
-            if (cantidad == null || cantidad <= 0) {
-                Toast.makeText(this, "Ingresa una cantidad válida.", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
+
+            FormValidator.marcarError(tilProducto, errProducto)
+            FormValidator.marcarError(tilCantidad, errCantidad)
+            FormValidator.marcarError(tilCostoUnitario, errCosto)
+            if (tilFechaCaducidad.visibility == View.VISIBLE) {
+                FormValidator.marcarError(tilFechaCaducidad, errFecha)
             }
-            if (costo == null || costo < 0) {
-                Toast.makeText(this, "Ingresa un costo unitario válido.", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            if (prod.tieneCaducidad == true && etFechaCaducidad.text.isNullOrBlank()) {
-                Toast.makeText(this, "Este producto requiere fecha de caducidad.", Toast.LENGTH_SHORT).show()
+
+            if (errProducto != null || errCantidad != null || errCosto != null || errFecha != null) {
                 return@setOnClickListener
             }
 
             val nuevoDetalle = DetalleCompraRequestDto(
-                productoId = prod.id ?: return@setOnClickListener,
-                cantidad = cantidad,
-                costoUnitario = costo,
-                fechaCaducidad = etFechaCaducidad.text?.toString()?.ifBlank { null }
+                productoId = prod!!.id ?: return@setOnClickListener,
+                cantidad = cantidadTxt.toInt(),
+                costoUnitario = costoTxt.toDouble(),
+                fechaCaducidad = fechaCaducidadStr?.ifBlank { null }
             )
             detallesTemp.add(nuevoDetalle to (prod.nombre ?: "Producto"))
             detalleAdapter.actualizar(detallesTemp)
@@ -351,33 +392,34 @@ class ComprasActivity : AppCompatActivity() {
         btnCancelarCompra.setOnClickListener { dialog.dismiss() }
 
         btnGuardarCompra.setOnClickListener {
-            val nombreProveedor = spProveedor.text.toString()
-            val nombreBodega = spBodega.text.toString()
+            val nombreProveedor = spProveedor.text.toString().trim()
+            val nombreBodega = spBodega.text.toString().trim()
             val numeroComprobante = etNumeroComprobante.text.toString().trim()
 
             val proveedor = proveedores.find { it.nombreComercial == nombreProveedor }
             val bodega = bodegas.find { it.nombre == nombreBodega }
 
-            if (proveedor == null) {
-                Toast.makeText(this, "Selecciona un proveedor válido.", Toast.LENGTH_SHORT).show()
+            val errProveedor = if (proveedor == null) "Selecciona un proveedor válido" else null
+            val errBodega = if (bodega == null) "Selecciona una bodega válida" else null
+            val errComprobante = FormValidator.requerido(numeroComprobante, "El número de comprobante")
+                ?: FormValidator.longitudMinima(numeroComprobante, 3, "El número de comprobante")
+
+            FormValidator.marcarError(tilProveedor, errProveedor)
+            FormValidator.marcarError(tilBodega, errBodega)
+            FormValidator.marcarError(tilNumeroComprobante, errComprobante)
+
+            if (errProveedor != null || errBodega != null || errComprobante != null) {
                 return@setOnClickListener
             }
-            if (bodega == null) {
-                Toast.makeText(this, "Selecciona una bodega válida.", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            if (numeroComprobante.isEmpty()) {
-                Toast.makeText(this, "Ingresa el número de comprobante.", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
+
             if (detallesTemp.isEmpty()) {
                 Toast.makeText(this, "Agrega al menos un producto al listado.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
             val requestBody = CompraRequestDto(
-                proveedorId = proveedor.id ?: return@setOnClickListener,
-                bodegaIngresoId = bodega.id,
+                proveedorId = proveedor!!.id ?: return@setOnClickListener,
+                bodegaIngresoId = bodega!!.id,
                 numeroComprobante = numeroComprobante,
                 detalles = detallesTemp.map { it.first }
             )
@@ -412,7 +454,6 @@ class ComprasActivity : AppCompatActivity() {
     }
 
     private fun lanzarDialogoProducto(onCreado: (ProductoResponseDto) -> Unit) {
-        // Mapeo seguro a ProductoDto requeridos por el nuevo ProductoDialog
         val listaDtoExistentes = productos.map { p ->
             ProductoDto(
                 id = p.id,

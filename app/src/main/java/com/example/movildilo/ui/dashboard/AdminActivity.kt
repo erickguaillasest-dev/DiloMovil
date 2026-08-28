@@ -7,6 +7,7 @@ import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.bumptech.glide.Glide
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
@@ -39,6 +40,7 @@ class AdminActivity : AppCompatActivity() {
     private lateinit var cardConfiguracionIva: LinearLayout
     private lateinit var cardParroquias: LinearLayout
 
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
     private lateinit var sessionManager: SessionManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -70,6 +72,8 @@ class AdminActivity : AppCompatActivity() {
         cardUsuarios = findViewById(R.id.cardUsuarios)
         cardConfiguracionIva = findViewById(R.id.cardConfiguracionIva)
         cardParroquias = findViewById(R.id.cardParroquias)
+
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout)
     }
 
     private fun setupListeners() {
@@ -93,6 +97,11 @@ class AdminActivity : AppCompatActivity() {
         cardParroquias.setOnClickListener {
             val intent = Intent(this, AdminParroquiasActivity::class.java)
             startActivity(intent)
+        }
+
+        swipeRefreshLayout.setOnRefreshListener {
+            cargarDatosHeader()
+            cargarMetricasGlobales()
         }
     }
 
@@ -171,6 +180,8 @@ class AdminActivity : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 tvIvaVigente.text = "--%"
+            } finally {
+                swipeRefreshLayout.isRefreshing = false
             }
         }
     }

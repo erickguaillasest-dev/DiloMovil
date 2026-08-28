@@ -103,7 +103,7 @@
             android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar"
             android:windowSoftInputMode="adjustResize"/>
         <activity
-            android:name=".ui.bodegas.BodegasActivity"
+            android:name=".ui.Bodegas.BodegasActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize"/>
         <activity

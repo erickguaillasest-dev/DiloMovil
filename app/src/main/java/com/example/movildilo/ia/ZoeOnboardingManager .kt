@@ -7,7 +7,7 @@ import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.example.movildilo.ui.bodegas.BodegasActivity
+import com.example.movildilo.ui.Bodegas.BodegasActivity
 import com.example.movildilo.ui.dashboard.BodegueroActivity
 import com.example.movildilo.ui.dashboard.PropietarioActivity
 import com.example.movildilo.ui.dashboard.VendedorActivity
