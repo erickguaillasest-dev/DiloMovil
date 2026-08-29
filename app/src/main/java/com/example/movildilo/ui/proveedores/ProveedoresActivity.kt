@@ -27,7 +27,9 @@ import com.example.movildilo.data.model.dto.inventario.CategoriaDto
 import com.example.movildilo.data.model.dto.usuarios.ProveedorRequestDto
 import com.example.movildilo.data.model.dto.usuarios.ProveedorResponseDto
 import com.example.movildilo.ia.ZoeActionRouter
+import com.example.movildilo.ia.ZoeBottomSheetDialog
 import com.example.movildilo.ui.adapters.ProveedorAdapter
+import com.example.movildilo.utils.Constants
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.checkbox.MaterialCheckBox
 import com.google.android.material.chip.Chip
@@ -79,7 +81,25 @@ class ProveedoresActivity : AppCompatActivity() {
         ) {
             rvProveedores.postDelayed({ abrirDialogoProveedor(null) }, 500)
         }
+
+        if (intent.getBooleanExtra(ZoeActionRouter.EXTRA_MANTENER_ZOE_ABIERTA, false)) {
+            abrirChatZoe()
+        }
     }
+
+    private fun abrirChatZoe() {
+        val userMap = sessionManager.getUserMap()
+        val nombreUsuario = userMap?.get("primerNombre")?.toString() ?: userMap?.get("nombre")?.toString() ?: "Usuario"
+        val dialogZoe = ZoeBottomSheetDialog(
+            usuarioNombre = nombreUsuario,
+            negocioNombre = "Mi Empresa",
+            contextoNegocioTexto = "Estás visualizando ...",
+            alertasTexto = "Sin alertas recientes.",
+            groqApiKey = Constants.GROQ_API_KEY_CHAT
+        )
+        dialogZoe.show(supportFragmentManager, "ZoeChatBottomSheet")
+    }
+    
 
     private fun initViews() {
         rvProveedores = findViewById(R.id.rvProveedores)

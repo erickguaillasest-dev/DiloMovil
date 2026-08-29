@@ -2,7 +2,6 @@ package com.example.movildilo.ia
 
 import android.app.Activity
 import android.content.Intent
-import com.example.movildilo.ui.Bodegas.BodegasActivity
 import com.example.movildilo.ui.productos.CatalogoProductosActivity
 import com.example.movildilo.ui.propietario.CategoriasActivity
 import com.example.movildilo.ui.propietario.ClientesActivity
@@ -15,6 +14,7 @@ import com.example.movildilo.ui.propietario.Perfil
 import com.example.movildilo.ui.proveedores.ProveedoresActivity
 import com.example.movildilo.ui.propietario.InventarioBodegasActivity
 import com.example.movildilo.ui.Kardex.KardexActivity
+import com.example.movildilo.ui.bodega.BodegasActivity
 import com.example.movildilo.ui.propietario.RendimientoComercialActivity
 
 object ZoeActionRouter {
@@ -91,26 +91,27 @@ object ZoeActionRouter {
     }
 
     private data class ReglaNavegacion(
+        val id: String,
         val palabrasClave: List<String>,
         val destino: Class<out Activity>,
         val nombreLegible: String
     )
 
     private val reglasNavegacion = listOf(
-        ReglaNavegacion(listOf("inventario", "stock", "existencia"), InventarioBodegasActivity::class.java, "Inventario y Stock"),
-        ReglaNavegacion(listOf("bodega", "almacen", "almacén", "sucursal"), BodegasActivity::class.java, "Bodegas"),
-        ReglaNavegacion(listOf("kardex", "movimiento"), KardexActivity::class.java, "Kardex de Movimientos"),
-        ReglaNavegacion(listOf("producto", "catálogo", "catalogo", "artículo", "articulo"), CatalogoProductosActivity::class.java, "Catálogo de Productos"),
-        ReglaNavegacion(listOf("categoría", "categoria"), CategoriasActivity::class.java, "Categorías"),
-        ReglaNavegacion(listOf("proveedor"), ProveedoresActivity::class.java, "Proveedores"),
-        ReglaNavegacion(listOf("compra", "abastecimiento"), ComprasActivity::class.java, "Compras"),
-        ReglaNavegacion(listOf("cliente"), ClientesActivity::class.java, "Clientes"),
-        ReglaNavegacion(listOf("factura", "venta", "comprobante", "historial"), HistorialFacturasActivity::class.java, "Facturas y Ventas"),
-        ReglaNavegacion(listOf("cuenta por cobrar", "cx", "crédito", "credito", "deuda", "cobro"), CuentasPorCobrarActivity::class.java, "Cuentas por Cobrar"),
-        ReglaNavegacion(listOf("rendimiento", "estadística", "estadistica", "métrica", "metrica", "reporte"), RendimientoComercialActivity::class.java, "Rendimiento Comercial"),
-        ReglaNavegacion(listOf("equipo", "trabajador", "empleado", "rol"), Mi_equipo::class.java, "Equipo de Trabajo"),
-        ReglaNavegacion(listOf("configuración", "configuracion", "negocio", "empresa", "ruc"), ConfiguracionNegocioActivity::class.java, "Configuración del Negocio"),
-        ReglaNavegacion(listOf("perfil", "mis datos"), Perfil::class.java, "Mi Perfil")
+        ReglaNavegacion("inventario", listOf("inventario", "stock", "existencia"), InventarioBodegasActivity::class.java, "Inventario y Stock"),
+        ReglaNavegacion("bodegas", listOf("bodega", "almacen", "almacén", "sucursal"), BodegasActivity::class.java, "Bodegas"),
+        ReglaNavegacion("kardex", listOf("kardex", "movimiento"), KardexActivity::class.java, "Kardex de Movimientos"),
+        ReglaNavegacion("productos", listOf("producto", "catálogo", "catalogo", "artículo", "articulo"), CatalogoProductosActivity::class.java, "Catálogo de Productos"),
+        ReglaNavegacion("categorias", listOf("categoría", "categoria"), CategoriasActivity::class.java, "Categorías"),
+        ReglaNavegacion("proveedores", listOf("proveedor"), ProveedoresActivity::class.java, "Proveedores"),
+        ReglaNavegacion("compras", listOf("compra", "abastecimiento"), ComprasActivity::class.java, "Compras"),
+        ReglaNavegacion("clientes", listOf("cliente"), ClientesActivity::class.java, "Clientes"),
+        ReglaNavegacion("facturas", listOf("factura", "venta", "comprobante", "historial"), HistorialFacturasActivity::class.java, "Facturas y Ventas"),
+        ReglaNavegacion("cuentas_por_cobrar", listOf("cuenta por cobrar", "cx", "crédito", "credito", "deuda", "cobro"), CuentasPorCobrarActivity::class.java, "Cuentas por Cobrar"),
+        ReglaNavegacion("rendimiento", listOf("rendimiento", "estadística", "estadistica", "métrica", "metrica", "reporte"), RendimientoComercialActivity::class.java, "Rendimiento Comercial"),
+        ReglaNavegacion("equipo", listOf("equipo", "trabajador", "empleado", "rol"), Mi_equipo::class.java, "Equipo de Trabajo"),
+        ReglaNavegacion("configuracion_negocio", listOf("configuración", "configuracion", "negocio", "empresa", "ruc"), ConfiguracionNegocioActivity::class.java, "Configuración del Negocio"),
+        ReglaNavegacion("perfil", listOf("perfil", "mis datos"), Perfil::class.java, "Mi Perfil")
     )
 
     private val verbosNavegacion = listOf(
@@ -167,6 +168,20 @@ object ZoeActionRouter {
             "VENDEDOR", "CAJERO" -> permitidasVendedor.contains(destino)
             else -> destino == Perfil::class.java
         }
+    }
+
+
+    fun pantallasNavegablesParaRol(rolUsuario: String): List<Pair<String, String>> {
+        return reglasNavegacion
+            .filter { pantallaPermitidaParaRol(rolUsuario, it.destino) }
+            .map { it.id to it.nombreLegible }
+    }
+
+
+    fun resolverNavegacionPorId(id: String): Pair<Class<out Activity>, String>? {
+        val idNormalizado = id.trim().lowercase()
+        val regla = reglasNavegacion.firstOrNull { it.id == idNormalizado } ?: return null
+        return regla.destino to regla.nombreLegible
     }
 
     fun navegar(activity: Activity, destino: Class<out Activity>, accion: String? = null) {

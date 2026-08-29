@@ -26,7 +26,7 @@ import com.example.movildilo.ia.ZoeBottomSheetDialog
 import com.example.movildilo.ui.Kardex.KardexActivity
 import com.example.movildilo.ui.adapters.MiembrosAdapter
 import com.example.movildilo.ui.auth.LoginActivity
-import com.example.movildilo.ui.Bodegas.BodegasActivity
+import com.example.movildilo.ui.bodega.BodegasActivity
 import com.example.movildilo.ui.abastecimiento.ComprasActivity
 import com.example.movildilo.ui.facturas.HistorialFacturasActivity
 import com.example.movildilo.ui.productos.CatalogoProductosActivity
@@ -100,8 +100,6 @@ class PropietarioActivity : AppCompatActivity() {
         setupListeners()
         verificarEstadoSuspension()
         cargarContextoCompletoDashboard()
-
-        // NUEVO: Verifica si Zoe fue quien abrió esta pantalla para auto-abrir el chat
         if (intent.getBooleanExtra(ZoeActionRouter.EXTRA_MANTENER_ZOE_ABIERTA, false)) {
             abrirChatZoe()
         }
@@ -126,7 +124,7 @@ class PropietarioActivity : AppCompatActivity() {
         cardInventario = findViewById(R.id.cardInventario)
         cardClientes = findViewById(R.id.cardClientes)
         cardBodegas = findViewById(R.id.cardBodegas)
-        cardProveedores = findViewById(R.id.cardCategorias) // CORRECCIÓN visual sugerida si apuntaba mal en tu original
+        cardProveedores = findViewById(R.id.cardCategorias)
         cardCategorias = findViewById(R.id.cardCategorias)
         cardProveedores = findViewById(R.id.cardProveedores)
         cardCuentasPorCobrar = findViewById(R.id.cardCuentasPorCobrar)

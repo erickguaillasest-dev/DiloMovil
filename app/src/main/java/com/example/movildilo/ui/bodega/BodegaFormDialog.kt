@@ -1,4 +1,4 @@
-package com.example.movildilo.ui.Bodegas
+package com.example.movildilo.ui.bodega
 
 import android.content.Context
 import android.graphics.Color

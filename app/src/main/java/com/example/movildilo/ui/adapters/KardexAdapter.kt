@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.movildilo.R
 import com.example.movildilo.data.model.dto.inventario.KardexMovimientoDto
 import com.google.android.material.card.MaterialCardView
+import java.text.SimpleDateFormat // <-- IMPORTADO PARA FECHAS
 import java.util.Locale
 import kotlin.math.abs
 
@@ -56,7 +57,7 @@ class KardexAdapter(
 
         holder.tvTipoMovimiento.text = tipoNormalizado
 
-        // 2. COLORES SEGÚN TIPO (IGUAL A LA WEB EN ANGULAR)
+        // 2. COLORES SEGÚN TIPO
         when (tipoNormalizado) {
             "INGRESO" -> {
                 holder.cardTipoBadge.setCardBackgroundColor(Color.parseColor("#DCFCE7"))
@@ -66,14 +67,45 @@ class KardexAdapter(
                 holder.cardTipoBadge.setCardBackgroundColor(Color.parseColor("#FEE2E2"))
                 holder.tvTipoMovimiento.setTextColor(Color.parseColor("#991B1B"))
             }
-            else -> { // TRANSFERENCIA
+            else -> {
                 holder.cardTipoBadge.setCardBackgroundColor(Color.parseColor("#E0F2FE"))
                 holder.tvTipoMovimiento.setTextColor(Color.parseColor("#075985"))
             }
         }
 
-        // 3. FECHA Y HORA
-        holder.tvFechaHora.text = item.fechaTransaccion ?: "Sin fecha"
+        // 3. FECHA Y HORA (FORMATEADA Y MEJORADA)
+        val fechaTransaccionRaw = item.fechaTransaccion
+        if (fechaTransaccionRaw.isNullOrBlank()) {
+            holder.tvFechaHora.text = "Sin fecha"
+        } else {
+            try {
+
+                val isIso = fechaTransaccionRaw.contains("T")
+                val basePattern = if (isIso) "yyyy-MM-dd'T'HH:mm:ss" else "yyyy-MM-dd HH:mm:ss"
+
+
+                val finalPattern = if (fechaTransaccionRaw.length <= 10) "yyyy-MM-dd" else basePattern
+
+                val inputFormat = SimpleDateFormat(finalPattern, Locale.getDefault())
+                val parsedDate = inputFormat.parse(fechaTransaccionRaw)
+
+                if (parsedDate != null) {
+
+                    val outputFormat = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
+                    val fechaFormateada = outputFormat.format(parsedDate)
+
+
+                    holder.tvFechaHora.text = fechaFormateada.replaceFirstChar {
+                        if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
+                    }
+                } else {
+                    holder.tvFechaHora.text = fechaTransaccionRaw
+                }
+            } catch (e: Exception) {
+
+                holder.tvFechaHora.text = fechaTransaccionRaw
+            }
+        }
 
         // 4. PRODUCTO
         holder.tvProductoNombre.text = item.productoNombre ?: "Producto sin nombre"

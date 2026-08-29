@@ -1,6 +1,5 @@
 package com.example.movildilo.ui.propietario
 
-import android.app.DatePickerDialog
 import android.app.Dialog
 import android.graphics.Color
 import android.os.Bundle
@@ -36,6 +35,7 @@ import com.example.movildilo.ui.adapters.FacturasClienteModalAdapter
 import com.example.movildilo.ui.adapters.HistorialAbonosAdapter
 import com.example.movildilo.ui.adapters.ProductosFacturaAdapter
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.datepicker.MaterialDatePicker // NUEVO IMPORT
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.launch
@@ -58,8 +58,9 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
     private lateinit var chipPendiente: TextView
     private lateinit var chipVencida: TextView
     private lateinit var chipPagada: TextView
-    private lateinit var etFechaDesde: TextInputEditText
-    private lateinit var etFechaHasta: TextInputEditText
+
+    // --- NUEVAS VISTAS PARA FECHAS ---
+    private lateinit var etRangoFechas: TextInputEditText
     private lateinit var btnLimpiarFechas: ImageButton
 
     private lateinit var rvCuentasGeneral: RecyclerView
@@ -133,8 +134,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         chipVencida = findViewById(R.id.chipVencida)
         chipPagada = findViewById(R.id.chipPagada)
 
-        etFechaDesde = findViewById(R.id.etFechaDesde)
-        etFechaHasta = findViewById(R.id.etFechaHasta)
+        etRangoFechas = findViewById(R.id.etRangoFechas)
         btnLimpiarFechas = findViewById(R.id.btnLimpiarFechas)
 
         rvCuentasGeneral = findViewById(R.id.rvCuentasGeneral)
@@ -181,26 +181,46 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         chipVencida.setOnClickListener { cambiarFiltroEstado("VENCIDA", chipVencida) }
         chipPagada.setOnClickListener { cambiarFiltroEstado("PAGADA", chipPagada) }
 
-        etFechaDesde.setOnClickListener { abrirDatePicker { fecha ->
-            fechaDesdeSel = fecha
-            etFechaDesde.setText(fecha)
-            aplicarFiltros()
-        }}
 
-        etFechaHasta.setOnClickListener { abrirDatePicker { fecha ->
-            fechaHastaSel = fecha
-            etFechaHasta.setText(fecha)
-            aplicarFiltros()
-        }}
+        etRangoFechas.setOnClickListener {
+            abrirSelectorFechas()
+        }
 
         btnLimpiarFechas.setOnClickListener {
             fechaDesdeSel = ""
             fechaHastaSel = ""
-            etFechaDesde.setText("")
-            etFechaHasta.setText("")
+            etRangoFechas.setText("")
+            btnLimpiarFechas.visibility = View.GONE
             aplicarFiltros()
         }
     }
+
+    private fun abrirSelectorFechas() {
+        val builder = MaterialDatePicker.Builder.dateRangePicker()
+        builder.setTitleText("Seleccionar rango de vencimiento")
+        val picker = builder.build()
+
+        picker.addOnPositiveButtonClickListener { selection ->
+            val startDate = Date(selection.first)
+            val endDate = Date(selection.second)
+
+            val sdfISO = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val sdfDisplay = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+
+            sdfISO.timeZone = TimeZone.getTimeZone("UTC")
+            sdfDisplay.timeZone = TimeZone.getTimeZone("UTC")
+
+            fechaDesdeSel = sdfISO.format(startDate)
+            fechaHastaSel = sdfISO.format(endDate)
+
+            etRangoFechas.setText("${sdfDisplay.format(startDate)} - ${sdfDisplay.format(endDate)}")
+            btnLimpiarFechas.visibility = View.VISIBLE
+
+            aplicarFiltros()
+        }
+        picker.show(supportFragmentManager, "DATE_PICKER")
+    }
+
 
     private fun setupTabs() {
         val headerDirectorio = findViewById<LinearLayout>(R.id.headerDirectorioClientes)
@@ -398,11 +418,16 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
                     else -> true
                 }
 
-                val fechaItem = item.fechaVencimiento ?: ""
-                val coincideFechaDesde = fechaDesdeSel.isEmpty() || fechaItem >= fechaDesdeSel
-                val coincideFechaHasta = fechaHastaSel.isEmpty() || fechaItem <= fechaHastaSel
+                // NOTA: Para las cuentas por cobrar, usamos el substring para comparar solo yyyy-MM-dd
+                val fechaSoloDia = if (vencimiento.length >= 10) vencimiento.substring(0, 10) else vencimiento
 
-                coincideTexto && coincideEstado && coincideFechaDesde && coincideFechaHasta
+                val coincideFecha = if (fechaDesdeSel.isNotEmpty() && fechaHastaSel.isNotEmpty()) {
+                    fechaSoloDia.isNotEmpty() && fechaSoloDia in fechaDesdeSel..fechaHastaSel
+                } else {
+                    true
+                }
+
+                coincideTexto && coincideEstado && coincideFecha
             }
 
             adapterCuentas.actualizarLista(filtradas)
@@ -425,17 +450,6 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         }
     }
 
-    private fun abrirDatePicker(onDateSelected: (String) -> Unit) {
-        val year = calendar.get(Calendar.YEAR)
-        val month = calendar.get(Calendar.MONTH)
-        val day = calendar.get(Calendar.DAY_OF_MONTH)
-
-        DatePickerDialog(this, { _, y, m, d ->
-            val cal = Calendar.getInstance()
-            cal.set(y, m, d)
-            onDateSelected(dateFormat.format(cal.time))
-        }, year, month, day).show()
-    }
 
     private fun mostrarModalFacturasCliente(cliente: ClienteAgrupado) {
         val dialog = Dialog(this)

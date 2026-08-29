@@ -10,6 +10,7 @@ import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import android.speech.tts.Voice
 import java.util.Locale
 
 class ZoeSpeechHelper(private val context: Context) {
@@ -72,12 +73,8 @@ class ZoeSpeechHelper(private val context: Context) {
                 return@TextToSpeech
             }
             val tts = textToSpeech
-
             val vocesDisponibles = try { tts?.voices } catch (e: Exception) { null }
-            val vozFemenina = vocesDisponibles?.firstOrNull {
-                it.locale.language.startsWith("es") &&
-                        (it.name.contains("female", true) || it.name.contains("mujer", true) || it.name.contains("Natural", true) || it.name.contains("Online", true))
-            } ?: vocesDisponibles?.firstOrNull { it.locale.language.startsWith("es") }
+            val vozFemenina = seleccionarVozFemenina(vocesDisponibles)
 
             if (vozFemenina != null) {
                 tts?.voice = vozFemenina
@@ -90,6 +87,44 @@ class ZoeSpeechHelper(private val context: Context) {
             ttsListo = true
             onListo?.invoke()
         }
+    }
+
+    /**
+     * Misma lógica de selección de voz que la versión web (seleccionarVozFemenina):
+     * prioriza voces es-AR, descarta nombres típicamente masculinos, y entre las que
+     * quedan prefiere las que suenan más naturales (Natural/Neural/Online/Premium/etc.)
+     * o nombres femeninos conocidos, antes de caer a Microsoft/Google o la primera disponible.
+     */
+    private fun seleccionarVozFemenina(voces: Set<Voice>?): Voice? {
+        if (voces.isNullOrEmpty()) return null
+        val excluirMasculinas = Regex("pablo|jorge|diego|carlos|juan|pedro|antonio|male|hombre|var[oó]n|david|boy", RegexOption.IGNORE_CASE)
+
+        val vocesArgentinas = voces.filter {
+            it.locale.language == "es" && it.locale.country == "AR" && !excluirMasculinas.containsMatchIn(it.name)
+        }
+        val vocesEspanol = vocesArgentinas.ifEmpty {
+            voces.filter { it.locale.language == "es" && !excluirMasculinas.containsMatchIn(it.name) }
+        }
+
+        if (vocesEspanol.isEmpty()) {
+            return voces.firstOrNull { Regex("female|mujer|woman|femenina", RegexOption.IGNORE_CASE).containsMatchIn(it.name) }
+                ?: voces.firstOrNull()
+        }
+
+        val prioridadAlta = listOf(
+            "natural", "neural", "online", "premium", "enhanced", "wavenet", "studio",
+            "elena", "sof(i|í)a", "m(i|í)a", "victoria", "paulina", "helena",
+            "m(o|ó)nica", "luc(i|í)a", "camila", "valentina", "isabela", "esperanza"
+        )
+        for (patron in prioridadAlta) {
+            val regex = Regex(patron, RegexOption.IGNORE_CASE)
+            vocesEspanol.firstOrNull { regex.containsMatchIn(it.name) }?.let { return it }
+        }
+
+        vocesEspanol.firstOrNull { it.name.contains("microsoft", true) }?.let { return it }
+        vocesEspanol.firstOrNull { it.name.contains("google", true) }?.let { return it }
+
+        return vocesEspanol.firstOrNull()
     }
 
     fun listoParaHablar(): Boolean = ttsListo

@@ -22,15 +22,22 @@ import com.example.movildilo.data.model.dto.inventario.KardexMovimientoDto
 import com.example.movildilo.data.model.dto.inventario.NuevoAjusteRequestDto
 import com.example.movildilo.data.model.dto.inventario.ProductoDto
 import com.example.movildilo.data.model.dto.inventario.toProductoDtoList
+import com.example.movildilo.ia.ZoeActionRouter
+import com.example.movildilo.ia.ZoeBottomSheetDialog
 import com.example.movildilo.ui.adapters.KardexAdapter
+import com.example.movildilo.utils.Constants
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.datepicker.MaterialDatePicker // <-- IMPORTA PARA RANGO DE FECHAS
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.google.gson.JsonSyntaxException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat // <-- IMPORTA
+import java.util.Date // <-- IMPORTA
 import java.util.Locale
+import java.util.TimeZone // <-- IMPORTA
 
 class KardexActivity : AppCompatActivity() {
 
@@ -43,6 +50,9 @@ class KardexActivity : AppCompatActivity() {
     private lateinit var layoutLoadingKardex: View
     private lateinit var swipeRefreshLayoutKardex: SwipeRefreshLayout
 
+    private lateinit var etRangoFechas: EditText
+    private lateinit var btnLimpiarFechas: View
+
     private lateinit var sessionManager: SessionManager
     private lateinit var adapter: KardexAdapter
 
@@ -52,6 +62,9 @@ class KardexActivity : AppCompatActivity() {
     private val listaProductosBD = mutableListOf<ProductoDto>()
     private val listaBodegasBD = mutableListOf<BodegaDto>()
     private val inventarioTotal = mutableListOf<InventarioResponseDto>()
+
+    private var fechaInicioFiltro: String? = null
+    private var fechaFinFiltro: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -102,6 +115,23 @@ class KardexActivity : AppCompatActivity() {
         } else {
             Toast.makeText(this, "No se encontró un negocio activo.", Toast.LENGTH_SHORT).show()
         }
+
+        if (intent.getBooleanExtra(ZoeActionRouter.EXTRA_MANTENER_ZOE_ABIERTA, false)) {
+            abrirChatZoe()
+        }
+    }
+
+    private fun abrirChatZoe() {
+        val userMap = sessionManager.getUserMap()
+        val nombreUsuario = userMap?.get("primerNombre")?.toString() ?: userMap?.get("nombre")?.toString() ?: "Usuario"
+        val dialogZoe = ZoeBottomSheetDialog(
+            usuarioNombre = nombreUsuario,
+            negocioNombre = "Mi Empresa",
+            contextoNegocioTexto = "Estás visualizando ...",
+            alertasTexto = "Sin alertas recientes.",
+            groqApiKey = Constants.GROQ_API_KEY_CHAT
+        )
+        dialogZoe.show(supportFragmentManager, "ZoeChatBottomSheet")
     }
 
     private fun initViews() {
@@ -113,6 +143,9 @@ class KardexActivity : AppCompatActivity() {
         rvKardex = findViewById(R.id.rvKardex)
         layoutLoadingKardex = findViewById(R.id.layoutLoadingKardex)
         swipeRefreshLayoutKardex = findViewById(R.id.swipeRefreshLayoutKardex)
+
+        etRangoFechas = findViewById(R.id.etRangoFechas)
+        btnLimpiarFechas = findViewById(R.id.btnLimpiarFechas)
     }
 
     private fun setupRecyclerView() {
@@ -142,6 +175,44 @@ class KardexActivity : AppCompatActivity() {
             }
             override fun afterTextChanged(s: Editable?) {}
         })
+
+        etRangoFechas.setOnClickListener {
+            abrirSelectorFechas()
+        }
+
+        btnLimpiarFechas.setOnClickListener {
+            fechaInicioFiltro = null
+            fechaFinFiltro = null
+            etRangoFechas.setText("")
+            btnLimpiarFechas.visibility = View.GONE
+            aplicarFiltros()
+        }
+    }
+
+    private fun abrirSelectorFechas() {
+        val builder = MaterialDatePicker.Builder.dateRangePicker()
+        builder.setTitleText("Seleccionar rango de fechas")
+        val picker = builder.build()
+
+        picker.addOnPositiveButtonClickListener { selection ->
+            val startDate = Date(selection.first)
+            val endDate = Date(selection.second)
+
+            val sdfISO = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val sdfDisplay = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+
+            sdfISO.timeZone = TimeZone.getTimeZone("UTC")
+            sdfDisplay.timeZone = TimeZone.getTimeZone("UTC")
+
+            fechaInicioFiltro = sdfISO.format(startDate)
+            fechaFinFiltro = sdfISO.format(endDate)
+
+            etRangoFechas.setText("${sdfDisplay.format(startDate)} - ${sdfDisplay.format(endDate)}")
+            btnLimpiarFechas.visibility = View.VISIBLE
+
+            aplicarFiltros()
+        }
+        picker.show(supportFragmentManager, "DATE_PICKER")
     }
 
     private fun poblarSpinnerTipos() {
@@ -363,7 +434,19 @@ class KardexActivity : AppCompatActivity() {
                     mot.contains(textoBusqueda) ||
                     user.contains(textoBusqueda)
 
-            coincideTipo && coincideBodega && coincideTexto
+            val fechaTxRaw = k.fechaTransaccion ?: ""
+            val coincideFecha = if (fechaInicioFiltro != null && fechaFinFiltro != null) {
+                val fechaSoloDia = fechaTxRaw.take(10)
+                if (fechaSoloDia.length == 10) {
+                    fechaSoloDia in fechaInicioFiltro!!..fechaFinFiltro!!
+                } else {
+                    true
+                }
+            } else {
+                true
+            }
+
+            coincideTipo && coincideBodega && coincideTexto && coincideFecha
         }
 
         adapter.actualizarLista(resultado)

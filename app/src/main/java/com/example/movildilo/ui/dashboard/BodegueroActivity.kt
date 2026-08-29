@@ -17,10 +17,11 @@ import com.example.movildilo.data.local.SessionManager
 import com.example.movildilo.data.model.dto.inventario.CategoriaDto
 import com.example.movildilo.data.model.dto.inventario.InventarioResponseDto
 import com.example.movildilo.data.model.dto.inventario.ProductoResponseDto
+import com.example.movildilo.ia.ZoeActionRouter
 import com.example.movildilo.ia.ZoeBottomSheetDialog
 import com.example.movildilo.ui.Kardex.KardexActivity
 import com.example.movildilo.ui.auth.LoginActivity
-import com.example.movildilo.ui.Bodegas.BodegasActivity
+import com.example.movildilo.ui.bodega.BodegasActivity
 import com.example.movildilo.ui.abastecimiento.ComprasActivity
 import com.example.movildilo.ui.productos.CatalogoProductosActivity
 import com.example.movildilo.ui.propietario.*
@@ -90,6 +91,10 @@ class BodegueroActivity : AppCompatActivity() {
             cargarContextoAlmacenYDashboard()
         } else {
             Toast.makeText(this, "Selecciona una empresa válida para continuar", Toast.LENGTH_SHORT).show()
+        }
+
+        if (intent.getBooleanExtra(ZoeActionRouter.EXTRA_MANTENER_ZOE_ABIERTA, false)) {
+            abrirChatZoe()
         }
     }
 

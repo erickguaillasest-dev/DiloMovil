@@ -14,6 +14,7 @@ import com.bumptech.glide.Glide
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
+import com.example.movildilo.ia.ZoeActionRouter
 import com.example.movildilo.ui.auth.LoginActivity
 import com.example.movildilo.ui.propietario.ClientesActivity
 import com.example.movildilo.ui.propietario.CuentasPorCobrarActivity
@@ -84,6 +85,10 @@ class VendedorActivity : AppCompatActivity() {
             cargarResumenVentas()
         } else {
             Toast.makeText(this, "Selecciona una empresa válida para continuar", Toast.LENGTH_SHORT).show()
+        }
+
+        if (intent.getBooleanExtra(ZoeActionRouter.EXTRA_MANTENER_ZOE_ABIERTA, false)) {
+            abrirChatZoe()
         }
     }
 

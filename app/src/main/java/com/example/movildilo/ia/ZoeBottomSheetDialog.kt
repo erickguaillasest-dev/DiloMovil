@@ -286,37 +286,105 @@ class ZoeBottomSheetDialog(
         }
     }
 
+    private val MAX_REINTENTOS_429 = 3
+
     private fun enviarPreguntaAGroq(preguntaUsuario: String) {
         agregarMensajeUi("user", preguntaUsuario)
         btnEnviarMensaje.isEnabled = false
 
-        val manualDelSistema = ZoeKnowledgeBase.construirManualCompleto(usuarioNombre, negocioNombre, rolUsuario, contextoNegocioTexto, alertasTexto) +
+        val pantallasNavegables = ZoeActionRouter.pantallasNavegablesParaRol(rolUsuario)
+        val manualDelSistema = ZoeKnowledgeBase.construirManualCompleto(usuarioNombre, negocioNombre, rolUsuario, contextoNegocioTexto, alertasTexto, pantallasNavegables) +
                 "\n\nREGLAS: Ve directo al punto, usa Markdown solo si es necesario, cero relleno. Incluye AL FINAL <voz>texto fluido</voz>."
 
         val mensajesParaApi = mutableListOf(GroqMessage(role = "system", content = manualDelSistema))
         mensajesParaApi.addAll(listaHistorialDto.takeLast(12))
 
         lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val response = GroqApiClient.apiService.enviarMensajeChat("Bearer $groqApiKey", GroqRequest(model = "openai/gpt-oss-120b", messages = mensajesParaApi, temperature = 1, max_tokens = 700))
+            ejecutarPeticionGroqConReintentos(mensajesParaApi, intento = 0)
+        }
+    }
+
+    /**
+     * Igual que la versión web (ejecutarPeticionGroq): ante un 429 reintenta en silencio
+     * con backoff exponencial (o respetando el header Retry-After) antes de rendirse,
+     * y solo entonces le muestra un mensaje de error al usuario.
+     */
+    private suspend fun ejecutarPeticionGroqConReintentos(mensajes: List<GroqMessage>, intento: Int) {
+        try {
+            val response = GroqApiClient.apiService.enviarMensajeChat(
+                "Bearer $groqApiKey",
+                GroqRequest(model = "openai/gpt-oss-120b", messages = mensajes, temperature = 1, max_tokens = 700)
+            )
+
+            if (response.isSuccessful) {
                 withContext(Dispatchers.Main) {
                     btnEnviarMensaje.isEnabled = true
                     if (!isAdded) return@withContext
-
-                    if (response.isSuccessful) {
-                        val respuestaCruda = response.body()?.choices?.firstOrNull()?.message?.content ?: "Sin respuesta."
-                        val vozMatch = Regex("<voz>([\\s\\S]*?)</voz>", RegexOption.IGNORE_CASE).find(respuestaCruda)
-                        agregarMensajeUi("assistant", respuestaCruda.replace(Regex("<voz>[\\s\\S]*?</voz>", RegexOption.IGNORE_CASE), "").trim().ifBlank { respuestaCruda }, vozMatch?.groupValues?.get(1)?.trim())
-                    } else if (response.code() == 429) {
-                        agregarMensajeUi("assistant", "Espera unos segundos.", "Espera unos segundos.")
-                    }
+                    val respuestaCruda = response.body()?.choices?.firstOrNull()?.message?.content ?: "Sin respuesta."
+                    procesarRespuestaAsistente(respuestaCruda)
                 }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    btnEnviarMensaje.isEnabled = true
-                    if (escuchaContinuaActiva && isAdded) rvChatMensajes.postDelayed({ cicloEscuchaContinua() }, 1000)
+                return
+            }
+
+            if (response.code() == 429 && intento < MAX_REINTENTOS_429) {
+                val retryAfterSeg = response.headers()["retry-after"]?.toLongOrNull()
+                val esperaMs = retryAfterSeg?.times(1000) ?: (2000L * (1 shl intento))
+                kotlinx.coroutines.delay(esperaMs)
+                ejecutarPeticionGroqConReintentos(mensajes, intento + 1)
+                return
+            }
+
+            withContext(Dispatchers.Main) {
+                btnEnviarMensaje.isEnabled = true
+                if (!isAdded) return@withContext
+                when (response.code()) {
+                    429 -> {
+                        escuchaContinuaActiva = false
+                        agregarMensajeUi("assistant", "Espera unos segundos, me estás hablando muy rápido.", "Espera unos segundos, me estás hablando muy rápido.")
+                    }
+                    400, 413 -> agregarMensajeUi("assistant", "Veníamos hablando tanto que se me llenó la cabeza. ¿Puedes repetirlo más corto?", "Veníamos hablando tanto que se me llenó la cabeza. ¿Puedes repetirlo más corto?")
+                    else -> agregarMensajeUi("assistant", "Tuve un problema para responder. Intenta de nuevo en un momento.", "Tuve un problema para responder. Intenta de nuevo en un momento.")
                 }
             }
+        } catch (e: Exception) {
+            withContext(Dispatchers.Main) {
+                btnEnviarMensaje.isEnabled = true
+                if (escuchaContinuaActiva && isAdded) rvChatMensajes.postDelayed({ cicloEscuchaContinua() }, 1000)
+            }
+        }
+    }
+
+    /**
+     * Extrae <voz>, limpia la respuesta y — igual que la web con [[NAVEGAR:/ruta]] — detecta
+     * si el modelo pidió navegar con [[NAVEGAR:id]] para llevarlo a esa pantalla.
+     */
+    private fun procesarRespuestaAsistente(respuestaCruda: String) {
+        var texto = respuestaCruda
+
+        val navMatch = Regex("\\[\\[NAVEGAR:\\s*([a-zA-Z0-9_]+)\\s*\\]\\]", RegexOption.IGNORE_CASE).find(texto)
+        var navegacionSolicitada: Pair<Class<out Activity>, String>? = null
+        if (navMatch != null) {
+            val id = navMatch.groupValues[1]
+            texto = texto.replace(navMatch.value, "").trim()
+            val destino = ZoeActionRouter.resolverNavegacionPorId(id)
+            if (destino != null && ZoeActionRouter.pantallaPermitidaParaRol(rolUsuario, destino.first)) {
+                navegacionSolicitada = destino
+            }
+        }
+
+        val vozMatch = Regex("<voz>([\\s\\S]*?)</voz>", RegexOption.IGNORE_CASE).find(texto)
+        val textoPantalla = texto.replace(Regex("<voz>[\\s\\S]*?</voz>", RegexOption.IGNORE_CASE), "").trim().ifBlank { texto }
+
+        agregarMensajeUi("assistant", textoPantalla, vozMatch?.groupValues?.get(1)?.trim())
+
+        if (navegacionSolicitada != null) {
+            val (destino, _) = navegacionSolicitada
+            escuchaContinuaActiva = false
+            voz.detenerEscucha()
+            rvChatMensajes.postDelayed({
+                activity?.let { ZoeActionRouter.navegar(it, destino, null) }
+                if (isAdded) dismiss()
+            }, 900)
         }
     }
 }

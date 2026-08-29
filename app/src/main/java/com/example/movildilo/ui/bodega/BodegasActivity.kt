@@ -1,4 +1,4 @@
-package com.example.movildilo.ui.Bodegas
+package com.example.movildilo.ui.bodega
 
 import android.os.Bundle
 import android.text.Editable
@@ -22,7 +22,6 @@ import com.example.movildilo.data.model.dto.inventario.BodegaDto
 import com.example.movildilo.ia.ZoeActionRouter
 import com.example.movildilo.ia.ZoeBottomSheetDialog
 import com.example.movildilo.ui.adapters.BodegaAdapter
-import com.example.movildilo.ui.bodegas.EliminarBodegaDialog
 import com.example.movildilo.utils.Constants
 
 import kotlinx.coroutines.Dispatchers
