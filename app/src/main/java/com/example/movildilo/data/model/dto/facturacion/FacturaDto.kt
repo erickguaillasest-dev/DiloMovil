@@ -85,6 +85,8 @@ data class DetalleFacturaResponseDto(
     @SerializedName("producto")
     val producto: ProductoResponseDto? = null,
     @SerializedName("cantidad") val cantidad: Int? = 0,
+    @SerializedName("graba_iva")
+    val grabaIva: Boolean? = true,
     @SerializedName("precioUnitario", alternate = ["precio", "precio_unitario"]) val precioUnitario: Double? = 0.0,
     @SerializedName("descuento", alternate = ["descuentoMonto", "descuento_monto"]) val descuento: Double? = 0.0,
     @SerializedName("subtotalItem", alternate = ["subtotal", "subtotal_item"]) val subtotalItem: Double? = 0.0

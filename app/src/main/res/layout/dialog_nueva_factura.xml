@@ -767,14 +767,16 @@
 
                                 <com.google.android.material.textfield.TextInputLayout
                                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                                    android:layout_width="110dp"
+                                    android:layout_width="72dp"
                                     android:layout_height="wrap_content"
-                                    app:boxCornerRadiusBottomEnd="8dp"
-                                    app:boxCornerRadiusBottomStart="8dp"
-                                    app:boxCornerRadiusTopEnd="8dp"
-                                    app:boxCornerRadiusTopStart="8dp"
-                                    app:hintEnabled="false"
-                                    app:suffixText="%">
+                                    app:boxBackgroundColor="#F1F5F9"
+                                    app:boxCornerRadiusBottomEnd="20dp"
+                                    app:boxCornerRadiusBottomStart="20dp"
+                                    app:boxCornerRadiusTopEnd="20dp"
+                                    app:boxCornerRadiusTopStart="20dp"
+                                    app:boxStrokeColor="#E2E8F0"
+                                    app:boxStrokeWidth="1dp"
+                                    app:hintEnabled="false">
 
                                     <com.google.android.material.textfield.TextInputEditText
                                         android:id="@+id/etDescuentoGlobalFactura"
@@ -783,23 +785,14 @@
                                         android:gravity="center"
                                         android:hint="0"
                                         android:inputType="numberDecimal"
-                                        android:textSize="13sp" />
+                                        android:paddingVertical="8dp"
+                                        android:textColor="#EA580C"
+                                        android:textSize="14sp"
+                                        android:textStyle="bold" />
                                 </com.google.android.material.textfield.TextInputLayout>
                             </LinearLayout>
 
-                            <TextView
-                                android:id="@+id/tvDescuentoGlobalMonto"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginBottom="6dp"
-                                android:gravity="end"
-                                android:text=""
-                                android:textColor="#EA580C"
-                                android:textSize="12sp"
-                                android:textStyle="bold"
-                                tools:text="Descuento aplicado: -$5.00" />
-
-                            <!-- SUBTOSUBTOTAL, BASE IMPONIBLE E IVA -->
+                            <!-- SUBTOTAL, DESCUENTO, BASE IMPONIBLE E IVA -->
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
@@ -820,6 +813,32 @@
                                     android:textColor="#0F172A"
                                     android:textSize="12sp"
                                     android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:id="@+id/rowDescuentoGlobalDialogo"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:layout_marginBottom="4dp"
+                                android:visibility="gone"
+                                tools:visibility="visible">
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="Descuento"
+                                    android:textColor="#EA580C"
+                                    android:textSize="12sp" />
+                                <TextView
+                                    android:id="@+id/tvDescuentoGlobalMonto"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text=""
+                                    android:textColor="#EA580C"
+                                    android:textSize="12sp"
+                                    android:textStyle="bold"
+                                    tools:text="-$7.95" />
                             </LinearLayout>
 
                             <LinearLayout

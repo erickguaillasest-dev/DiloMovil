@@ -17,6 +17,13 @@ data class ItemVozIA(
     val descuentoPorcentaje: Int? = null
 )
 
+// Fija la cantidad FINAL de un producto que ya está en el carrito (no la suma, la reemplaza).
+// Ej: "cambia la cantidad de mouse a 3", "deja 5 lápices", "actualiza el teclado a 2".
+data class CambioCantidadVozIA(
+    val producto: String,
+    val cantidad: Int
+)
+
 data class ResultadoVozFactura(
     val cliente: String? = null,
     val metodoPago: String? = null,
@@ -25,6 +32,7 @@ data class ResultadoVozFactura(
     val items: List<ItemVozIA> = emptyList(),
     val eliminarProducto: String? = null,
     val eliminarCantidad: Int? = null,
+    val cambiarCantidad: CambioCantidadVozIA? = null,
     val descuentoGlobalPorcentaje: Int? = null,
     val emitirFactura: Boolean = false,
     val vaciarCarrito: Boolean = false
@@ -165,6 +173,7 @@ object ZoeVoiceAI {
               "items": [ { "producto": "nombre extraído", "cantidad": numero_entero_o_null, "descuentoPorcentaje": numero_entero_o_null } ],
               "eliminarProducto": "nombre del producto a quitar del carrito, o null",
               "eliminarCantidad": numero_entero_o_null,
+              "cambiarCantidad": { "producto": "nombre del producto YA agregado al carrito", "cantidad": numero_entero_final } o null,
               "descuentoGlobalPorcentaje": numero_entero_o_null,
               "emitirFactura": true o false,
               "vaciarCarrito": true o false
@@ -190,6 +199,7 @@ object ZoeVoiceAI {
             12. BODEGA: si el usuario pide cambiar de bodega/almacén (ej. "cambia a la bodega norte", "usa la bodega centro", "de la bodega dos"), extrae el nombre en "bodega" aunque no agregue ningún producto en esa misma frase.
             13. Si el usuario NO menciona ninguna bodega en la frase, deja "bodega": null (NO inventes ni asumas una bodega). El sistema ya se encarga de elegir automáticamente la bodega correcta según el stock disponible del producto cuando el usuario no la dice.
             14. ROBUSTEZ CON FRASES LARGAS: el usuario suele decir varios datos seguidos en una sola frase (cliente, pago, cuotas, bodega, y uno o varios productos con cantidad). Extrae CADA dato que sí reconozcas con confianza, aunque otra parte de la frase sea confusa, esté mal dicha o no la entiendas del todo. Nunca dejes de extraer un dato claro solo porque otro dato de la misma frase sea dudoso: cada campo del JSON se decide de forma independiente con lo que sí quedó claro. Si una palabra suelta no encaja en ningún campo, simplemente ignórala.
+            15. "cambiarCantidad" es DISTINTO de "items": se usa SOLO cuando el usuario quiere FIJAR la cantidad final de un producto que se asume YA está en el carrito, no sumarle unidades nuevas. Actívalo con frases como "cambia la cantidad de mouse a 3", "actualiza el teclado a 2", "deja 5 lápices" (cuando claramente se refiere a corregir la cantidad de algo ya puesto, no a agregarlo por primera vez). Si la frase suena a agregar algo nuevo al ticket (ej. "ponme 2 lápices", "agrégame 5 mouse"), eso va en "items", NO en "cambiarCantidad". Nunca actives ambos campos para el mismo producto en la misma respuesta.
         """.trimIndent()
     }
 
@@ -256,6 +266,18 @@ object ZoeVoiceAI {
         var eliminarCantidad: Int? = null
         val items = mutableListOf<ItemVozIA>()
 
+        // "cambia la cantidad de mouse a 3", "actualiza cantidad de teclado a 2".
+        // Solo este patrón explícito (no "pon"/"deja") para no chocar con el verbo de agregar.
+        var cambiarCantidad: CambioCantidadVozIA? = null
+        Regex("(?:cambia|cambiar|actualiza|actualizar)\\s+(?:la\\s+)?cantidad\\s+(?:de\\s+)?(.+?)\\s+a\\s+(\\d{1,3})")
+            .find(f)?.let { m ->
+                val nombreProd = m.groupValues[1].trim()
+                val cantidadFinal = m.groupValues[2].toIntOrNull()
+                if (nombreProd.length >= 2 && cantidadFinal != null && cantidadFinal in 0..500) {
+                    cambiarCantidad = CambioCantidadVozIA(nombreProd, cantidadFinal)
+                }
+            }
+
         val stopWordsProducto = setOf(
             "agrega", "agregue", "agregar", "agregame", "anade", "anadir",
             "pon", "ponme", "poner", "mete", "meteme", "meter", "incluye", "incluyeme", "incluir",
@@ -314,6 +336,7 @@ object ZoeVoiceAI {
             items = items,
             eliminarProducto = eliminarProducto,
             eliminarCantidad = eliminarCantidad,
+            cambiarCantidad = cambiarCantidad,
             descuentoGlobalPorcentaje = descuentoGlobal,
             emitirFactura = emitirFactura,
             vaciarCarrito = vaciarCarrito
@@ -322,8 +345,8 @@ object ZoeVoiceAI {
 
     fun estaVacio(r: ResultadoVozFactura): Boolean {
         return r.cliente == null && r.metodoPago == null && r.cuotas == null && r.bodega == null &&
-                r.items.isEmpty() && r.eliminarProducto == null && r.descuentoGlobalPorcentaje == null &&
-                !r.emitirFactura && !r.vaciarCarrito
+                r.items.isEmpty() && r.eliminarProducto == null && r.cambiarCantidad == null &&
+                r.descuentoGlobalPorcentaje == null && !r.emitirFactura && !r.vaciarCarrito
     }
 
     private fun parsearRespuesta(contenidoCrudo: String): ResultadoVozFactura? {
@@ -352,6 +375,13 @@ object ZoeVoiceAI {
             fun campoTexto(nombre: String): String? =
                 obj.optString(nombre, "").takeIf { it.isNotBlank() && !it.equals("null", ignoreCase = true) }
 
+            val cambiarCantidadObj = obj.optJSONObject("cambiarCantidad")
+            val cambiarCantidad = cambiarCantidadObj?.let { cco ->
+                val nombreProd = cco.optString("producto", "").takeIf { it.isNotBlank() && !it.equals("null", ignoreCase = true) }
+                val cantidadFinal = if (cco.isNull("cantidad")) null else cco.optInt("cantidad", -1).takeIf { it in 0..500 }
+                if (nombreProd != null && cantidadFinal != null) CambioCantidadVozIA(nombreProd, cantidadFinal) else null
+            }
+
             ResultadoVozFactura(
                 cliente = campoTexto("cliente"),
                 metodoPago = campoTexto("metodoPago"),
@@ -360,6 +390,7 @@ object ZoeVoiceAI {
                 items = items,
                 eliminarProducto = campoTexto("eliminarProducto"),
                 eliminarCantidad = if (obj.isNull("eliminarCantidad")) null else obj.optInt("eliminarCantidad", -1).takeIf { it > 0 },
+                cambiarCantidad = cambiarCantidad,
                 descuentoGlobalPorcentaje = if (obj.isNull("descuentoGlobalPorcentaje")) null
                 else obj.optInt("descuentoGlobalPorcentaje", -1).takeIf { it in 0..100 },
                 emitirFactura = obj.optBoolean("emitirFactura", false),

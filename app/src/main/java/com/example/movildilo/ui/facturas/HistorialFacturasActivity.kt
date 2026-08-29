@@ -132,6 +132,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
     private var etDescuentoItemRef: TextInputEditText? = null
     private var etDescuentoGlobalRef: TextInputEditText? = null
     private var tvDescuentoGlobalMontoRef: TextView? = null
+    private var rowDescuentoGlobalRef: View? = null
     private var tvSubtotalRef: TextView? = null
     private var tvBaseImponibleRef: TextView? = null
     private var tvIvaRef: TextView? = null
@@ -398,6 +399,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
         val etDescuentoItem = dialogView.findViewById<TextInputEditText>(R.id.etDescuentoItemFactura)
         val etDescuentoGlobal = dialogView.findViewById<TextInputEditText>(R.id.etDescuentoGlobalFactura)
         val tvDescuentoGlobalMonto = dialogView.findViewById<TextView>(R.id.tvDescuentoGlobalMonto)
+        val rowDescuentoGlobal = dialogView.findViewById<View>(R.id.rowDescuentoGlobalDialogo)
         val tvSubtotal = dialogView.findViewById<TextView>(R.id.tvSubtotalFacturaDialogo)
         val tvBaseImponible = dialogView.findViewById<TextView>(R.id.tvBaseImponibleFacturaDialogo)
         val tvIva = dialogView.findViewById<TextView>(R.id.tvIvaFacturaDialogo)
@@ -429,6 +431,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
         etDescuentoItemRef = etDescuentoItem
         etDescuentoGlobalRef = etDescuentoGlobal
         tvDescuentoGlobalMontoRef = tvDescuentoGlobalMonto
+        rowDescuentoGlobalRef = rowDescuentoGlobal
         tvSubtotalRef = tvSubtotal
         tvBaseImponibleRef = tvBaseImponible
         tvIvaRef = tvIva
@@ -710,10 +713,11 @@ class HistorialFacturasActivity : AppCompatActivity() {
         carritoTemporal.forEach { item ->
             val subtotalLinea = item.subtotalConDescuento
 
-            // Si el DTO de producto incorpora la propiedad grabaIva se puede obtener de la lista.
-            // Para mantener consistencia estricta con los cálculos proporcionales, consideramos 'true' por defecto.
-            // TODO: Reemplazar 'true' con 'producto?.grabaIva ?: true' cuando el DTO ProductoResponseDto tenga este campo.
-            val grabaIva = true
+            // Igual que la web: cada producto decide si graba IVA o es exento, según su
+            // configuración en el Catálogo. La web coerciona con !!(valor), es decir que
+            // null/undefined siempre se trata como EXENTO (false), nunca como gravado.
+            val producto = productosList.find { it.id == item.productoId }
+            val grabaIva = producto?.grabaIva ?: false
 
             if (grabaIva) {
                 subtotalGravado += subtotalLinea
@@ -757,8 +761,14 @@ class HistorialFacturasActivity : AppCompatActivity() {
 
         val totales = calcularTotalesCarrito()
 
+        // "Base imponible" en la web equivale al subtotal YA CON EL DESCUENTO aplicado
+        // (gravado + exento), no solo la porción gravada. Antes aquí solo se mostraba
+        // la porción gravada, por lo que en productos exentos de IVA el descuento
+        // "desaparecía" visualmente de este campo aunque sí se restaba del total.
+        val baseImponibleMostrada = totales.baseImponible + totales.baseExenta
+
         tvSubtotalRef?.text = String.format(Locale.US, "$%.2f", totales.subtotalBruto)
-        tvBaseImponibleRef?.text = String.format(Locale.US, "$%.2f", totales.baseImponible)
+        tvBaseImponibleRef?.text = String.format(Locale.US, "$%.2f", baseImponibleMostrada)
         tvIvaRef?.text = String.format(Locale.US, "$%.2f", totales.montoIva)
 
         // Actualizamos de forma dinámica el LABEL del IVA
@@ -768,11 +778,13 @@ class HistorialFacturasActivity : AppCompatActivity() {
         tvTotalRef?.text = "A COBRAR: ${String.format(Locale.US, "$%.2f", totales.total)}"
         tvItemsCountRef?.text = "${carritoTemporal.size} items"
 
+        // Fila "Descuento" dentro del desglose de totales, igual que en la web:
+        // visible solo cuando hay descuento aplicado.
         if (totales.descuentoGlobalMonto > 0.0) {
-            tvDescuentoGlobalMontoRef?.visibility = View.VISIBLE
-            tvDescuentoGlobalMontoRef?.text = "Descuento global aplicado: -${String.format(Locale.US, "$%.2f", totales.descuentoGlobalMonto)}"
+            rowDescuentoGlobalRef?.visibility = View.VISIBLE
+            tvDescuentoGlobalMontoRef?.text = "-${String.format(Locale.US, "$%.2f", totales.descuentoGlobalMonto)}"
         } else {
-            tvDescuentoGlobalMontoRef?.visibility = View.GONE
+            rowDescuentoGlobalRef?.visibility = View.GONE
         }
 
         val vacio = carritoTemporal.isEmpty()
@@ -1432,6 +1444,32 @@ class HistorialFacturasActivity : AppCompatActivity() {
             }
         }
 
+        datos.cambiarCantidad?.let { cambio ->
+            val nombreBuscado = limpiarTexto(cambio.producto)
+            val index = carritoTemporal.indexOfFirst {
+                limpiarTexto(it.nombreProducto).contains(nombreBuscado) || nombreBuscado.contains(limpiarTexto(it.nombreProducto))
+            }
+            if (index == -1) {
+                alertas.add("no tengo \"${cambio.producto}\" en el ticket para cambiarle la cantidad")
+            } else {
+                val itemActual = carritoTemporal[index]
+                if (cambio.cantidad <= 0) {
+                    carritoTemporal.removeAt(index)
+                    alertas.add("quité ${itemActual.nombreProducto} del ticket")
+                } else {
+                    val stockActual = obtenerStock(itemActual.productoId, itemActual.bodegaId)
+                    val cantidadFinal = if (stockActual > 0) minOf(cambio.cantidad, stockActual) else cambio.cantidad
+                    carritoTemporal[index] = itemActual.copy(cantidad = cantidadFinal)
+                    if (cantidadFinal < cambio.cantidad) {
+                        alertas.add("solo dejé $cantidadFinal de ${itemActual.nombreProducto} por stock limitado")
+                    } else {
+                        alertas.add("dejé ${itemActual.nombreProducto} en $cantidadFinal")
+                    }
+                }
+                actualizarUiCarrito()
+            }
+        }
+
         var pedirCedula = false
         val textoClienteBuscado = datos.cliente ?: extractDigits(fraseOriginal)
         if (!textoClienteBuscado.isNullOrBlank() && (facturaClienteId == null || datos.cliente?.isNotBlank() == true)) {
@@ -1934,7 +1972,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
         val tasaIva = porcentajeIvaActual / 100.0
         val porcentajeIvaFmt = String.format(Locale.US, "%.0f", porcentajeIvaActual)
 
-        // Se integra el cálculo para bases imponibles (gravado y exento) tal como se hace en Angular (web)
         var gravado = 0.0
         var exento = 0.0
 
@@ -1944,9 +1981,9 @@ class HistorialFacturasActivity : AppCompatActivity() {
             val desc = item.descuento ?: 0.0
             val sub = item.subtotalItem ?: ((cant * pUnit) - desc)
 
-            // NOTA: Se asume que grabaIva existe; por defecto aplicamos a gravado
-            // En versiones posteriores reemplazar 'true' por 'item.grabaIva ?: item.producto?.grabaIva ?: true'
-            val grabaIva = true
+            val grabaIva = item.producto?.grabaIva
+                ?: productosList.find { it.id == (item.productoId ?: item.producto?.id) }?.grabaIva
+                ?: false
 
             if (grabaIva) {
                 gravado += sub

@@ -311,7 +311,7 @@ class PropietarioActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     tvBusinessName.text = "$negocioNombreReal • Panel de Control"
                     tvTotalFacturas.text = "${facturas.size} emitidas"
-                    tvVentasMes.text = String.format(Locale.US, "$%.2f", totalVentas)
+                    tvVentasMes.text = formatearMonto(totalVentas)
                     tvClientesActivos.text = "${clientes.size} activos"
                     cardAlert.visibility = if (itemsBajoStock.isNotEmpty()) View.VISIBLE else View.GONE
 
@@ -410,5 +410,12 @@ class PropietarioActivity : AppCompatActivity() {
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         finish()
+    }
+
+
+    private fun formatearMonto(monto: Double): String {
+        val formato = java.text.NumberFormat.getNumberInstance(Locale.US) as java.text.DecimalFormat
+        formato.applyPattern("#,##0.00")
+        return "$${formato.format(monto)}"
     }
 }

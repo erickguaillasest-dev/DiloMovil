@@ -253,13 +253,19 @@
 
                                 <TextView
                                     android:id="@+id/tvVentasMes"
-                                    android:layout_width="85dp"
-                                    android:layout_height="31dp"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
                                     android:layout_marginTop="2dp"
+                                    android:ellipsize="end"
+                                    android:includeFontPadding="false"
+                                    android:maxLines="1"
                                     android:text="$0.00"
                                     android:textColor="#0F172A"
-                                    android:textSize="16sp"
-                                    android:textStyle="bold" />
+                                    android:textStyle="bold"
+                                    app:autoSizeMaxTextSize="17sp"
+                                    app:autoSizeMinTextSize="11sp"
+                                    app:autoSizeStepGranularity="1sp"
+                                    app:autoSizeTextType="uniform" />
                             </LinearLayout>
                         </com.google.android.material.card.MaterialCardView>
 
