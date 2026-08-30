@@ -312,9 +312,19 @@ class InventarioBodegasActivity : AppCompatActivity() {
     }
 
     private fun abrirModalLotes(item: InventarioResponseDto) {
-        val bodegaId = item.bodegaId ?: return
-        val productoId = item.productoId ?: return
-        val authHeader = sessionManager.getAuthHeader() ?: return
+        val bodegaId = item.bodegaId
+        val productoId = item.productoId
+        val authHeader = sessionManager.getAuthHeader()
+
+        if (bodegaId == null || productoId == null) {
+            Toast.makeText(this, "No se pudo determinar el producto o la bodega para ver los lotes", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (authHeader.isNullOrEmpty()) {
+            Toast.makeText(this, "Sesión no válida o token ausente", Toast.LENGTH_LONG).show()
+            mostrarAlertaSesionExpirada()
+            return
+        }
 
         val dialogCargando = LotesBottomSheetDialog(
             productoNombre = item.productoNombre ?: "Producto",

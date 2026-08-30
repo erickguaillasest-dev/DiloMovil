@@ -57,12 +57,11 @@ class LotesBottomSheetDialog(
         tvTitulo.text = "Detalle: $productoNombre"
         btnCerrar.setOnClickListener { dismiss() }
 
-        val lotesReales = listaLotes.filter { lote ->
-            val tieneCodigoReal = !lote.codigoLote.isNullOrBlank() &&
-                    lote.codigoLote.trim().uppercase() != "S/N"
-            val tieneCantidadReal = (lote.cantidadDisponible ?: 0) > 0
-            tieneCodigoReal || tieneCantidadReal
-        }
+        // Antes se descartaban lotes sin código Y sin cantidad > 0, lo que podía
+        // ocultar lotes reales (agotados, o sin código de lote) que el backend
+        // sí devolvió. Ahora confiamos en que si el backend mandó un id, es un
+        // registro real.
+        val lotesReales = listaLotes.filter { it.id != null }
 
         if (isLoading) {
             progress.visibility = View.VISIBLE
