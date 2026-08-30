@@ -116,12 +116,11 @@ class ZoeBottomSheetDialog(
         actualizarEstadoVoz()
 
         if (listaChatUi.isEmpty()) {
-            val bienvenida = "¡Hola! Soy **Zoe**, tu asistente en **$negocioNombre**.\n\n" +
-                    "¿En qué te puedo ayudar hoy?\n" +
-                    "* **Consultar datos:** Ventas, inventario o alertas.\n" +
-                    "* **Acciones rápidas:** Di *\"crea un producto\"*.\n" +
-                    "* **Navegación:** Di *\"llévame a mis bodegas\"* o *\"llévame a productos\"*.\n" +
-                    "* **Guía interactiva:** Di *\"guíame\"*."
+            val bienvenida = "¡Hola! Soy **Zoe**. Contame, $usuarioNombre, ¿qué revisamos hoy de **$negocioNombre**?\n\n" +
+                    "* **Consultar datos:** ventas, inventario o alertas.\n" +
+                    "* **Acciones rápidas:** decime *\"crea un producto\"*.\n" +
+                    "* **Navegación:** decime *\"llévame a mis bodegas\"*.\n" +
+                    "* **Guía interactiva:** decime *\"guíame\"*."
             agregarMensajeUi("assistant", bienvenida, null)
         } else {
             rvChatMensajes.scrollToPosition(listaChatUi.size - 1)
@@ -293,8 +292,7 @@ class ZoeBottomSheetDialog(
         btnEnviarMensaje.isEnabled = false
 
         val pantallasNavegables = ZoeActionRouter.pantallasNavegablesParaRol(rolUsuario)
-        val manualDelSistema = ZoeKnowledgeBase.construirManualCompleto(usuarioNombre, negocioNombre, rolUsuario, contextoNegocioTexto, alertasTexto, pantallasNavegables) +
-                "\n\nREGLAS: Ve directo al punto, usa Markdown solo si es necesario, cero relleno. Incluye AL FINAL <voz>texto fluido</voz>."
+        val manualDelSistema = ZoeKnowledgeBase.construirManualCompleto(usuarioNombre, negocioNombre, rolUsuario, contextoNegocioTexto, alertasTexto, pantallasNavegables)
 
         val mensajesParaApi = mutableListOf(GroqMessage(role = "system", content = manualDelSistema))
         mensajesParaApi.addAll(listaHistorialDto.takeLast(12))
@@ -313,7 +311,7 @@ class ZoeBottomSheetDialog(
         try {
             val response = GroqApiClient.apiService.enviarMensajeChat(
                 "Bearer $groqApiKey",
-                GroqRequest(model = "openai/gpt-oss-120b", messages = mensajes, temperature = 1, max_tokens = 700)
+                GroqRequest(model = "openai/gpt-oss-120b", messages = mensajes, temperature = 0.3, max_tokens = 900)
             )
 
             if (response.isSuccessful) {
@@ -355,6 +353,27 @@ class ZoeBottomSheetDialog(
     }
 
     /**
+     * Igual que limpiarTextoParaVoz() de la web: si el modelo no mandó <voz>, igual
+     * armamos un texto hablable limpiando el markdown en vez de quedarnos mudos.
+     */
+    private fun limpiarTextoParaVozFallback(texto: String): String {
+        return texto
+            .replace(Regex("[*#|>_~]"), "")
+            .replace(Regex("id\\s*:\\s*\\d+", RegexOption.IGNORE_CASE), "")
+            .replace(Regex("[⚠✖•–—]"), "")
+            .replace("$", " dólares ")
+            .replace("%", " por ciento ")
+            .replace(Regex("(\\d+)\\s*uds?", RegexOption.IGNORE_CASE), "$1 unidades")
+            .replace(Regex("(\\d+)\\s*mín", RegexOption.IGNORE_CASE), "mínimo $1")
+            .replace(Regex("^-\\s*", RegexOption.MULTILINE), "")
+            .replace(Regex("\\n+"), ". ")
+            .replace(Regex("\\s{2,}"), " ")
+            .replace(Regex("\\.\\s*\\."), ".")
+            .replace(Regex("\\s+,"), ",")
+            .trim()
+    }
+
+    /**
      * Extrae <voz>, limpia la respuesta y — igual que la web con [[NAVEGAR:/ruta]] — detecta
      * si el modelo pidió navegar con [[NAVEGAR:id]] para llevarlo a esa pantalla.
      */
@@ -373,9 +392,17 @@ class ZoeBottomSheetDialog(
         }
 
         val vozMatch = Regex("<voz>([\\s\\S]*?)</voz>", RegexOption.IGNORE_CASE).find(texto)
-        val textoPantalla = texto.replace(Regex("<voz>[\\s\\S]*?</voz>", RegexOption.IGNORE_CASE), "").trim().ifBlank { texto }
+        var textoPantalla = texto.replace(Regex("<voz>[\\s\\S]*?</voz>", RegexOption.IGNORE_CASE), "").trim().ifBlank { texto }
 
-        agregarMensajeUi("assistant", textoPantalla, vozMatch?.groupValues?.get(1)?.trim())
+        val textoVoz = if (vozMatch != null) {
+            vozMatch.groupValues[1].trim()
+        } else {
+            // Fallback: nunca nos quedamos mudos, igual que la web.
+            textoPantalla = texto.replace(Regex("<voz>|</voz>", RegexOption.IGNORE_CASE), "").trim()
+            limpiarTextoParaVozFallback(textoPantalla)
+        }
+
+        agregarMensajeUi("assistant", textoPantalla, textoVoz)
 
         if (navegacionSolicitada != null) {
             val (destino, _) = navegacionSolicitada

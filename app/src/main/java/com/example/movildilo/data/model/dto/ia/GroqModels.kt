@@ -3,7 +3,7 @@ package com.example.movildilo.data.model.dto.ia
 data class GroqRequest(
     val model: String = "openai/gpt-oss-120b",
     val messages: List<GroqMessage>,
-    val temperature: Int = 1,
+    val temperature: Double = 0.3,
     val max_tokens: Int = 2048
 )
 
