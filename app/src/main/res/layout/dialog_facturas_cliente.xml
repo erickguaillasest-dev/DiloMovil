@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    app:cardCornerRadius="16dp"
+    app:cardCornerRadius="24dp"
     app:cardElevation="8dp"
     app:strokeWidth="0dp"
     app:cardBackgroundColor="@android:color/white">
@@ -12,7 +13,17 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:paddingHorizontal="20dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="20dp">
+
+        <!-- MANIJA DEL MODAL -->
+        <View
+            android:layout_width="40dp"
+            android:layout_height="4dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="16dp"
+            android:background="#E2E8F0" />
 
         <!-- Encabezado Modal -->
         <RelativeLayout
@@ -25,16 +36,18 @@
                 android:layout_height="wrap_content"
                 android:layout_alignParentStart="true"
                 android:layout_toStartOf="@id/btnCerrarModalFacturas"
-                android:textColor="#111827"
-                android:textSize="17sp"
-                android:textStyle="bold" />
+                android:textColor="#0F172A"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                tools:text="Facturas de María González" />
 
             <ImageButton
                 android:id="@+id/btnCerrarModalFacturas"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
                 android:layout_alignParentEnd="true"
                 android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="4dp"
                 android:src="@android:drawable/ic_menu_close_clear_cancel"
                 app:tint="#64748B" />
         </RelativeLayout>
@@ -42,64 +55,74 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:layout_marginTop="12dp"
-            android:background="#E2E8F0" />
+            android:layout_marginTop="14dp"
+            android:background="#F1F5F9" />
 
         <!-- Encabezado de Columnas (Tabla) -->
-        <LinearLayout
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:background="#F8FAFC"
-            android:orientation="horizontal"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="8dp">
+            android:layout_marginTop="14dp"
+            app:cardBackgroundColor="#F8FAFC"
+            app:cardCornerRadius="10dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp">
 
-            <TextView
-                android:layout_width="0dp"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1.2"
-                android:text="FACTURA"
-                android:textColor="#64748B"
-                android:textSize="10sp"
-                android:textStyle="bold" />
+                android:orientation="horizontal"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="10dp">
 
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="VENCIMIENTO"
-                android:textColor="#64748B"
-                android:textSize="10sp"
-                android:textStyle="bold" />
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1.2"
+                    android:text="FACTURA"
+                    android:textColor="#64748B"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
 
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="ESTADO"
-                android:textColor="#64748B"
-                android:textSize="10sp"
-                android:textStyle="bold" />
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="VENCIMIENTO"
+                    android:textColor="#64748B"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
 
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="end"
-                android:text="SALDO PENDIENTE"
-                android:textColor="#64748B"
-                android:textSize="10sp"
-                android:textStyle="bold" />
-        </LinearLayout>
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="ESTADO"
+                    android:textColor="#64748B"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="end"
+                    android:text="SALDO"
+                    android:textColor="#64748B"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- RecyclerView para la lista de Facturas -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvFacturasDelCliente"
             android:layout_width="match_parent"
             android:layout_height="300dp"
-            android:layout_marginTop="4dp" />
+            android:layout_marginTop="8dp"
+            android:clipToPadding="false"
+            android:paddingBottom="4dp" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

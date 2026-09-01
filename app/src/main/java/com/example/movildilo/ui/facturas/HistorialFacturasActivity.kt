@@ -96,11 +96,14 @@ class HistorialFacturasActivity : AppCompatActivity() {
     private lateinit var layoutLoading: View
     private lateinit var layoutVacio: View
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
+    private lateinit var etBuscarFacturas: TextInputEditText
+    private lateinit var btnBuscarFacturas: MaterialButton
 
     private lateinit var sessionManager: SessionManager
     private lateinit var adapter: FacturasAdapter
     private var negocioId: Long = -1L
     private lateinit var fabNuevaFactura: View
+    private var facturasCompletas: List<FacturaResponseDto> = emptyList()
 
     private var tvIvaLabelDialogo: TextView? = null
 
@@ -231,6 +234,39 @@ class HistorialFacturasActivity : AppCompatActivity() {
         layoutVacio = findViewById(R.id.layoutVacio)
         fabNuevaFactura = findViewById(R.id.fabNuevaFactura)
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout)
+        etBuscarFacturas = findViewById(R.id.etBuscarFacturas)
+        btnBuscarFacturas = findViewById(R.id.btnBuscarFacturas)
+
+        btnBuscarFacturas.setOnClickListener {
+            aplicarFiltroBusquedaFacturas()
+        }
+
+        etBuscarFacturas.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
+                aplicarFiltroBusquedaFacturas()
+            }
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+        })
+    }
+
+    private fun aplicarFiltroBusquedaFacturas() {
+        val query = etBuscarFacturas.text.toString().trim().lowercase(Locale.getDefault())
+
+        if (query.isEmpty()) {
+            adapter.actualizarLista(facturasCompletas)
+            layoutVacio.visibility = if (facturasCompletas.isEmpty()) View.VISIBLE else View.GONE
+            return
+        }
+
+        val filtradas = facturasCompletas.filter { fac ->
+            val numero = fac.numeroFactura?.lowercase(Locale.getDefault()) ?: ""
+            val cliente = fac.nombreClienteFormateado?.lowercase(Locale.getDefault()) ?: ""
+            numero.contains(query) || cliente.contains(query)
+        }
+
+        adapter.actualizarLista(filtradas)
+        layoutVacio.visibility = if (filtradas.isEmpty()) View.VISIBLE else View.GONE
     }
 
     private fun setupRecyclerView() {
@@ -313,7 +349,8 @@ class HistorialFacturasActivity : AppCompatActivity() {
             layoutLoading.visibility = View.GONE
             layoutVacio.visibility = View.GONE
             rvFacturas.visibility = View.VISIBLE
-            adapter.actualizarLista(facturasCacheadas)
+            facturasCompletas = facturasCacheadas
+            aplicarFiltroBusquedaFacturas()
         } else if (!swipeRefreshLayout.isRefreshing) {
             layoutLoading.visibility = View.VISIBLE
             layoutVacio.visibility = View.GONE
@@ -336,7 +373,8 @@ class HistorialFacturasActivity : AppCompatActivity() {
                     } else {
                         layoutVacio.visibility = View.GONE
                         rvFacturas.visibility = View.VISIBLE
-                        adapter.actualizarLista(todasFacturas)
+                        facturasCompletas = todasFacturas
+                        aplicarFiltroBusquedaFacturas()
                     }
                 } else if (respFacturas?.code() == 401) {
                     Toast.makeText(this@HistorialFacturasActivity, "Sesión expirada", Toast.LENGTH_SHORT).show()

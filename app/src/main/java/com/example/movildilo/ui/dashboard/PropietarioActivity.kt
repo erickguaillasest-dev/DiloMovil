@@ -384,6 +384,19 @@ class PropietarioActivity : AppCompatActivity() {
                 "${i.productoNombre ?: "Producto"} en ${i.bodegaNombre ?: "bodega"} (quedan ${i.cantidadActual ?: 0})"
             }.ifEmpty { "Ningún producto en stock bajo por el momento." }
 
+        val inventarioPorBodega = inventario
+            .groupBy { it.bodegaNombre ?: "Bodega sin nombre" }
+            .toSortedMap()
+            .entries
+            .joinToString("\n            ") { (bodega, items) ->
+                val valorBodega = items.sumOf { it.valorInventario ?: 0.0 }
+                val detalleProductos = items
+                    .sortedByDescending { it.cantidadActual ?: 0 }
+                    .take(12)
+                    .joinToString(", ") { i -> "${i.productoNombre ?: "Producto"} (${i.cantidadActual ?: 0} uds)" }
+                "  · $bodega: ${items.size} productos distintos, valor $${String.format(Locale.US, "%.2f", valorBodega)}. Detalle: $detalleProductos"
+            }.ifEmpty { "Aún no hay inventario registrado en ninguna bodega." }
+
         val valorTotalInventario = inventario.sumOf { it.valorInventario ?: 0.0 }
 
         val nombresClientes = clientes.take(10).mapNotNull { c ->
@@ -401,6 +414,8 @@ class PropietarioActivity : AppCompatActivity() {
             - Categorías de productos registradas (${categorias.size}): ${nombresCategorias.joinToString(", ").ifEmpty { "ninguna aún" }}.
             - Total de productos en catálogo: ${productos.size}. Ejemplos: $listaProductos.
             - Valor total actual del inventario: $${String.format(Locale.US, "%.2f", valorTotalInventario)}.
+            - Inventario detallado por bodega:
+            $inventarioPorBodega
             - Productos con stock bajo o crítico: $stockBajo.
             - Total de clientes registrados: ${clientes.size}. Algunos: ${nombresClientes.joinToString(", ").ifEmpty { "ninguno aún" }}.
             - Total de facturas emitidas: ${facturas.size}, con ventas acumuladas por $${String.format(Locale.US, "%.2f", totalVentas)}.

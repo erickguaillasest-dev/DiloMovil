@@ -4,119 +4,134 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="8dp"
     android:layout_marginVertical="4dp"
     app:cardBackgroundColor="#FFFFFF"
     app:cardCornerRadius="12dp"
-    app:cardElevation="1dp"
-    app:strokeColor="#E2E8F0"
+    app:cardElevation="0dp"
+    app:strokeColor="#EEF2F6"
     app:strokeWidth="1dp">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingHorizontal="14dp"
-        android:paddingVertical="12dp">
+        android:orientation="vertical"
+        android:padding="12dp">
 
-        <!-- INFORMACIÓN PRINCIPAL (Nº FACTURA + FECHA VENCIMIENTO) -->
+        <!-- FILA 1: DATOS DE LA FACTURA, ALINEADOS CON EL HEADER DEL MODAL (weights 1.2 / 1 / 1 / 1) -->
         <LinearLayout
-            android:id="@+id/layoutInfoFactura"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
-            android:orientation="vertical"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/layoutBadgeYSaldo"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
+            android:gravity="top"
+            android:orientation="horizontal"
+            android:weightSum="4.2">
 
+            <!-- FACTURA: si el texto es largo, baja a una segunda línea en vez de cortarse -->
             <TextView
                 android:id="@+id/tvNumFacturaModalItem"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1.2"
+                android:ellipsize="end"
+                android:maxLines="2"
                 android:textColor="#0F172A"
-                android:textSize="15sp"
+                android:textSize="12sp"
                 android:textStyle="bold"
-                tools:text="FAC-2026-0042" />
+                tools:text="TEMP-CF254123" />
 
+            <!-- VENCIMIENTO -->
             <TextView
                 android:id="@+id/tvFechaVencimientoItem"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="2"
                 android:textColor="#64748B"
-                android:textSize="12sp"
-                tools:text="Vence: 15/09/2026" />
-        </LinearLayout>
-
-        <!-- BLOQUE CENTRAL: BADGE ESTADO + SALDO -->
-        <LinearLayout
-            android:id="@+id/layoutBadgeYSaldo"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="12dp"
-            android:gravity="end"
-            android:orientation="vertical"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/btnAccionFacturaModal"
-            app:layout_constraintTop_toTopOf="parent">
-
-            <TextView
-                android:id="@+id/tvBadgeEstadoModal"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_outlined_box"
-                android:paddingHorizontal="8dp"
-                android:paddingVertical="3dp"
-                android:textColor="#D97706"
                 android:textSize="11sp"
-                android:textStyle="bold"
-                tools:text="PENDIENTE" />
+                tools:text="2026-11-25" />
 
+            <!-- ESTADO -->
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1">
+
+                <TextView
+                    android:id="@+id/tvBadgeEstadoModal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:background="@drawable/bg_outlined_box"
+                    android:gravity="center"
+                    android:maxLines="1"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="3dp"
+                    android:textSize="9sp"
+                    android:textStyle="bold"
+                    tools:text="PENDIENTE" />
+            </FrameLayout>
+
+            <!-- SALDO -->
             <TextView
                 android:id="@+id/tvSaldoModalItem"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:textColor="#1E293B"
-                android:textSize="14sp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:gravity="end"
+                android:maxLines="2"
+                android:textSize="13sp"
                 android:textStyle="bold"
-                tools:text="$125.50" />
+                tools:text="$120.50" />
         </LinearLayout>
 
-        <!-- BOTÓN DE ACCIÓN PRINCIPAL -->
-        <Button
-            android:id="@+id/btnAccionFacturaModal"
-            style="@style/Widget.Material3.Button"
-            android:layout_width="wrap_content"
-            android:layout_height="38dp"
-            android:layout_marginEnd="6dp"
-            android:backgroundTint="#F97316"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            android:paddingHorizontal="14dp"
-            android:textColor="@android:color/white"
-            android:textSize="12sp"
-            app:cornerRadius="8dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/btnEmailFacturaModal"
-            app:layout_constraintTop_toTopOf="parent"
-            tools:text="PAGAR" />
+        <!-- SEPARADOR -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="10dp"
+            android:background="#F1F5F9" />
 
-        <!-- BOTÓN SECUNDARIO (EMAIL) -->
-        <ImageButton
-            android:id="@+id/btnEmailFacturaModal"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
-            android:background="@drawable/bg_outlined_box"
-            android:contentDescription="Enviar Email"
-            android:padding="8dp"
-            android:scaleType="fitCenter"
-            android:src="@android:drawable/ic_dialog_email"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:tint="#475569" />
+        <!-- FILA 2: ACCIONES -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical|end"
+            android:orientation="horizontal">
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+            <ImageButton
+                android:id="@+id/btnEmailFacturaModal"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_marginEnd="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Enviar por correo"
+                android:padding="5dp"
+                android:src="@android:drawable/ic_dialog_email"
+                android:visibility="gone"
+                app:tint="#64748B"
+                tools:visibility="visible" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAccionFacturaModal"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:minWidth="0dp"
+                android:paddingHorizontal="14dp"
+                android:textAllCaps="false"
+                android:textColor="#EA580C"
+                android:textSize="12sp"
+                app:cornerRadius="16dp"
+                app:strokeColor="#FED7AA"
+                app:strokeWidth="1dp"
+                tools:text="Abonar" />
+
+        </LinearLayout>
+    </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

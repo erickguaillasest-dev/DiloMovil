@@ -43,15 +43,29 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * Pantalla "Cuentas por Cobrar".
+ * Muestra dos vistas (pestañas):
+ *  - Tab 0: lista general de cuentas/facturas con saldo.
+ *  - Tab 1: directorio de clientes agrupados con su deuda total.
+ *
+ * También permite abrir un panel modal ("panel de cobranza") por cada cuenta,
+ * donde se puede: registrar un abono, ver el historial de pagos, y ver los
+ * productos comprados en esa factura.
+ */
 class CuentasPorCobrarActivity : AppCompatActivity() {
 
+    // ---------- Dependencias / estado de sesión ----------
     private lateinit var sessionManager: SessionManager
     private var negocioId: Long = 0
+
+    // ---------- Vistas del header (KPIs) ----------
     private lateinit var btnRegresar: ImageButton
     private lateinit var tvTotalPorCobrar: TextView
     private lateinit var tvTotalAbonado: TextView
     private lateinit var tvCuentasVencidas: TextView
 
+    // ---------- Vistas de filtros y tabs principales ----------
     private lateinit var tabLayoutPrincipal: TabLayout
     private lateinit var etBuscar: TextInputEditText
     private lateinit var containerFiltrosFacturas: LinearLayout
@@ -64,6 +78,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
     private lateinit var btnLimpiarFechas: ImageButton
     private lateinit var actvTipoFiltroFecha: MaterialAutoCompleteTextView
 
+    // ---------- RecyclerViews y estados vacíos/carga ----------
     private lateinit var rvCuentasGeneral: RecyclerView
     private lateinit var rvClientesDirectorio: RecyclerView
     private lateinit var layoutSinResultados: LinearLayout
@@ -73,6 +88,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
 
     private var cuentasBase: List<CuentaPorCobrarResponseDto> = emptyList()
     private var clientesAgrupados: List<ClienteAgrupado> = emptyList()
+
     private lateinit var adapterCuentas: CuentasPorCobrarAdapter
     private lateinit var adapterClientes: ClientesAgrupadosAdapter
 
@@ -85,12 +101,25 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
 
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
+    private data class ResumenProductos(
+        val detalles: List<com.example.movildilo.data.model.dto.facturacion.DetalleFacturaResponseDto>,
+        val descuento: Double,
+        val subtotal: Double,
+        val iva: Double,
+        val total: Double
+    )
+
+    private var facturasCache: List<com.example.movildilo.data.model.dto.facturacion.FacturaResponseDto>? = null
+
+    private val cacheProductosPorFactura = mutableMapOf<Long, ResumenProductos>()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
         sessionManager = SessionManager(this)
 
+        // Si el token expiró, se redirige a login y se corta la ejecución
         if (sessionManager.checkAndRedirectIfExpired(this)) {
             return
         }
@@ -141,6 +170,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         btnLimpiarFechas = findViewById(R.id.btnLimpiarFechas)
         actvTipoFiltroFecha = findViewById(R.id.actvTipoFiltroFecha)
 
+        // Dropdown con las 2 opciones de "tipo de fecha" a filtrar
         val adapterTipoFecha = ArrayAdapter(this, android.R.layout.simple_list_item_1, opcionesFiltroFecha)
         actvTipoFiltroFecha.setAdapter(adapterTipoFecha)
         actvTipoFiltroFecha.setText(opcionesFiltroFecha[0], false)
@@ -163,6 +193,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         )
         rvCuentasGeneral.adapter = adapterCuentas
 
+        // Adapter del directorio de clientes (Tab 1)
         adapterClientes = ClientesAgrupadosAdapter(emptyList()) { cliente ->
             mostrarModalFacturasCliente(cliente)
         }
@@ -172,11 +203,16 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
     private fun setupListeners() {
         btnRegresar.setOnClickListener { finish() }
 
+
         swipeRefreshLayout.setOnRefreshListener {
+            facturasCache = null
+            cacheProductosPorFactura.clear()
+
             cargarCuentas {
                 swipeRefreshLayout.isRefreshing = false
             }
         }
+
 
         etBuscar.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) { aplicarFiltros() }
@@ -188,7 +224,6 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         chipPendiente.setOnClickListener { cambiarFiltroEstado("PENDIENTE", chipPendiente) }
         chipVencida.setOnClickListener { cambiarFiltroEstado("VENCIDA", chipVencida) }
         chipPagada.setOnClickListener { cambiarFiltroEstado("PAGADA", chipPagada) }
-
 
         etRangoFechas.setOnClickListener {
             abrirSelectorFechas()
@@ -202,10 +237,10 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
             aplicarFiltros()
         }
 
+        // Cambia si se filtra por fecha de vencimiento o de emisión
         actvTipoFiltroFecha.setOnItemClickListener { _, _, position, _ ->
             tipoFiltroFecha = if (position == 1) "emision" else "vencimiento"
             etRangoFechas.hint = if (tipoFiltroFecha == "emision") "Emisión" else "Vencimiento"
-
             aplicarFiltros()
         }
     }
@@ -223,6 +258,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
             val sdfISO = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
             val sdfDisplay = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
+            // El picker trabaja en UTC, por eso forzamos ese timezone al formatear
             sdfISO.timeZone = TimeZone.getTimeZone("UTC")
             sdfDisplay.timeZone = TimeZone.getTimeZone("UTC")
 
@@ -237,21 +273,18 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         picker.show(supportFragmentManager, "DATE_PICKER")
     }
 
-    private fun setupTabs() {
-        val headerDirectorio = findViewById<MaterialCardView>(R.id.headerDirectorioClientes)
 
+    private fun setupTabs() {
         tabLayoutPrincipal.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
                 if (tab?.position == 0) {
                     containerFiltrosFacturas.visibility = View.VISIBLE
                     rvCuentasGeneral.visibility = View.VISIBLE
                     rvClientesDirectorio.visibility = View.GONE
-                    headerDirectorio?.visibility = View.GONE
                 } else {
                     containerFiltrosFacturas.visibility = View.GONE
                     rvCuentasGeneral.visibility = View.GONE
                     rvClientesDirectorio.visibility = View.VISIBLE
-                    headerDirectorio?.visibility = View.VISIBLE
                 }
                 aplicarFiltros()
             }
@@ -345,9 +378,10 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
             val saldo = item.saldoPendiente ?: 0.0
             val total = item.montoTotal ?: 0.0
             totalPendiente += saldo
-            totalRecuperado += (total - saldo)
+            totalRecuperado += (total - saldo) // lo que ya se pagó = total - lo que falta
 
             val vencimiento = item.fechaVencimiento ?: ""
+            // Comparación de Strings en formato yyyy-MM-dd funciona igual que comparar fechas
             if (saldo > 0 && vencimiento.isNotEmpty() && vencimiento < hoyStr) {
                 vencidasContador++
             }
@@ -364,7 +398,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         cuentasBase.forEach { cuenta ->
             val nombre = obtenerNombreCliente(cuenta)
             val ident = cuenta.factura?.cliente?.razonSocial ?: ""
-            val key = "$nombre-$ident"
+            val key = "$nombre-$ident" // clave única por cliente
 
             if (!mapa.containsKey(key)) {
                 mapa[key] = ClienteAgrupado(
@@ -378,6 +412,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
 
             val itemGroup = mapa[key]!!
             val saldo = cuenta.saldoPendiente ?: 0.0
+
 
             val creditoItem = CreditoClienteResumenDto(
                 id = cuenta.id,
@@ -396,6 +431,8 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
             }
         }
 
+        // Dentro de cada cliente: las facturas pagadas van al final, y entre
+        // las pendientes se ordenan por fecha de vencimiento ascendente
         mapa.values.forEach { cliente ->
             @Suppress("UNCHECKED_CAST")
             val lista = (cliente.cuentas as MutableList<CreditoClienteResumenDto>)
@@ -409,6 +446,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
             })
         }
 
+        // Orden general de clientes: primero los que deben (deuda mayor primero), luego alfabético
         clientesAgrupados = mapa.values.sortedWith(Comparator { c1, c2 ->
             val c1Pagado = if (c1.totalDeuda <= 0) 1 else 0
             val c2Pagado = if (c2.totalDeuda <= 0) 1 else 0
@@ -428,6 +466,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         val hoyStr = dateFormat.format(Date())
 
         if (tabLayoutPrincipal.selectedTabPosition == 0) {
+            // ---- Filtrado para la lista general de cuentas ----
             val filtradas = cuentasBase.filter { item ->
                 val cliente = obtenerNombreCliente(item).lowercase()
                 val numFactura = (item.numeroFactura ?: item.factura?.numeroFactura ?: "").lowercase()
@@ -440,20 +479,22 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
                     "PENDIENTE" -> saldo > 0 && (vencimiento.isEmpty() || vencimiento >= hoyStr)
                     "VENCIDA" -> saldo > 0 && vencimiento.isNotEmpty() && vencimiento < hoyStr
                     "PAGADA" -> saldo <= 0 || item.estado.equals("PAGADA", true)
-                    else -> true
+                    else -> true // "TODAS"
                 }
 
+                // Según el tipo de filtro de fecha elegido, comparamos vencimiento o emisión
                 val fechaEvaluar = if (tipoFiltroFecha == "emision") obtenerFechaEmision(item) else vencimiento
                 val fechaSoloDia = if (fechaEvaluar.length >= 10) fechaEvaluar.substring(0, 10) else fechaEvaluar
 
                 val coincideFecha = if (fechaDesdeSel.isNotEmpty() && fechaHastaSel.isNotEmpty()) {
                     fechaSoloDia.isNotEmpty() && fechaSoloDia in fechaDesdeSel..fechaHastaSel
                 } else {
-                    true
+                    true // no hay rango seleccionado -> no filtra por fecha
                 }
 
                 coincideTexto && coincideEstado && coincideFecha
             }.sortedWith(Comparator { a, b ->
+                // Pagadas al final; entre las no pagadas, la más próxima a vencer primero
                 val aPagada = if (a.estado.equals("PAGADA", ignoreCase = true) || (a.saldoPendiente ?: 0.0) <= 0.0) 1 else 0
                 val bPagada = if (b.estado.equals("PAGADA", ignoreCase = true) || (b.saldoPendiente ?: 0.0) <= 0.0) 1 else 0
                 if (aPagada != bPagada) {
@@ -468,6 +509,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
             adapterCuentas.actualizarLista(filtradas)
             layoutSinResultados.visibility = if (filtradas.isEmpty() && cuentasBase.isNotEmpty()) View.VISIBLE else View.GONE
         } else {
+            // ---- Filtrado para el directorio de clientes (Tab 1) ----
             val clientesFiltrados = clientesAgrupados.filter {
                 it.nombre.lowercase().contains(query) || it.identificacion.lowercase().contains(query)
             }
@@ -504,6 +546,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         val btnCerrar = view.findViewById<ImageButton>(R.id.btnCerrarModalFacturas)
         val rvFacturas = view.findViewById<RecyclerView>(R.id.rvFacturasDelCliente)
 
+        // Armamos el título coloreando el nombre del cliente en naranja
         val idTexto = if (cliente.identificacion.isNotEmpty()) " (${cliente.identificacion})" else ""
         val tituloSpannable = SpannableStringBuilder("Facturas de: ${cliente.nombre}$idTexto")
 
@@ -526,6 +569,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         rvFacturas.adapter = FacturasClienteModalAdapter(
             lista = listaCreditos,
             onAbonarClick = { credito ->
+                // Buscamos la cuenta "completa" original a partir del resumen, y abrimos el panel
                 dialog.dismiss()
                 val cuentaOriginal = cuentasBase.find { it.id == credito.id }
                 cuentaOriginal?.let { abrirPanelCobranza(it) }
@@ -557,6 +601,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
                     return formatoSalida.format(date)
                 }
             } catch (_: Exception) {
+                // Si falla este formato, probamos el siguiente
             }
         }
         return fechaRaw
@@ -599,6 +644,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         }
     }
 
+
     private fun abrirPanelCobranza(cuenta: CuentaPorCobrarResponseDto, cuotaSeleccionada: CuotaDto? = null) {
         val dialog = Dialog(this)
         val view = layoutInflater.inflate(R.layout.dialog_panel_cobranza, null)
@@ -616,6 +662,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         val tabLayoutModal = view.findViewById<TabLayout>(R.id.tabLayoutModal)
         val btnCerrar = view.findViewById<ImageButton>(R.id.btnCerrarPanel)
         val btnCancelar = view.findViewById<Button>(R.id.btnCancelarPago)
+
 
         val containerAbono = view.findViewById<LinearLayout>(R.id.containerRegistrarAbono)
         val containerHistorial = view.findViewById<LinearLayout>(R.id.containerHistorialPagos)
@@ -637,8 +684,9 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
 
         val todasLasCuotas = cuenta.cuotas ?: emptyList()
 
+        // ---- Tab "Historial de pagos" ----
         val historialAbonosOrdenado = (cuenta.historialAbonos ?: emptyList())
-            .sortedByDescending { it.fechaAbono ?: "" }
+            .sortedByDescending { it.fechaAbono ?: "" } // más reciente primero
 
         rvHistorial.adapter = HistorialAbonosAdapter(historialAbonosOrdenado)
 
@@ -650,6 +698,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
             layoutHistorialVacio.visibility = View.GONE
         }
 
+        // ---- Tab "Registrar abono" ----
         val etMonto = view.findViewById<EditText>(R.id.etMontoAbono)
         val spMetodo = view.findViewById<Spinner>(R.id.spMetodoPago)
         val etRef = view.findViewById<EditText>(R.id.etReferencia)
@@ -662,16 +711,19 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         tvCliente.text = obtenerNombreCliente(cuenta)
         tvSaldo.text = String.format(Locale.US, "$%.2f", saldoPendienteTotal)
 
+        // Solo mostramos como "seleccionables" las cuotas que aún no están pagadas
         val cuotasPendientes = todasLasCuotas.filter { cuota ->
             val saldoCuota = cuota.saldoPendienteCuota ?: 0.0
             val esPagada = cuota.estado?.equals("PAGADA", ignoreCase = true) == true
             !esPagada && saldoCuota > 0
         }.sortedBy { it.fechaVencimiento ?: "" }
 
+        // Armamos dinámicamente las "tarjetas" seleccionables: Saldo Total + cada cuota pendiente
         layoutContenedorCuotas.removeAllViews()
         val inflater = LayoutInflater.from(this)
         val listaTarjetas = mutableListOf<MaterialCardView>()
 
+        // Tarjeta especial "Saldo Total" (liquidar toda la deuda de una vez)
         val cardTotalView = inflater.inflate(R.layout.item_tarjeta_cuota, layoutContenedorCuotas, false)
         val cardTotal = cardTotalView.findViewById<MaterialCardView>(R.id.cardCuotaItem)
         cardTotalView.findViewById<TextView>(R.id.tvTituloCuotaCard).text = "Saldo Total"
@@ -685,6 +737,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
             seleccionarTarjetaCuotaConAnimacion(cardTotal, listaTarjetas, saldoPendienteTotal, etMonto)
         }
 
+        // Una tarjeta por cada cuota pendiente
         cuotasPendientes.forEachIndexed { index, cuota ->
             val cardCuotaView = inflater.inflate(R.layout.item_tarjeta_cuota, layoutContenedorCuotas, false)
             val cardItem = cardCuotaView.findViewById<MaterialCardView>(R.id.cardCuotaItem)
@@ -703,20 +756,25 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
                 seleccionarTarjetaCuotaConAnimacion(cardItem, listaTarjetas, montoCuotaActual, etMonto)
             }
 
+            // Si el usuario venía de tocar "abonar esta cuota" en la lista general,
+            // preseleccionamos automáticamente esa tarjeta
             if (cuotaSeleccionada != null && cuotaSeleccionada.id == cuota.id) {
                 seleccionarTarjetaCuotaConAnimacion(cardItem, listaTarjetas, montoCuotaActual, etMonto)
             }
         }
 
+        // Si no venía ninguna cuota preseleccionada, por defecto se selecciona "Saldo Total"
         if (cuotaSeleccionada == null) {
             seleccionarTarjetaCuotaConAnimacion(cardTotal, listaTarjetas, saldoPendienteTotal, etMonto)
         }
 
+        // Spinner de método de pago
         val metodos = arrayOf("Efectivo", "Transferencia")
         val adapterSpinner = ArrayAdapter(this, android.R.layout.simple_spinner_item, metodos)
         adapterSpinner.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spMetodo.adapter = adapterSpinner
 
+        // El campo "Referencia" solo aplica (y se muestra) si el método es Transferencia
         spMetodo.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, v: View?, pos: Int, id: Long) {
                 etRef.visibility = if (metodos[pos] == "Transferencia") View.VISIBLE else View.GONE
@@ -727,6 +785,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         btnCerrar.setOnClickListener { dialog.dismiss() }
         btnCancelar.setOnClickListener { dialog.dismiss() }
 
+        // ---- Cambio entre las 3 sub-pestañas del modal ----
         tabLayoutModal.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
                 containerAbono.visibility = View.GONE
@@ -738,6 +797,8 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
                     1 -> containerHistorial.visibility = View.VISIBLE
                     2 -> {
                         containerProductos.visibility = View.VISIBLE
+                        // Gracias a la caché (ver más abajo), si ya se precargó
+                        // esto se pinta al instante sin volver a pedir datos.
                         cargarProductosFactura(
                             cuenta, rvProductos, pbProductos, layoutResumenProductos,
                             tvDescuentoFactura, tvSubtotalFacturaProductos, tvIvaFactura, tvTotalFacturaProductos
@@ -749,6 +810,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
             override fun onTabReselected(tab: TabLayout.Tab?) {}
         })
 
+        // ---- Confirmar el registro del abono ----
         btnConfirmar.setOnClickListener {
             val monto = etMonto.text.toString().toDoubleOrNull()
             if (monto == null || monto <= 0 || monto > saldoPendienteTotal) {
@@ -768,6 +830,8 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
                         Toast.makeText(this@CuentasPorCobrarActivity, "Abono registrado con éxito", Toast.LENGTH_SHORT).show()
                         dialog.dismiss()
 
+                        // Recargamos la lista completa para reflejar el nuevo saldo,
+                        // resaltando/subiendo la cuenta recién modificada
                         adapterCuentas.idUltimaCuentaModificada = cuenta.id
                         cargarCuentasYResaltarUltima(cuenta.id)
                     } else {
@@ -781,7 +845,13 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         }
 
         dialog.show()
+
+        cargarProductosFactura(
+            cuenta, rvProductos, pbProductos, layoutResumenProductos,
+            tvDescuentoFactura, tvSubtotalFacturaProductos, tvIvaFactura, tvTotalFacturaProductos
+        )
     }
+
 
     private fun seleccionarTarjetaCuotaConAnimacion(
         seleccionada: MaterialCardView,
@@ -791,6 +861,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
     ) {
         val density = resources.displayMetrics.density
 
+        // Reseteamos el estilo de todas las tarjetas
         todas.forEach { card ->
             card.animate().scaleX(1.0f).scaleY(1.0f).setDuration(150).start()
             card.setCardBackgroundColor(Color.WHITE)
@@ -799,17 +870,20 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
             card.cardElevation = 0f
         }
 
+        // Resaltamos solo la tarjeta seleccionada
         seleccionada.animate().scaleX(1.03f).scaleY(1.03f).setDuration(150).start()
         seleccionada.setCardBackgroundColor(Color.parseColor("#FFF7ED"))
         seleccionada.strokeColor = Color.parseColor("#EA580C")
         seleccionada.strokeWidth = (2 * density).toInt()
         seleccionada.cardElevation = (3 * density)
 
+        // Autocompletamos el campo de monto con el valor de la tarjeta elegida
         val montoFormateado = String.format(Locale.US, "%.2f", monto)
         etMonto.setText(montoFormateado)
-        etMonto.setSelection(montoFormateado.length)
+        etMonto.setSelection(montoFormateado.length) // cursor al final
         etMonto.requestFocus()
     }
+
 
     private fun cargarProductosFactura(
         cuenta: CuentaPorCobrarResponseDto,
@@ -821,37 +895,73 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         tvIva: TextView,
         tvTotal: TextView
     ) {
+        // 1) ¿Ya lo teníamos calculado? -> pintar directo, sin tocar la red
+        cacheProductosPorFactura[cuenta.id]?.let { resumen ->
+            pintarProductos(resumen, rvProductos, layoutResumen, tvDescuento, tvSubtotal, tvIva, tvTotal)
+            return
+        }
+
         val numFactura = cuenta.numeroFactura ?: cuenta.factura?.numeroFactura ?: return
         val token = sessionManager.getAuthHeader() ?: return
+
         pb.visibility = View.VISIBLE
         layoutResumen.visibility = View.GONE
 
         lifecycleScope.launch {
             try {
-                val res = RetrofitClient.apiService.getFacturas(token, negocioId)
-                pb.visibility = View.GONE
-                if (res.isSuccessful && res.body() != null) {
-                    val facturaEncontrada = res.body()!!.find {
-                        it.numeroFactura?.equals(numFactura, ignoreCase = true) == true || it.id == cuenta.factura?.id
-                    }
-                    val detalles = facturaEncontrada?.detalles ?: emptyList()
-                    rvProductos.adapter = ProductosFacturaAdapter(detalles)
-
-                    val subtotalBruto = detalles.sumOf { (it.precioUnitario ?: 0.0) * (it.cantidad ?: 0) }
-                    val descuento = facturaEncontrada?.totalDescuento ?: 0.0
-                    val subtotalNeto = subtotalBruto - descuento
-                    val iva = subtotalNeto * 0.15
-                    val total = facturaEncontrada?.totalFactura ?: (subtotalNeto + iva)
-
-                    tvDescuento.text = String.format(Locale.US, "-$%.2f", descuento)
-                    tvSubtotal.text = String.format(Locale.US, "$%.2f", subtotalNeto)
-                    tvIva.text = String.format(Locale.US, "$%.2f", iva)
-                    tvTotal.text = String.format(Locale.US, "$%.2f", total)
-                    layoutResumen.visibility = View.VISIBLE
+                // 2) Traemos la lista de facturas (usa caché si ya se pidió antes)
+                val facturas = obtenerFacturasConCache(token)
+                val facturaEncontrada = facturas.find {
+                    it.numeroFactura?.equals(numFactura, ignoreCase = true) == true || it.id == cuenta.factura?.id
                 }
+                val detalles = facturaEncontrada?.detalles ?: emptyList()
+
+                // 3) Calculamos los totales una sola vez
+                val subtotalBruto = detalles.sumOf { (it.precioUnitario ?: 0.0) * (it.cantidad ?: 0) }
+                val descuento = facturaEncontrada?.totalDescuento ?: 0.0
+                val subtotalNeto = subtotalBruto - descuento
+                val iva = subtotalNeto * 0.15
+                val total = facturaEncontrada?.totalFactura ?: (subtotalNeto + iva)
+
+                val resumen = ResumenProductos(detalles, descuento, subtotalNeto, iva, total)
+
+                // 4) Guardamos en caché para que la próxima vez sea instantáneo
+                cacheProductosPorFactura[cuenta.id] = resumen
+
+                pb.visibility = View.GONE
+                pintarProductos(resumen, rvProductos, layoutResumen, tvDescuento, tvSubtotal, tvIva, tvTotal)
             } catch (e: Exception) {
                 pb.visibility = View.GONE
+
             }
         }
+    }
+
+    private fun pintarProductos(
+        resumen: ResumenProductos,
+        rvProductos: RecyclerView,
+        layoutResumen: LinearLayout,
+        tvDescuento: TextView,
+        tvSubtotal: TextView,
+        tvIva: TextView,
+        tvTotal: TextView
+    ) {
+        rvProductos.adapter = ProductosFacturaAdapter(resumen.detalles)
+        tvDescuento.text = String.format(Locale.US, "-$%.2f", resumen.descuento)
+        tvSubtotal.text = String.format(Locale.US, "$%.2f", resumen.subtotal)
+        tvIva.text = String.format(Locale.US, "$%.2f", resumen.iva)
+        tvTotal.text = String.format(Locale.US, "$%.2f", resumen.total)
+        layoutResumen.visibility = View.VISIBLE
+    }
+
+    private suspend fun obtenerFacturasConCache(
+        token: String
+    ): List<com.example.movildilo.data.model.dto.facturacion.FacturaResponseDto> {
+        facturasCache?.let { return it }
+
+        val res = RetrofitClient.apiService.getFacturas(token, negocioId)
+        val lista = if (res.isSuccessful) res.body() ?: emptyList() else emptyList()
+        facturasCache = lista
+        return lista
     }
 }
