@@ -61,9 +61,12 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
 import java.text.Normalizer
+import java.util.Calendar
 import java.util.Locale
 
 private enum class VoiceStep { OFF, ESCUCHANDO, CONFIRMAR, SELECCIONAR_OPCION, CONFIRMAR_VACIAR_CARRITO }
@@ -202,11 +205,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
 
         swipeRefreshLayout.setOnRefreshListener {
             if (negocioId != -1L) {
-                cargarCatalogosFactura {
-                    cargarFacturas {
-                        swipeRefreshLayout.isRefreshing = false
-                    }
-                }
+                cargarDatosSimultaneos()
             } else {
                 swipeRefreshLayout.isRefreshing = false
                 Toast.makeText(this, "No se encontró un negocio activo en la sesión.", Toast.LENGTH_SHORT).show()
@@ -214,7 +213,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
         }
 
         if (negocioId != -1L) {
-            cargarCatalogosFactura { cargarFacturas() }
+            cargarDatosSimultaneos()
         } else {
             Toast.makeText(this, "No se encontró un negocio activo en la sesión.", Toast.LENGTH_SHORT).show()
         }
@@ -296,65 +295,128 @@ class HistorialFacturasActivity : AppCompatActivity() {
         tts.setPitch(1.0f)
     }
 
-    // CARGA DE CATÁLOGOS E IVA
-    private fun cargarCatalogosFactura(onListo: (() -> Unit)? = null) {
+    // CARGA OPTIMIZADA: Filtra de manera local por el mes actual para evitar sobrecarga de memoria
+    private fun cargarDatosSimultaneos() {
+        layoutLoading.visibility = View.VISIBLE
+        layoutVacio.visibility = View.GONE
+        rvFacturas.visibility = View.GONE
+
+        val authHeader = sessionManager.getAuthHeader()
+        if (authHeader == null) {
+            layoutLoading.visibility = View.GONE
+            swipeRefreshLayout.isRefreshing = false
+            return
+        }
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            supervisorScope {
+                val reqFacturas = async { runCatching { RetrofitClient.apiService.getFacturas(authHeader, negocioId) }.getOrNull() }
+                val reqClientes = async { runCatching { RetrofitClient.apiService.getClientes(authHeader, negocioId) }.getOrNull() }
+                val reqBodegas = async { runCatching { RetrofitClient.apiService.getBodegas(authHeader, negocioId) }.getOrNull() }
+                val reqProductos = async { runCatching { RetrofitClient.apiService.getCatalogo(authHeader, negocioId) }.getOrNull() }
+                val reqInventario = async { runCatching { RetrofitClient.apiService.getInventario(authHeader, negocioId) }.getOrNull() }
+                val reqNegocio = async { runCatching { RetrofitClient.apiService.getNegocio(authHeader, negocioId) }.getOrNull() }
+                val reqIva = async { runCatching { RetrofitClient.apiService.getIva(authHeader) }.getOrNull() }
+
+                val respFacturas = reqFacturas.await()
+                val respClientes = reqClientes.await()
+                val respBodegas = reqBodegas.await()
+                val respProductos = reqProductos.await()
+                val respInventario = reqInventario.await()
+                val respNegocio = reqNegocio.await()
+                val respIva = reqIva.await()
+
+                if (respClientes?.isSuccessful == true) clientesList = respClientes.body() ?: emptyList()
+                if (respBodegas?.isSuccessful == true) bodegasList = respBodegas.body() ?: emptyList()
+                if (respProductos?.isSuccessful == true) productosList = respProductos.body() ?: emptyList()
+                if (respInventario?.isSuccessful == true) inventarioList = respInventario.body() ?: emptyList()
+                if (respNegocio?.isSuccessful == true) negocioActual = respNegocio.body()
+                if (respIva?.isSuccessful == true) {
+                    val ivaActualTexto = respIva.body()?.get("ivaActual")
+                    if (!ivaActualTexto.isNullOrBlank()) {
+                        val ivaDecimal = ivaActualTexto.toDoubleOrNull()
+                        if (ivaDecimal != null) porcentajeIvaActual = ivaDecimal * 100.0
+                    }
+                }
+
+                // Filtrar únicamente las facturas del mes actual para que la interfaz no se congele
+                val calendar = Calendar.getInstance()
+                val currentYear = calendar.get(Calendar.YEAR)
+                val currentMonth = calendar.get(Calendar.MONTH) + 1
+                val mesActualStr = String.format(Locale.US, "%04d-%02d", currentYear, currentMonth)
+
+                val todasFacturas = respFacturas?.body() ?: emptyList()
+                val facturasMesActual = todasFacturas.filter { it.fechaEmision?.startsWith(mesActualStr) == true }
+
+                withContext(Dispatchers.Main) {
+                    layoutLoading.visibility = View.GONE
+                    swipeRefreshLayout.isRefreshing = false
+
+                    if (respFacturas?.isSuccessful == true) {
+                        if (facturasMesActual.isEmpty()) {
+                            layoutVacio.visibility = View.VISIBLE
+                            rvFacturas.visibility = View.GONE
+                        } else {
+                            layoutVacio.visibility = View.GONE
+                            rvFacturas.visibility = View.VISIBLE
+                            adapter.actualizarLista(facturasMesActual)
+                        }
+                    } else if (respFacturas?.code() == 401) {
+                        Toast.makeText(this@HistorialFacturasActivity, "Sesión expirada", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(this@HistorialFacturasActivity, "Error al obtener facturas", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun cargarCatalogosFacturaConcurrentes(onListo: (() -> Unit)? = null) {
         val authHeader = sessionManager.getAuthHeader()
         if (authHeader == null) {
             onListo?.invoke()
             return
         }
 
-        lifecycleScope.launch {
-            try {
-                val respClientes = RetrofitClient.apiService.getClientes(authHeader, negocioId)
-                if (respClientes.isSuccessful) clientesList = respClientes.body() ?: emptyList()
-            } catch (_: Exception) {}
+        lifecycleScope.launch(Dispatchers.IO) {
+            supervisorScope {
+                val reqClientes = async { runCatching { RetrofitClient.apiService.getClientes(authHeader, negocioId) }.getOrNull() }
+                val reqBodegas = async { runCatching { RetrofitClient.apiService.getBodegas(authHeader, negocioId) }.getOrNull() }
+                val reqProductos = async { runCatching { RetrofitClient.apiService.getCatalogo(authHeader, negocioId) }.getOrNull() }
+                val reqInventario = async { runCatching { RetrofitClient.apiService.getInventario(authHeader, negocioId) }.getOrNull() }
+                val reqNegocio = async { runCatching { RetrofitClient.apiService.getNegocio(authHeader, negocioId) }.getOrNull() }
+                val reqIva = async { runCatching { RetrofitClient.apiService.getIva(authHeader) }.getOrNull() }
 
-            try {
-                val respBodegas = RetrofitClient.apiService.getBodegas(authHeader, negocioId)
-                if (respBodegas.isSuccessful) bodegasList = respBodegas.body() ?: emptyList()
-            } catch (_: Exception) {}
+                val respClientes = reqClientes.await()
+                val respBodegas = reqBodegas.await()
+                val respProductos = reqProductos.await()
+                val respInventario = reqInventario.await()
+                val respNegocio = reqNegocio.await()
+                val respIva = reqIva.await()
 
-            try {
-                val respProductos = RetrofitClient.apiService.getCatalogo(authHeader, negocioId)
-                if (respProductos.isSuccessful) productosList = respProductos.body() ?: emptyList()
-            } catch (_: Exception) {}
-
-            try {
-                val respInventario = RetrofitClient.apiService.getInventario(authHeader, negocioId)
-                if (respInventario.isSuccessful) inventarioList = respInventario.body() ?: emptyList()
-            } catch (_: Exception) {}
-
-            try {
-                val respNegocio = RetrofitClient.apiService.getNegocio(authHeader, negocioId)
-                if (respNegocio.isSuccessful) {
-                    negocioActual = respNegocio.body()
-                }
-            } catch (_: Exception) {}
-
-            try {
-                val respIva = RetrofitClient.apiService.getIva(authHeader)
-                if (respIva.isSuccessful) {
+                if (respClientes?.isSuccessful == true) clientesList = respClientes.body() ?: emptyList()
+                if (respBodegas?.isSuccessful == true) bodegasList = respBodegas.body() ?: emptyList()
+                if (respProductos?.isSuccessful == true) productosList = respProductos.body() ?: emptyList()
+                if (respInventario?.isSuccessful == true) inventarioList = respInventario.body() ?: emptyList()
+                if (respNegocio?.isSuccessful == true) negocioActual = respNegocio.body()
+                if (respIva?.isSuccessful == true) {
                     val ivaActualTexto = respIva.body()?.get("ivaActual")
                     if (!ivaActualTexto.isNullOrBlank()) {
                         val ivaDecimal = ivaActualTexto.toDoubleOrNull()
-                        if (ivaDecimal != null) {
-                            porcentajeIvaActual = ivaDecimal * 100.0
-                        }
+                        if (ivaDecimal != null) porcentajeIvaActual = ivaDecimal * 100.0
                     }
                 }
-            } catch (_: Exception) {
-
             }
-
-            onListo?.invoke()
+            withContext(Dispatchers.Main) {
+                onListo?.invoke()
+            }
         }
     }
 
     private fun abrirDialogoNuevaFactura(iniciarConVoz: Boolean = false) {
         if (clientesList.isEmpty() && productosList.isEmpty() && bodegasList.isEmpty()) {
             Toast.makeText(this, "Cargando catálogos de venta...", Toast.LENGTH_SHORT).show()
-            cargarCatalogosFactura { mostrarDialogoFacturaReal(iniciarConVoz) }
+            cargarCatalogosFacturaConcurrentes { mostrarDialogoFacturaReal(iniciarConVoz) }
         } else {
             mostrarDialogoFacturaReal(iniciarConVoz)
         }
@@ -378,7 +440,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
         resetearEstadoFactura()
 
         val dialogView = layoutInflater.inflate(R.layout.dialog_nueva_factura, null)
-
 
         val btnCerrarModal = dialogView.findViewById<ImageView>(R.id.btnCerrarModal)
         val spCliente = dialogView.findViewById<AutoCompleteTextView>(R.id.spClienteFactura)
@@ -701,19 +762,12 @@ class HistorialFacturasActivity : AppCompatActivity() {
         actualizarUiCarrito()
     }
 
-    // -----------------------------------------------------------------------------------------
-    // REFACTORIZACIÓN: CÁLCULOS EXACTOS DE IVA BASADOS EN LA IMPLEMENTACIÓN DE ANGULAR (WEB)
-    // -----------------------------------------------------------------------------------------
     private fun calcularTotalesCarrito(): TotalesCarrito {
         var subtotalGravado = 0.0
         var subtotalExento = 0.0
 
         carritoTemporal.forEach { item ->
             val subtotalLinea = item.subtotalConDescuento
-
-            // Igual que la web: cada producto decide si graba IVA o es exento, según su
-            // configuración en el Catálogo. La web coerciona con !!(valor), es decir que
-            // null/undefined siempre se trata como EXENTO (false), nunca como gravado.
             val producto = productosList.find { it.id == item.productoId }
             val grabaIva = producto?.grabaIva ?: false
 
@@ -725,8 +779,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
         }
 
         val subtotalBruto = subtotalGravado + subtotalExento
-
-        // Cálculo del descuento global proporcional
         val pctDescGlobal = facturaDescuentoGlobalPorcentaje.coerceIn(0.0, 100.0) / 100.0
         val descGlobalMonto = if (pctDescGlobal > 0.0) {
             (subtotalBruto * pctDescGlobal).coerceAtMost(subtotalBruto)
@@ -739,8 +791,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
 
         val baseImponible = (subtotalGravado - descSobreGravado).coerceAtLeast(0.0)
         val baseExenta = (subtotalExento - descSobreExento).coerceAtLeast(0.0)
-
-        // Cálculo del IVA
         val montoIva = baseImponible * (porcentajeIvaActual / 100.0)
         val total = baseImponible + baseExenta + montoIva
 
@@ -758,26 +808,17 @@ class HistorialFacturasActivity : AppCompatActivity() {
         carritoAdapter?.actualizar(carritoTemporal)
 
         val totales = calcularTotalesCarrito()
-
-        // "Base imponible" en la web equivale al subtotal YA CON EL DESCUENTO aplicado
-        // (gravado + exento), no solo la porción gravada. Antes aquí solo se mostraba
-        // la porción gravada, por lo que en productos exentos de IVA el descuento
-        // "desaparecía" visualmente de este campo aunque sí se restaba del total.
         val baseImponibleMostrada = totales.baseImponible + totales.baseExenta
 
         tvSubtotalRef?.text = String.format(Locale.US, "$%.2f", totales.subtotalBruto)
         tvBaseImponibleRef?.text = String.format(Locale.US, "$%.2f", baseImponibleMostrada)
         tvIvaRef?.text = String.format(Locale.US, "$%.2f", totales.montoIva)
 
-        // Actualizamos de forma dinámica el LABEL del IVA
         val porcentajeIvaFmt = String.format(Locale.US, "%.0f", porcentajeIvaActual)
         tvIvaLabelDialogo?.text = "IVA ($porcentajeIvaFmt%)"
-
         tvTotalRef?.text = "A COBRAR: ${String.format(Locale.US, "$%.2f", totales.total)}"
         tvItemsCountRef?.text = "${carritoTemporal.size} items"
 
-        // Fila "Descuento" dentro del desglose de totales, igual que en la web:
-        // visible solo cuando hay descuento aplicado.
         if (totales.descuentoGlobalMonto > 0.0) {
             rowDescuentoGlobalRef?.visibility = View.VISIBLE
             tvDescuentoGlobalMontoRef?.text = "-${String.format(Locale.US, "$%.2f", totales.descuentoGlobalMonto)}"
@@ -862,8 +903,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
             return
         }
 
-        // Enviamos el dto para su guardado final. El descuento proporcional fue mostrado al usuario en Ui,
-        // pero se envía únicamente el global para que la base recalcule de ser necesario
         val totales = calcularTotalesCarrito()
         val payload = FacturaRequestDto(
             clienteId = facturaClienteId,
@@ -889,7 +928,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
                         val factura = response.body()
                         Toast.makeText(this@HistorialFacturasActivity, "¡Factura emitida correctamente!", Toast.LENGTH_SHORT).show()
                         dialogFacturaActivo?.dismiss()
-                        cargarFacturas()
+                        cargarDatosSimultaneos()
                         if (factura != null) prepararGeneracionPDF(factura)
                     } else {
                         Toast.makeText(this@HistorialFacturasActivity, "Error al emitir la factura (${response.code()})", Toast.LENGTH_LONG).show()
@@ -1911,47 +1950,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
         DetalleFacturaDialogHelper.mostrar(this, datos)
     }
 
-    private fun cargarFacturas(onListo: (() -> Unit)? = null) {
-        val authHeader = sessionManager.getAuthHeader()
-        if (authHeader == null) {
-            onListo?.invoke()
-            return
-        }
-
-        layoutLoading.visibility = View.VISIBLE
-
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val response = RetrofitClient.apiService.getFacturas(authHeader, negocioId)
-                withContext(Dispatchers.Main) {
-                    layoutLoading.visibility = View.GONE
-                    if (response.isSuccessful) {
-                        val facturas = response.body() ?: emptyList()
-                        if (facturas.isEmpty()) {
-                            layoutVacio.visibility = View.VISIBLE
-                            rvFacturas.visibility = View.GONE
-                        } else {
-                            layoutVacio.visibility = View.GONE
-                            rvFacturas.visibility = View.VISIBLE
-                            adapter.actualizarLista(facturas)
-                        }
-                    } else if (response.code() == 401) {
-                        Toast.makeText(this@HistorialFacturasActivity, "Sesión expirada", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(this@HistorialFacturasActivity, "Error al obtener facturas: ${response.code()}", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    layoutLoading.visibility = View.GONE
-                    Toast.makeText(this@HistorialFacturasActivity, "Error de red: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
-                }
-            } finally {
-                onListo?.invoke()
-            }
-        }
-    }
-
     private fun prepararGeneracionPDF(fac: FacturaResponseDto) {
         val dialog = MaterialAlertDialogBuilder(this)
             .setTitle("Generando Factura...")
@@ -1994,7 +1992,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
         val descGlobalIn = fac.totalDescuento ?: 0.0
         val descGlobal = descGlobalIn.coerceAtMost(totalBruto)
 
-        // Cálculo de descuento proporcional
         val descGrav = if (totalBruto > 0) descGlobal * (gravado / totalBruto) else 0.0
         val descEx = descGlobal - descGrav
 
@@ -2005,7 +2002,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
         val subtotalSinIva = baseImponible + baseExenta
         val totalCalculado = baseImponible + baseExenta + ivaCalculado
 
-        // Usamos los totales calculados o fallbacks
         val total = fac.totalCalculado.takeIf { it > 0 } ?: totalCalculado
 
         val filasProductos = StringBuilder()

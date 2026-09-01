@@ -21,7 +21,7 @@ import com.example.movildilo.data.model.dto.usuarios.ClienteResponseDto
 import com.example.movildilo.data.model.dto.facturacion.FacturaResponseDto
 import com.example.movildilo.data.model.dto.inventario.InventarioResponseDto
 import com.example.movildilo.data.model.dto.inventario.ProductoResponseDto
-import com.example.movildilo.ia.ZoeActionRouter // <-- Importación añadida para leer la señal
+import com.example.movildilo.ia.ZoeActionRouter
 import com.example.movildilo.ia.ZoeBottomSheetDialog
 import com.example.movildilo.ui.Kardex.KardexActivity
 import com.example.movildilo.ui.adapters.MiembrosAdapter
@@ -42,6 +42,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
+import java.util.Calendar
 import java.util.Locale
 
 class PropietarioActivity : AppCompatActivity() {
@@ -100,6 +101,7 @@ class PropietarioActivity : AppCompatActivity() {
         setupListeners()
         verificarEstadoSuspension()
         cargarContextoCompletoDashboard()
+
         if (intent.getBooleanExtra(ZoeActionRouter.EXTRA_MANTENER_ZOE_ABIERTA, false)) {
             abrirChatZoe()
         }
@@ -243,52 +245,102 @@ class PropietarioActivity : AppCompatActivity() {
         }
     }
 
+    // Refactorización: Carga progresiva y paralela del Dashboard
     private fun cargarContextoCompletoDashboard() {
         if (negocioId == -1L) {
             swipeRefreshLayout.isRefreshing = false
             return
         }
 
-        lifecycleScope.launch(Dispatchers.IO) {
+        val authHeader = sessionManager.getAuthHeader() ?: return
+        val api = RetrofitClient.apiService
+
+        // Activamos indicador visual de refresco
+        swipeRefreshLayout.isRefreshing = true
+
+        lifecycleScope.launch {
+            // Variables temporales para no duplicar peticiones de Zoe en segundo plano
+            var facturasShared: List<FacturaResponseDto> = emptyList()
+            var clientesShared: List<ClienteResponseDto> = emptyList()
+            var inventarioShared: List<InventarioResponseDto> = emptyList()
+
             supervisorScope {
-                val api = RetrofitClient.apiService
-                val authHeader = sessionManager.getAuthHeader() ?: ""
+                // Bloque 1: Cargar Perfil y Negocio (Header)
+                launch(Dispatchers.IO) {
+                    val perfil = runCatching { api.getMiPerfil(authHeader) }.getOrNull()?.body()
+                    val negocio = runCatching { api.getNegocio(authHeader, negocioId) }.getOrNull()?.body()
 
-                val reqMiPerfil = async { runCatching { api.getMiPerfil(authHeader) }.getOrNull() }
-                val reqNegocio = async { runCatching { api.getNegocio(authHeader, negocioId) }.getOrNull() }
-                val reqProductos = async { runCatching { api.getCatalogo(authHeader, negocioId) }.getOrNull() }
-                val reqCategorias = async { runCatching { api.getCategorias(authHeader, negocioId) }.getOrNull() }
-                val reqClientes = async { runCatching { api.getClientes(authHeader, negocioId) }.getOrNull() }
-                val reqInventario = async { runCatching { api.getInventario(authHeader, negocioId) }.getOrNull() }
-                val reqFacturas = async { runCatching { api.getFacturas(authHeader, negocioId) }.getOrNull() }
-                val reqEquipo = async { runCatching { api.getEquipo(authHeader, negocioId) }.getOrNull() }
-                val reqAlertas = async { runCatching { api.getAlertasCaducidad(authHeader, negocioId, 30) }.getOrNull() }
-
-                val resMiPerfil = reqMiPerfil.await()
-                val resNegocio = reqNegocio.await()
-                val productos = reqProductos.await()?.body() ?: emptyList()
-                val categorias = reqCategorias.await()?.body() ?: emptyList()
-                val clientes = reqClientes.await()?.body() ?: emptyList()
-                val inventario = reqInventario.await()?.body() ?: emptyList()
-                val facturas = reqFacturas.await()?.body() ?: emptyList()
-                val equipo = reqEquipo.await()?.body() ?: emptyList()
-                val alertas = reqAlertas.await()?.body() ?: emptyList()
-
-                var fotoUsuarioApi: String? = null
-                if (resMiPerfil?.isSuccessful == true && resMiPerfil.body() != null) {
-                    val perfil = resMiPerfil.body()!!
-                    fotoUsuarioApi = perfil.fotoPerfil
+                    withContext(Dispatchers.Main) {
+                        negocioNombreReal = negocio?.nombreComercial ?: negocio?.razonSocial ?: "Mi Empresa"
+                        tvBusinessName.text = "$negocioNombreReal • Panel de Control"
+                        val imagenAMostrarEnHeader = negocio?.rutaImagen?.takeIf { it.isNotBlank() } ?: perfil?.fotoPerfil
+                        if (!imagenAMostrarEnHeader.isNullOrBlank()) {
+                            cargarFotoPerfilUsuario(imagenAMostrarEnHeader)
+                        }
+                    }
                 }
 
-                var logoNegocioUrl: String? = null
-                if (resNegocio?.isSuccessful == true && resNegocio.body() != null) {
-                    val n = resNegocio.body()!!
-                    negocioNombreReal = n.nombreComercial ?: n.razonSocial ?: "Mi Empresa"
-                    logoNegocioUrl = n.rutaImagen
+                // Bloque 2: Cargar Resumen del Mes (Facturas y Clientes)
+                launch(Dispatchers.IO) {
+                    val facturas = runCatching { api.getFacturas(authHeader, negocioId) }.getOrNull()?.body() ?: emptyList()
+                    val clientes = runCatching { api.getClientes(authHeader, negocioId) }.getOrNull()?.body() ?: emptyList()
+
+                    facturasShared = facturas
+                    clientesShared = clientes
+
+                    val calendar = Calendar.getInstance()
+                    val currentYear = calendar.get(Calendar.YEAR)
+                    val currentMonth = calendar.get(Calendar.MONTH) + 1
+                    val mesActualStr = String.format(Locale.US, "%04d-%02d", currentYear, currentMonth)
+
+                    val facturasMesActual = facturas.filter { it.fechaEmision?.startsWith(mesActualStr) == true }
+                    val totalVentasMes = facturasMesActual.sumOf { it.totalCalculado }
+
+                    withContext(Dispatchers.Main) {
+                        tvTotalFacturas.text = "${facturasMesActual.size} emitidas"
+                        tvVentasMes.text = formatearMonto(totalVentasMes)
+                        tvClientesActivos.text = "${clientes.size} activos"
+                    }
                 }
+
+                // Bloque 3: Cargar Alertas de Inventario
+                launch(Dispatchers.IO) {
+                    val inventario = runCatching { api.getInventario(authHeader, negocioId) }.getOrNull()?.body() ?: emptyList()
+                    inventarioShared = inventario
+
+                    val itemsBajoStock = inventario.filter { (it.cantidadActual ?: 0) <= (it.stockMinimo ?: 5) }
+
+                    withContext(Dispatchers.Main) {
+                        cardAlert.visibility = if (itemsBajoStock.isNotEmpty()) View.VISIBLE else View.GONE
+                    }
+                }
+
+                // Bloque 4: Cargar Equipo de Trabajo
+                launch(Dispatchers.IO) {
+                    val equipo = runCatching { api.getEquipo(authHeader, negocioId) }.getOrNull()?.body() ?: emptyList()
+                    val equipoSinPendientes = equipo.filter { miembro ->
+                        val estado = miembro.estadoInvitacion?.uppercase(Locale.ROOT) ?: ""
+                        val estadoSolicitud = miembro.estadoLaboral?.uppercase(Locale.ROOT) ?: ""
+                        estado != "PENDIENTE" && estadoSolicitud != "PENDIENTE"
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        miembrosAdapter.actualizarLista(equipoSinPendientes)
+                    }
+                }
+            }
+
+            // Una vez terminadas las 4 tareas críticas de interfaz (visibles), escondemos el spinner.
+            swipeRefreshLayout.isRefreshing = false
+
+            // Bloque 5: Cargar Contexto para Zoe IA (Silencioso, en segundo plano desvinculado de la interfaz)
+            launch(Dispatchers.IO) {
+                val productos = runCatching { api.getCatalogo(authHeader, negocioId) }.getOrNull()?.body() ?: emptyList()
+                val categorias = runCatching { api.getCategorias(authHeader, negocioId) }.getOrNull()?.body() ?: emptyList()
+                val alertas = runCatching { api.getAlertasCaducidad(authHeader, negocioId, 30) }.getOrNull()?.body() ?: emptyList()
 
                 contextoNegocioTexto = construirResumenDelNegocio(
-                    productos, categorias, clientes, inventario, facturas
+                    productos, categorias, clientesShared, inventarioShared, facturasShared
                 )
 
                 alertasTexto = if (alertas.isNotEmpty()) {
@@ -297,34 +349,6 @@ class PropietarioActivity : AppCompatActivity() {
                     }
                 } else {
                     "No hay productos próximos a caducar en los siguientes 30 días."
-                }
-
-                val totalVentas = facturas.sumOf { it.totalCalculado }
-                val itemsBajoStock = inventario.filter { (it.cantidadActual ?: 0) <= (it.stockMinimo ?: 5) }
-
-                val equipoSinPendientes = equipo.filter { miembro ->
-                    val estado = miembro.estadoInvitacion?.uppercase(Locale.ROOT) ?: ""
-                    val estadoSolicitud = miembro.estadoLaboral?.uppercase(Locale.ROOT) ?: ""
-                    estado != "PENDIENTE" && estadoSolicitud != "PENDIENTE"
-                }
-
-                withContext(Dispatchers.Main) {
-                    tvBusinessName.text = "$negocioNombreReal • Panel de Control"
-                    tvTotalFacturas.text = "${facturas.size} emitidas"
-                    tvVentasMes.text = formatearMonto(totalVentas)
-                    tvClientesActivos.text = "${clientes.size} activos"
-                    cardAlert.visibility = if (itemsBajoStock.isNotEmpty()) View.VISIBLE else View.GONE
-
-                    miembrosAdapter.actualizarLista(equipoSinPendientes)
-
-                    val imagenAMostrarEnHeader = logoNegocioUrl?.takeIf { it.isNotBlank() }
-                        ?: fotoUsuarioApi
-
-                    if (!imagenAMostrarEnHeader.isNullOrBlank()) {
-                        cargarFotoPerfilUsuario(imagenAMostrarEnHeader)
-                    }
-
-                    swipeRefreshLayout.isRefreshing = false
                 }
             }
         }
@@ -411,7 +435,6 @@ class PropietarioActivity : AppCompatActivity() {
         startActivity(intent)
         finish()
     }
-
 
     private fun formatearMonto(monto: Double): String {
         val formato = java.text.NumberFormat.getNumberInstance(Locale.US) as java.text.DecimalFormat
