@@ -70,7 +70,8 @@ import java.text.Normalizer
 import java.util.Calendar
 import java.util.Locale
 
-private enum class VoiceStep { OFF, ESCUCHANDO, CONFIRMAR, SELECCIONAR_OPCION, CONFIRMAR_VACIAR_CARRITO }
+// Estados del asistente de voz
+private enum class VoiceStep { OFF, ESCUCHANDO, CONFIRMAR, SELECCIONAR_OPCION, SELECCIONAR_CLIENTE_OPCION, CONFIRMAR_VACIAR_CARRITO }
 
 private data class AmbiguoPendiente(
     val opciones: List<ProductoResponseDto>,
@@ -120,6 +121,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
     private var carritoAdapter: FacturaCarritoAdapter? = null
     private var dialogFacturaActivo: AlertDialog? = null
     private var dialogOpcionesAmbiguas: AlertDialog? = null
+    private var dialogClientesAmbiguos: AlertDialog? = null
     private var spClienteRef: AutoCompleteTextView? = null
     private var spMetodoPagoRef: AutoCompleteTextView? = null
     private var tilCuotasRef: TextInputLayout? = null
@@ -153,11 +155,12 @@ class HistorialFacturasActivity : AppCompatActivity() {
     private var pendingBodegaId: Long? = null
     private var intentosReconexion: Int = 0
     private var intentosSinReconocer: Int = 0
-    private val idiomasVoz = listOf("es-AR", "es-419", "es-EC", "es-ES", "es-US")
+    private val idiomasVoz = listOf("es-AR")
     private var idiomaVozIndex: Int = 0
     private val voiceHandler = Handler(Looper.getMainLooper())
 
     private var productosOpcionesPendientes: List<ProductoResponseDto> = emptyList()
+    private var clientesOpcionesPendientes: List<ClienteResponseDto> = emptyList()
     private var cantidadPendienteOpcion: Int = 1
     private var descuentoPendienteOpcion: Double = 0.0
     private val colaAmbiguos = ArrayDeque<AmbiguoPendiente>()
@@ -250,10 +253,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
         val tts = textToSpeech ?: return
 
         val localesPreferidos = listOf(
-            Locale("es", "AR"),
-            Locale("es", "419"),
-            Locale("es", "US"),
-            Locale("es", "ES")
+            Locale("es", "AR")
         )
         var localeAplicado: Locale? = null
         for (locale in localesPreferidos) {
@@ -296,7 +296,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
         tts.setPitch(1.0f)
     }
 
-    // CARGA OPTIMIZADA: Filtra de manera local por el mes actual para evitar sobrecarga de memoria
+    // Carga todas las facturas y las almacena/recupera de la caché sin filtros de mes
     private fun cargarDatosSimultaneos() {
         val authHeader = sessionManager.getAuthHeader()
         if (authHeader == null) {
@@ -305,45 +305,21 @@ class HistorialFacturasActivity : AppCompatActivity() {
             return
         }
 
-        val calendar = Calendar.getInstance()
-        val currentYear = calendar.get(Calendar.YEAR)
-        val currentMonth = calendar.get(Calendar.MONTH) + 1
-        val mesActualStr = String.format(Locale.US, "%04d-%02d", currentYear, currentMonth)
-
-        // CACHÉ LOCAL: el endpoint de facturas es lento en el backend (a más facturas,
-        // más tarda), y eso no lo podemos cambiar desde la app. Lo que sí podemos hacer es
-        // pintar de una vez lo último que se guardó la vez anterior, para que la pantalla
-        // nunca se vea vacía mientras esperamos al servidor. Si no hay nada en caché
-        // (primera vez que se abre la pantalla), sí mostramos el spinner de carga.
         val cache = DataCache(this)
         val cacheKey = DataCache.keyFacturas(negocioId)
         val facturasCacheadas = cache.obtenerLista<FacturaResponseDto>(cacheKey, DataCache.tipoLista<FacturaResponseDto>())
 
         if (!facturasCacheadas.isNullOrEmpty()) {
-            val facturasMesCache = facturasCacheadas.filter { it.fechaEmision?.startsWith(mesActualStr) == true }
             layoutLoading.visibility = View.GONE
-            if (facturasMesCache.isEmpty()) {
-                layoutVacio.visibility = View.VISIBLE
-                rvFacturas.visibility = View.GONE
-            } else {
-                layoutVacio.visibility = View.GONE
-                rvFacturas.visibility = View.VISIBLE
-                adapter.actualizarLista(facturasMesCache)
-            }
-        } else {
+            layoutVacio.visibility = View.GONE
+            rvFacturas.visibility = View.VISIBLE
+            adapter.actualizarLista(facturasCacheadas)
+        } else if (!swipeRefreshLayout.isRefreshing) {
             layoutLoading.visibility = View.VISIBLE
             layoutVacio.visibility = View.GONE
             rvFacturas.visibility = View.GONE
         }
 
-        // NOTA DE RENDIMIENTO: esta pantalla solo necesita "facturas" para pintarse.
-        // Antes se pedían también clientes/bodegas/productos/inventario/negocio/iva aquí mismo,
-        // duplicando lo que ya hace cargarCatalogosFacturaConcurrentes() (usada al abrir
-        // "Nueva Factura"). Eso obligaba a esperar 7 peticiones en paralelo para mostrar
-        // una simple lista, y si cualquiera de las 6 sobrantes fallaba o era lenta, la
-        // pantalla se quedaba cargando o mostraba "Error al obtener facturas" aunque las
-        // facturas en sí hubieran llegado bien. Ahora la lista se pinta apenas responde
-        // getFacturas, y los catálogos auxiliares se precargan aparte, sin bloquear.
         lifecycleScope.launch(Dispatchers.IO) {
             val respFacturas = runCatching { RetrofitClient.apiService.getFacturas(authHeader, negocioId) }.getOrNull()
             val todasFacturas = respFacturas?.body()
@@ -354,21 +330,17 @@ class HistorialFacturasActivity : AppCompatActivity() {
 
                 if (respFacturas?.isSuccessful == true && todasFacturas != null) {
                     cache.guardarLista(cacheKey, todasFacturas)
-                    val facturasMesActual = todasFacturas.filter { it.fechaEmision?.startsWith(mesActualStr) == true }
-                    if (facturasMesActual.isEmpty()) {
+                    if (todasFacturas.isEmpty()) {
                         layoutVacio.visibility = View.VISIBLE
                         rvFacturas.visibility = View.GONE
                     } else {
                         layoutVacio.visibility = View.GONE
                         rvFacturas.visibility = View.VISIBLE
-                        adapter.actualizarLista(facturasMesActual)
+                        adapter.actualizarLista(todasFacturas)
                     }
                 } else if (respFacturas?.code() == 401) {
                     Toast.makeText(this@HistorialFacturasActivity, "Sesión expirada", Toast.LENGTH_SHORT).show()
                 } else if (facturasCacheadas.isNullOrEmpty()) {
-                    // Solo mostramos el error si no teníamos nada en caché para mostrar;
-                    // si ya había datos cacheados pintados, no interrumpimos con un error,
-                    // el usuario sigue viendo la última versión conocida.
                     Toast.makeText(this@HistorialFacturasActivity, "Error al obtener facturas", Toast.LENGTH_SHORT).show()
                 } else {
                     Toast.makeText(this@HistorialFacturasActivity, "No se pudo actualizar. Mostrando datos guardados.", Toast.LENGTH_SHORT).show()
@@ -376,8 +348,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
             }
         }
 
-        // Precarga en segundo plano de los catálogos para "Nueva Factura" (clientes, bodegas,
-        // productos, inventario, negocio, iva). No bloquea la lista de facturas de arriba.
         cargarCatalogosFacturaConcurrentes()
     }
 
@@ -443,6 +413,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
         colaAmbiguos.clear()
         pendingBodegaId = null
         productosOpcionesPendientes = emptyList()
+        clientesOpcionesPendientes = emptyList()
         voiceState = VoiceStep.OFF
     }
 
@@ -1002,9 +973,14 @@ class HistorialFacturasActivity : AppCompatActivity() {
         idiomaVozIndex = 0
         escuchaEnCurso = false
         productosOpcionesPendientes = emptyList()
+        clientesOpcionesPendientes = emptyList()
         colaAmbiguos.clear()
+
         dialogOpcionesAmbiguas?.dismiss()
         dialogOpcionesAmbiguas = null
+        dialogClientesAmbiguos?.dismiss()
+        dialogClientesAmbiguos = null
+
         voiceHandler.removeCallbacksAndMessages(null)
         textToSpeech?.stop()
         speechRecognizer?.cancel()
@@ -1262,7 +1238,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
         hablar(mensaje) { escucharVoz() }
     }
 
-    /** Frases cortas SOLO de emitir (igual que esSoloEmitirCorto de la web): evita el viaje a la IA. */
     private fun esSoloEmitirCorto(texto: String): Boolean {
         val t = texto.trim()
         if (t.isEmpty()) return false
@@ -1292,6 +1267,11 @@ class HistorialFacturasActivity : AppCompatActivity() {
             return
         }
 
+        if (voiceState == VoiceStep.SELECCIONAR_CLIENTE_OPCION && clientesOpcionesPendientes.isNotEmpty()) {
+            procesarSeleccionClientePorVoz(transcript)
+            return
+        }
+
         if (voiceState == VoiceStep.CONFIRMAR_VACIAR_CARRITO) {
             val afirmativas = listOf("si", "claro", "borra", "vaciar", "hazlo", "de acuerdo", "limpiar", "confirmar")
             if (afirmativas.any { transcript.contains(it) }) {
@@ -1316,7 +1296,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
             return
         }
 
-        // Igual que la web: si es solo un "emite"/"cobra" corto y sin más datos, no llamamos a la IA.
         if (voiceState != VoiceStep.CONFIRMAR && esSoloEmitirCorto(transcript)) {
             emitirFactura(confirmadaPorVoz = true)
             return
@@ -1361,6 +1340,102 @@ class HistorialFacturasActivity : AppCompatActivity() {
         if (t.isBlank()) return false
         val neg = listOf("no", "nop", "nel", "cancelar", "cancela", "espera", "aun no", "todavia no", "todavía no", "no emitas", "no cobrar", "revisar")
         return neg.any { t == it || t.startsWith("$it ") || t.contains(it) }
+    }
+
+    // --- SISTEMA UNIFICADO DE RESOLUCIÓN DE AMBIGÜEDAD ---
+
+    private fun revisarSiguientePasoTrasAmbiguo(mensajeExito: String = "") {
+        val siguienteAmbiguo = colaAmbiguos.removeFirstOrNull()
+        if (siguienteAmbiguo != null) {
+            productosOpcionesPendientes = siguienteAmbiguo.opciones
+            cantidadPendienteOpcion = siguienteAmbiguo.cantidad
+            descuentoPendienteOpcion = siguienteAmbiguo.descuentoPorcentaje
+            mostrarDialogoOpcionesAmbiguas(productosOpcionesPendientes, mensajeExito)
+            return
+        }
+
+        val faltaCliente = facturaClienteId == null && !facturaEsConsumidorFinal
+        val faltaItems = carritoTemporal.isEmpty()
+        val totalFinal = calcularTotalesCarrito().total
+        val totalFmt = String.format(Locale.US, "%.2f", totalFinal)
+
+        when {
+            faltaCliente -> avanzarPaso(VoiceStep.ESCUCHANDO, "$mensajeExito¿A quién le facturamos?")
+            faltaItems -> avanzarPaso(VoiceStep.ESCUCHANDO, "$mensajeExito El ticket está vacío. ¿Qué producto agregamos?")
+            else -> avanzarPaso(VoiceStep.CONFIRMAR, "$mensajeExito El precio total a cobrar es $totalFmt dólares. ¿Agregamos algo más o emitimos la factura?")
+        }
+    }
+
+    private fun mostrarDialogoClientesAmbiguos(opciones: List<ClienteResponseDto>, prefijo: String = "") {
+        dialogClientesAmbiguos?.dismiss()
+
+        val nombres = opciones.mapIndexed { idx, cli ->
+            "${idx + 1}. ${nombreClienteDto(cli)}"
+        }.toTypedArray()
+
+        val opcionesHablar = opciones.mapIndexed { idx, cli -> "Opción ${idx + 1}: ${nombreClienteDto(cli)}" }.joinToString(", ")
+        voiceState = VoiceStep.SELECCIONAR_CLIENTE_OPCION
+
+        hablar("${prefijo}Encontré varios clientes parecidos: $opcionesHablar. ¿Cuál elegimos?") {
+            escucharVoz()
+        }
+
+        dialogClientesAmbiguos = MaterialAlertDialogBuilder(this)
+            .setTitle("👤 Selecciona el cliente exacto")
+            .setIcon(android.R.drawable.ic_menu_myplaces)
+            .setItems(nombres) { dialog, which ->
+                dialog.dismiss()
+                dialogClientesAmbiguos = null
+                val seleccionado = opciones.getOrNull(which)
+                if (seleccionado != null) confirmarSeleccionClienteAmbiguo(seleccionado)
+            }
+            .setNegativeButton("Cancelar") { dialog, _ ->
+                dialog.dismiss()
+                dialogClientesAmbiguos = null
+                clientesOpcionesPendientes = emptyList()
+                revisarSiguientePasoTrasAmbiguo("Selección de cliente cancelada. ")
+            }
+            .setCancelable(false)
+            .create()
+
+        dialogClientesAmbiguos?.show()
+    }
+
+    private fun procesarSeleccionClientePorVoz(transcript: String) {
+        var seleccion: ClienteResponseDto? = null
+        when {
+            transcript.contains("1") || transcript.contains("uno") || transcript.contains("primera") || transcript.contains("primero") ->
+                seleccion = clientesOpcionesPendientes.getOrNull(0)
+            transcript.contains("2") || transcript.contains("dos") || transcript.contains("segunda") || transcript.contains("segundo") ->
+                seleccion = clientesOpcionesPendientes.getOrNull(1)
+            transcript.contains("3") || transcript.contains("tres") || transcript.contains("tercera") || transcript.contains("tercero") ->
+                seleccion = clientesOpcionesPendientes.getOrNull(2)
+            transcript.contains("4") || transcript.contains("cuatro") || transcript.contains("cuarta") ->
+                seleccion = clientesOpcionesPendientes.getOrNull(3)
+            transcript.contains("5") || transcript.contains("cinco") || transcript.contains("quinta") ->
+                seleccion = clientesOpcionesPendientes.getOrNull(4)
+        }
+
+        if (seleccion == null) {
+            seleccion = clientesOpcionesPendientes.find { cli ->
+                val nombre = limpiarTexto(nombreClienteDto(cli))
+                nombre.contains(transcript) || transcript.contains(nombre)
+            }
+        }
+
+        if (seleccion != null) {
+            dialogClientesAmbiguos?.dismiss()
+            dialogClientesAmbiguos = null
+            confirmarSeleccionClienteAmbiguo(seleccion)
+        } else {
+            repetirPaso("No entendí cuál cliente elegiste. Dime por ejemplo 'el primero' o di su nombre.")
+        }
+    }
+
+    private fun confirmarSeleccionClienteAmbiguo(cliente: ClienteResponseDto) {
+        seleccionarClienteUi(cliente)
+        clientesOpcionesPendientes = emptyList()
+        revisarSiguientePasoTrasAmbiguo("Seleccioné a ${nombreClienteDto(cliente)}. ")
     }
 
     private fun procesarSeleccionOpcionPorVoz(transcript: String) {
@@ -1430,18 +1505,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
             agregarProductoAlCarrito(producto, cantFinal, bodegaIdActual, descuentoPendienteOpcion)
             productosOpcionesPendientes = emptyList()
 
-            val siguienteAmbiguo = colaAmbiguos.removeFirstOrNull()
-            if (siguienteAmbiguo != null) {
-                productosOpcionesPendientes = siguienteAmbiguo.opciones
-                cantidadPendienteOpcion = siguienteAmbiguo.cantidad
-                descuentoPendienteOpcion = siguienteAmbiguo.descuentoPorcentaje
-                mostrarDialogoOpcionesAmbiguas(productosOpcionesPendientes, "${mensajePrefijo}Agregué ${producto.nombre}. ")
-                return
-            }
-
-            val totalFinal = calcularTotalesCarrito().total
-            val totalFmt = String.format(Locale.US, "%.2f", totalFinal)
-            avanzarPaso(VoiceStep.CONFIRMAR, "${mensajePrefijo}Agregado ${producto.nombre}. El total a cobrar con descuento es $totalFmt dólares. ¿Deseas emitir ya o agregar algo más?")
+            revisarSiguientePasoTrasAmbiguo("${mensajePrefijo}Agregué ${producto.nombre}. ")
         } else {
             avanzarPaso(VoiceStep.ESCUCHANDO, "Selecciona primero una bodega para agregar el producto.")
         }
@@ -1551,7 +1615,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
             }
         }
 
-        var pedirCedula = false
+        var clientesAmbiguosEncontrados: List<ClienteResponseDto>? = null
         val textoClienteBuscado = datos.cliente ?: extractDigits(fraseOriginal)
         if (!textoClienteBuscado.isNullOrBlank() && (facturaClienteId == null || datos.cliente?.isNotBlank() == true)) {
             if (textoClienteBuscado.equals("CONSUMIDOR_FINAL", ignoreCase = true) || textoClienteBuscado.contains("consumidor", ignoreCase = true)) {
@@ -1560,7 +1624,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
                 val matches = buscarClientesUniversales(textoClienteBuscado)
                 when {
                     matches.size == 1 -> seleccionarClienteUi(matches[0])
-                    matches.size > 1 -> pedirCedula = true
+                    matches.size > 1 -> clientesAmbiguosEncontrados = matches.take(5)
                     else -> alertas.add("no encontré al cliente relacionado con \"$textoClienteBuscado\"")
                 }
             }
@@ -1696,18 +1760,21 @@ class HistorialFacturasActivity : AppCompatActivity() {
             }
         }
 
+        if (clientesAmbiguosEncontrados != null) {
+            if (ambiguoPendiente != null) colaAmbiguos.addFirst(ambiguoPendiente)
+
+            clientesOpcionesPendientes = clientesAmbiguosEncontrados
+            val prefijoCliente = if (alertas.isNotEmpty()) "Ya anoté el resto: ${alertas.joinToString(", y ")}. " else ""
+            mostrarDialogoClientesAmbiguos(clientesOpcionesPendientes, prefijoCliente)
+            return
+        }
+
         if (ambiguoPendiente != null) {
             productosOpcionesPendientes = ambiguoPendiente.opciones
             cantidadPendienteOpcion = ambiguoPendiente.cantidad
             descuentoPendienteOpcion = ambiguoPendiente.descuentoPorcentaje
             val prefijoAmbiguo = if (alertas.isNotEmpty()) "Ya anoté el resto: ${alertas.joinToString(", y ")}. " else ""
             mostrarDialogoOpcionesAmbiguas(productosOpcionesPendientes, prefijoAmbiguo)
-            return
-        }
-
-        if (pedirCedula) {
-            val prefijoCedula = if (alertas.isNotEmpty()) "Entendido, ${alertas.joinToString(", y ")}. " else ""
-            avanzarPaso(VoiceStep.ESCUCHANDO, "${prefijoCedula}Hay varios clientes coincidentes. Dime su cédula o RUC completo para seleccionarlo.")
             return
         }
 
@@ -1777,15 +1844,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
                 dialog.dismiss()
                 dialogOpcionesAmbiguas = null
                 productosOpcionesPendientes = emptyList()
-                val siguiente = colaAmbiguos.removeFirstOrNull()
-                if (siguiente != null) {
-                    productosOpcionesPendientes = siguiente.opciones
-                    cantidadPendienteOpcion = siguiente.cantidad
-                    descuentoPendienteOpcion = siguiente.descuentoPorcentaje
-                    mostrarDialogoOpcionesAmbiguas(productosOpcionesPendientes, "De acuerdo, seguimos con lo demás. ")
-                } else {
-                    avanzarPaso(VoiceStep.ESCUCHANDO, "Selección cancelada. ¿Qué otro producto agregamos?")
-                }
+                revisarSiguientePasoTrasAmbiguo("Selección cancelada. ")
             }
             .setCancelable(false)
             .create()
@@ -2001,11 +2060,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
             estado = fac.estadoFormateado,
             total = fac.totalCalculado,
             descuentoGlobal = fac.totalDescuento ?: 0.0,
-            // Usamos el IVA que se aplicó REALMENTE al momento de emitir esta factura
-            // (fac.porcentajeIvaAplicado), no el IVA vigente hoy (porcentajeIvaActual).
-            // Si la app cambia de tasa con el tiempo (ej. 16% -> 15%), las facturas viejas
-            // deben seguir mostrando el porcentaje con el que se emitieron. Solo si el
-            // backend no lo envía (facturas muy antiguas sin ese dato) caemos al actual.
             porcentajeIva = fac.porcentajeIvaAplicado ?: porcentajeIvaActual,
             items = items,
             mostrarBotonImprimir = true,

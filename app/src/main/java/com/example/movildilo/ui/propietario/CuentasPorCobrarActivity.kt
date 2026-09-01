@@ -35,7 +35,7 @@ import com.example.movildilo.ui.adapters.FacturasClienteModalAdapter
 import com.example.movildilo.ui.adapters.HistorialAbonosAdapter
 import com.example.movildilo.ui.adapters.ProductosFacturaAdapter
 import com.google.android.material.card.MaterialCardView
-import com.google.android.material.datepicker.MaterialDatePicker // NUEVO IMPORT
+import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.textfield.TextInputEditText
@@ -60,7 +60,6 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
     private lateinit var chipVencida: TextView
     private lateinit var chipPagada: TextView
 
-    // --- NUEVAS VISTAS PARA FECHAS ---
     private lateinit var etRangoFechas: TextInputEditText
     private lateinit var btnLimpiarFechas: ImageButton
     private lateinit var actvTipoFiltroFecha: MaterialAutoCompleteTextView
@@ -81,7 +80,6 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
     private var fechaDesdeSel: String = ""
     private var fechaHastaSel: String = ""
 
-    // "vencimiento" o "emision" -> a qué campo de fecha aplica el rango seleccionado
     private var tipoFiltroFecha: String = "vencimiento"
     private val opcionesFiltroFecha = listOf("Fecha de Vencimiento", "Fecha de Creación (Emisión)")
 
@@ -244,9 +242,8 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         picker.show(supportFragmentManager, "DATE_PICKER")
     }
 
-
     private fun setupTabs() {
-        val headerDirectorio = findViewById<LinearLayout>(R.id.headerDirectorioClientes)
+        val headerDirectorio = findViewById<MaterialCardView>(R.id.headerDirectorioClientes)
 
         tabLayoutPrincipal.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
@@ -417,7 +414,17 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
             })
         }
 
-        clientesAgrupados = mapa.values.sortedByDescending { it.totalDeuda }
+        clientesAgrupados = mapa.values.sortedWith(Comparator { c1, c2 ->
+            val c1Pagado = if (c1.totalDeuda <= 0) 1 else 0
+            val c2Pagado = if (c2.totalDeuda <= 0) 1 else 0
+            if (c1Pagado != c2Pagado) {
+                return@Comparator c1Pagado - c2Pagado
+            }
+            if (c1.totalDeuda != c2.totalDeuda) {
+                return@Comparator c2.totalDeuda.compareTo(c1.totalDeuda)
+            }
+            return@Comparator c1.nombre.compareTo(c2.nombre, ignoreCase = true)
+        })
         adapterClientes.actualizarLista(clientesAgrupados)
     }
 
@@ -451,7 +458,17 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
                 }
 
                 coincideTexto && coincideEstado && coincideFecha
-            }
+            }.sortedWith(Comparator { a, b ->
+                val aPagada = if (a.estado.equals("PAGADA", ignoreCase = true) || (a.saldoPendiente ?: 0.0) <= 0.0) 1 else 0
+                val bPagada = if (b.estado.equals("PAGADA", ignoreCase = true) || (b.saldoPendiente ?: 0.0) <= 0.0) 1 else 0
+                if (aPagada != bPagada) {
+                    return@Comparator aPagada - bPagada
+                }
+
+                val fechaA = a.fechaVencimiento ?: ""
+                val fechaB = b.fechaVencimiento ?: ""
+                return@Comparator fechaA.compareTo(fechaB)
+            })
 
             adapterCuentas.actualizarLista(filtradas)
             layoutSinResultados.visibility = if (filtradas.isEmpty() && cuentasBase.isNotEmpty()) View.VISIBLE else View.GONE
@@ -476,7 +493,6 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
             else -> "${item.factura?.cliente?.primerNombre ?: ""} ${item.factura?.cliente?.apellidoPaterno ?: ""}".trim()
         }
     }
-
 
     private fun mostrarModalFacturasCliente(cliente: ClienteAgrupado) {
         val dialog = Dialog(this)
@@ -573,7 +589,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val response = RetrofitClient.apiService.enviarRecordatorioEmail(token, cuenta.id)
-                layoutLoading.visibility = View.GONE
+                layoutLoading.visibility = View.VISIBLE
 
                 if (response.isSuccessful) {
                     Toast.makeText(this@CuentasPorCobrarActivity, "El recordatorio ha sido enviado exitosamente al correo del cliente.", Toast.LENGTH_SHORT).show()
