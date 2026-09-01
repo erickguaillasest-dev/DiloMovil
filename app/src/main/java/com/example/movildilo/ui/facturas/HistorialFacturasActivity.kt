@@ -74,7 +74,6 @@ private data class AmbiguoPendiente(
     val descuentoPorcentaje: Double
 )
 
-// Data class auxiliar para emular la estructura de cálculo de Angular
 private data class TotalesCarrito(
     val subtotalBruto: Double,
     val baseImponible: Double,
@@ -106,7 +105,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
     private var inventarioList: List<InventarioResponseDto> = emptyList()
     private var negocioActual: NegocioResponseDto? = null
 
-    // Se inicializa en 15.0 por defecto, igual que en web
     private var porcentajeIvaActual: Double = 15.0
 
     private var facturaClienteId: Long? = null

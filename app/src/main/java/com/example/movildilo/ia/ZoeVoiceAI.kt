@@ -17,8 +17,6 @@ data class ItemVozIA(
     val descuentoPorcentaje: Int? = null
 )
 
-// Fija la cantidad FINAL de un producto que ya está en el carrito (no la suma, la reemplaza).
-// Ej: "cambia la cantidad de mouse a 3", "deja 5 lápices", "actualiza el teclado a 2".
 data class CambioCantidadVozIA(
     val producto: String,
     val cantidad: Int
@@ -266,8 +264,6 @@ object ZoeVoiceAI {
         var eliminarCantidad: Int? = null
         val items = mutableListOf<ItemVozIA>()
 
-        // "cambia la cantidad de mouse a 3", "actualiza cantidad de teclado a 2".
-        // Solo este patrón explícito (no "pon"/"deja") para no chocar con el verbo de agregar.
         var cambiarCantidad: CambioCantidadVozIA? = null
         Regex("(?:cambia|cambiar|actualiza|actualizar)\\s+(?:la\\s+)?cantidad\\s+(?:de\\s+)?(.+?)\\s+a\\s+(\\d{1,3})")
             .find(f)?.let { m ->

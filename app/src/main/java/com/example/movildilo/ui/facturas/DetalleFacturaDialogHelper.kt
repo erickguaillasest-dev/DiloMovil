@@ -49,11 +49,20 @@ object DetalleFacturaDialogHelper {
         val tvMetodoPago = view.findViewById<TextView>(R.id.tvMetodoPagoDetalle)
         val tvEstadoBadge = view.findViewById<TextView>(R.id.tvEstadoBadge)
         val containerProductos = view.findViewById<LinearLayout>(R.id.containerProductosDetalle)
-        val tvSubtotal = view.findViewById<TextView>(R.id.tvSubtotalDetalle)
+
+        // Nuevas referencias para desglose
+        val tvLabelSubtotal15 = view.findViewById<TextView>(R.id.tvLabelSubtotal15)
+        val tvSubtotal15 = view.findViewById<TextView>(R.id.tvSubtotal15Detalle)
+        val tvSubtotal0 = view.findViewById<TextView>(R.id.tvSubtotal0Detalle)
+        val tvSubtotalBase = view.findViewById<TextView>(R.id.tvSubtotalBaseDetalle)
+
+        val tvLabelIva = view.findViewById<TextView>(R.id.tvLabelIva)
         val tvIva = view.findViewById<TextView>(R.id.tvIvaDetalle)
+
         val rowDescuento = view.findViewById<View>(R.id.rowDescuentoDetalle)
         val tvDescuento = view.findViewById<TextView>(R.id.tvDescuentoDetalle)
         val tvTotal = view.findViewById<TextView>(R.id.tvTotalDetalle)
+
         val btnCerrarIcon = view.findViewById<ImageView>(R.id.btnCerrarDetalleModal)
         val btnCerrar = view.findViewById<MaterialButton>(R.id.btnCerrarDetalle)
         val btnImprimir = view.findViewById<MaterialButton>(R.id.btnImprimirPdfDetalle)
@@ -70,21 +79,47 @@ object DetalleFacturaDialogHelper {
         tvMetodoPago.text = datos.metodoPago
         tvEstadoBadge.text = datos.estado.uppercase(Locale.US)
 
-        // Cálculo seguro y robusto en base al total de la factura
-        val tasaIva = datos.porcentajeIva / 100.0
-        val totalCalculado = datos.total
+        // Setear etiquetas dinámicas para el IVA actual
+        val ivaStr = datos.porcentajeIva.toInt().toString()
+        tvLabelSubtotal15.text = "Subtotal $ivaStr%"
+        tvLabelIva.text = "IVA ($ivaStr%)"
 
-        // Desglose estándar matemático si no viene segregado del servidor
-        val subtotalSinIva = totalCalculado / (1.0 + tasaIva)
-        val montoIva = totalCalculado - subtotalSinIva
+        // Lógica de desglose SRI (Ecuador)
+        var base15 = 0.0
+        var base0 = 0.0
+        var descuentoTotal = datos.descuentoGlobal
 
-        tvSubtotal.text = String.format(Locale.US, "$%.2f", subtotalSinIva)
-        tvIva.text = String.format(Locale.US, "$%.2f", montoIva)
-        tvTotal.text = String.format(Locale.US, "$%.2f", totalCalculado)
+        if (datos.items.isNotEmpty()) {
+            datos.items.forEach { item ->
+                // Se asume que item.subtotal es la base ya afectada por descuento
+                if (item.grabaIva) {
+                    base15 += item.subtotal
+                } else {
+                    base0 += item.subtotal
+                }
+                descuentoTotal += item.descuento
+            }
+        } else {
+            // Fallback si la factura viene sin detalles
+            val tasaIva = datos.porcentajeIva / 100.0
+            base15 = datos.total / (1.0 + tasaIva)
+        }
 
-        if (datos.descuentoGlobal > 0.0) {
+        val subtotalNeto = base15 + base0
+        val montoIvaCalculado = base15 * (datos.porcentajeIva / 100.0)
+
+        // Asignación de valores
+        tvSubtotal15.text = String.format(Locale.US, "$%.2f", base15)
+        tvSubtotal0.text = String.format(Locale.US, "$%.2f", base0)
+        tvSubtotalBase.text = String.format(Locale.US, "$%.2f", subtotalNeto)
+        tvIva.text = String.format(Locale.US, "$%.2f", montoIvaCalculado)
+
+        // Usamos datos.total para garantizar coincidencia de céntimos con el servidor
+        tvTotal.text = String.format(Locale.US, "$%.2f", datos.total)
+
+        if (descuentoTotal > 0.0) {
             rowDescuento.visibility = View.VISIBLE
-            tvDescuento.text = "-${String.format(Locale.US, "$%.2f", datos.descuentoGlobal)}"
+            tvDescuento.text = "-${String.format(Locale.US, "$%.2f", descuentoTotal)}"
         } else {
             rowDescuento.visibility = View.GONE
         }
@@ -112,7 +147,9 @@ object DetalleFacturaDialogHelper {
                 }
 
                 val tvDetallePrecio = TextView(context).apply {
-                    text = "${item.cantidad} unit. x $${String.format(Locale.US, "%.2f", item.precioUnitario)}"
+                    // Marcador visual pequeño si grava o no grava
+                    val ivaMarker = if (item.grabaIva) "" else " (*)"
+                    text = "${item.cantidad} unit. x $${String.format(Locale.US, "%.2f", item.precioUnitario)}$ivaMarker"
                     textSize = 11f
                     setTextColor(0xFF64748B.toInt())
                 }
@@ -122,7 +159,7 @@ object DetalleFacturaDialogHelper {
 
                 if (item.descuento > 0.0) {
                     val tvDescuentoItem = TextView(context).apply {
-                        text = "Descuento línea: -$${String.format(Locale.US, "%.2f", item.descuento)}"
+                        text = "Desc: -$${String.format(Locale.US, "%.2f", item.descuento)}"
                         textSize = 10f
                         typeface = Typeface.DEFAULT_BOLD
                         setTextColor(0xFFEA580C.toInt())
