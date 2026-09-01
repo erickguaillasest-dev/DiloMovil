@@ -83,7 +83,6 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
     private var tipoFiltroFecha: String = "vencimiento"
     private val opcionesFiltroFecha = listOf("Fecha de Vencimiento", "Fecha de Creación (Emisión)")
 
-    private val calendar = Calendar.getInstance()
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -198,18 +197,14 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
         btnLimpiarFechas.setOnClickListener {
             fechaDesdeSel = ""
             fechaHastaSel = ""
-            etRangoFechas.setText("")
+            etRangoFechas.setText("Rango")
             btnLimpiarFechas.visibility = View.GONE
             aplicarFiltros()
         }
 
         actvTipoFiltroFecha.setOnItemClickListener { _, _, position, _ ->
             tipoFiltroFecha = if (position == 1) "emision" else "vencimiento"
-            fechaDesdeSel = ""
-            fechaHastaSel = ""
-            etRangoFechas.setText("")
-            etRangoFechas.hint = if (tipoFiltroFecha == "emision") "Filtrar por Emisión" else "Filtrar por Vencimiento"
-            btnLimpiarFechas.visibility = View.GONE
+            etRangoFechas.hint = if (tipoFiltroFecha == "emision") "Emisión" else "Vencimiento"
 
             aplicarFiltros()
         }

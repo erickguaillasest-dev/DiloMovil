@@ -317,10 +317,6 @@ class RendimientoComercialActivity : AppCompatActivity() {
             return
         }
 
-        // CACHÉ LOCAL: getFacturas es lento en el backend con negocios grandes y hoy no se
-        // puede tocar el servidor. Pintamos de una vez la última versión guardada (si existe)
-        // para que "Rendimiento del mes" no se quede en blanco ni marque error mientras el
-        // servidor responde, y actualizamos todo en cuanto llega la respuesta fresca.
         val cache = DataCache(this)
         val keyFacturas = DataCache.keyFacturas(negocioId)
         val keyCuentas = DataCache.keyCuentasPorCobrar(negocioId)
@@ -355,8 +351,6 @@ class RendimientoComercialActivity : AppCompatActivity() {
             val respClientes = clientesReq.await()
             val negocio = negocioReq.await()
 
-            // Si la petición fresca falló y ya estábamos mostrando caché, dejamos la caché
-            // en pantalla en vez de reemplazarla por listas vacías.
             val facturasNuevas = respFacturas?.body()
             if (facturasNuevas != null) {
                 facturasRaw = facturasNuevas
@@ -385,9 +379,8 @@ class RendimientoComercialActivity : AppCompatActivity() {
                 negocioNombre = negocio.nombreComercial ?: negocio.razonSocial ?: "Mi Negocio"
             }
 
-            procesarMetricas()
-
             withContext(Dispatchers.Main) {
+                procesarMetricas()
                 renderTodo()
                 mostrarLoading(false)
                 if (facturasNuevas == null && !hayCache) {

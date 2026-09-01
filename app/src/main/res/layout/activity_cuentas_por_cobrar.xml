@@ -318,15 +318,15 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
                             android:orientation="horizontal"
-                            android:weightSum="2">
+                            android:weightSum="10">
 
-                            <!-- SELECTOR: FILTRAR FECHAS POR -->
+                            <!-- SELECTOR: FILTRAR FECHAS POR (Le asignamos peso 4.5) -->
                             <com.google.android.material.textfield.TextInputLayout
                                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_marginEnd="4dp"
-                                android:layout_weight="1"
+                                android:layout_weight="4.5"
                                 app:boxCornerRadiusBottomEnd="8dp"
                                 app:boxCornerRadiusBottomStart="8dp"
                                 app:boxCornerRadiusTopEnd="8dp"
@@ -338,27 +338,29 @@
                                     android:layout_height="wrap_content"
                                     android:inputType="none"
                                     android:paddingVertical="8dp"
-                                    android:textSize="12sp" />
+                                    android:textSize="11sp" />
                             </com.google.android.material.textfield.TextInputLayout>
 
-                            <!-- FILTRO POR RANGO DE FECHAS -->
+                            <!-- FILTRO POR RANGO DE FECHAS (Le asignamos peso 5.5 para darle más espacio) -->
                             <LinearLayout
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="4dp"
-                                android:layout_weight="1"
+                                android:layout_weight="5.5"
                                 android:gravity="center_vertical"
                                 android:orientation="horizontal">
 
                                 <com.google.android.material.textfield.TextInputLayout
                                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                                    android:layout_width="match_parent"
+                                    android:layout_width="0dp"
                                     android:layout_height="wrap_content"
+                                    android:layout_weight="1"
                                     app:boxCornerRadiusBottomEnd="8dp"
                                     app:boxCornerRadiusBottomStart="8dp"
                                     app:boxCornerRadiusTopEnd="8dp"
                                     app:boxCornerRadiusTopStart="8dp"
-                                    app:startIconDrawable="@android:drawable/ic_menu_today">
+                                    app:startIconDrawable="@android:drawable/ic_menu_today"
+                                    app:startIconTint="#64748B">
 
                                     <com.google.android.material.textfield.TextInputEditText
                                         android:id="@+id/etRangoFechas"
@@ -366,17 +368,20 @@
                                         android:layout_height="wrap_content"
                                         android:cursorVisible="false"
                                         android:focusable="false"
-                                        android:hint="Rango fechas"
+                                        android:text="Rango"
                                         android:inputType="none"
+                                        android:maxLines="1"
+                                        android:singleLine="true"
+                                        android:ellipsize="end"
                                         android:paddingVertical="8dp"
-                                        android:textSize="12sp" />
+                                        android:textSize="11sp" />
                                 </com.google.android.material.textfield.TextInputLayout>
 
                                 <ImageButton
                                     android:id="@+id/btnLimpiarFechas"
-                                    android:layout_width="36dp"
-                                    android:layout_height="36dp"
-                                    android:layout_marginStart="4dp"
+                                    android:layout_width="32dp"
+                                    android:layout_height="32dp"
+                                    android:layout_marginStart="2dp"
                                     android:background="?attr/selectableItemBackgroundBorderless"
                                     android:src="@android:drawable/ic_menu_close_clear_cancel"
                                     android:visibility="gone"

@@ -1,6 +1,5 @@
 package com.example.movildilo.ui.propietario
 
-import android.app.DatePickerDialog
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
@@ -37,7 +36,6 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import java.io.File
 import java.io.FileOutputStream
-import java.util.Calendar
 import java.util.Locale
 
 class Perfil : AppCompatActivity() {
@@ -187,8 +185,6 @@ class Perfil : AppCompatActivity() {
         imgAvatar.setOnClickListener {
             if (isEditing) pickImageLauncher.launch("image/*")
         }
-
-        // Bloqueado: la fecha de nacimiento no debe abrir el DatePicker para edición
     }
 
     private fun toggleChangePassword() {
@@ -249,11 +245,18 @@ class Perfil : AppCompatActivity() {
 
     private fun configurarDropdownParroquias() {
         val nombres = parroquiasList.map { it.nombre }
-        spParroquia.setAdapter(ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, nombres))
+        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, nombres)
+        spParroquia.setAdapter(adapter)
         spParroquia.threshold = 0
-        spParroquia.setOnClickListener { spParroquia.showDropDown() }
-        spParroquia.setOnItemClickListener { _, _, position, _ ->
-            parroquiasList.getOrNull(position)?.let { parroquiaSeleccionadaId = it.id }
+
+        spParroquia.setOnClickListener {
+            spParroquia.showDropDown()
+        }
+
+        spParroquia.setOnItemClickListener { parent, _, position, _ ->
+            val nombreSeleccionado = parent.getItemAtPosition(position).toString()
+            val parroquiaEncontrada = parroquiasList.find { it.nombre.equals(nombreSeleccionado, ignoreCase = true) }
+            parroquiaSeleccionadaId = parroquiaEncontrada?.id
         }
     }
 
@@ -334,13 +337,14 @@ class Perfil : AppCompatActivity() {
         etApellidoMaterno.setText(usuario.apellidoMaterno)
         etTelefono.setText(usuario.telefono)
 
-        // Mantener campo de fecha bloqueado/inmutable en la UI de edición al igual que el correo
         etFechaNacimiento.setText(usuario.fechaNacimiento)
         etFechaNacimiento.isEnabled = false
         etFechaNacimiento.isFocusable = false
 
         etDireccion.setText(usuario.direccion)
+
         parroquiaSeleccionadaId = usuario.idParroquia ?: usuario.parroquia?.id
+
         if (parroquiasList.isNotEmpty()) configurarDropdownParroquias()
         val nombreParroquiaActual = parroquiasList.find { it.id == parroquiaSeleccionadaId }?.nombre
             ?: usuario.nameParroquia.orEmpty()
@@ -406,8 +410,9 @@ class Perfil : AppCompatActivity() {
         val apellidoMaterno = etApellidoMaterno.text?.toString()?.trim().orEmpty()
         val telefono = etTelefono.text?.toString()?.trim().orEmpty()
         val direccion = etDireccion.text?.toString()?.trim().orEmpty()
-        // Mantener la fecha original existente ya que el campo está bloqueado para edición
-        val fechaNacimiento = usuarioActual?.fechaNacimiento.orEmpty()
+
+        // Si fechaNacimiento está vacía o en blanco, enviar null en lugar de ""
+        val fechaNacimiento = usuarioActual?.fechaNacimiento?.takeIf { it.isNotBlank() }
 
         var esValido = true
 
@@ -468,11 +473,13 @@ class Perfil : AppCompatActivity() {
             try {
                 val response = RetrofitClient.apiService.actualizarMiPerfil(authHeader, datosRequestBody, fotoPart)
                 if (response.isSuccessful && response.body() != null) {
-                    pintarUsuario(response.body()!!)
+                    val usuarioActualizado = response.body()!!
+                    pintarUsuario(usuarioActualizado)
                     desactivarModoEdicion()
                     Toast.makeText(this@Perfil, "¡Perfil actualizado correctamente!", Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(this@Perfil, "No se pudo actualizar (código ${response.code()})", Toast.LENGTH_LONG).show()
+                    val errorBody = response.errorBody()?.string() ?: "Sin detalles"
+                    Toast.makeText(this@Perfil, "Error ${response.code()}: $errorBody", Toast.LENGTH_LONG).show()
                 }
             } catch (e: Exception) {
                 Toast.makeText(this@Perfil, "Error de conexión: ${e.message}", Toast.LENGTH_LONG).show()
@@ -491,8 +498,8 @@ class Perfil : AppCompatActivity() {
         if (nuevaContrasena.isEmpty()) {
             etNuevaContrasena.error = "Ingresa la nueva contraseña"
             esValido = false
-        } else if (nuevaContrasena.length < 6) {
-            etNuevaContrasena.error = "La contraseña debe tener al menos 6 caracteres"
+        } else if (nuevaContrasena.length < 8) {
+            etNuevaContrasena.error = "La contraseña debe tener al menos 8 caracteres"
             esValido = false
         } else {
             etNuevaContrasena.error = null
