@@ -7,6 +7,7 @@ data class CuentaPorCobrarResponseDto(
     @SerializedName("montoTotal") val montoTotal: Double?,
     @SerializedName("saldoPendiente") val saldoPendiente: Double?,
     @SerializedName("fechaVencimiento") val fechaVencimiento: String?,
+    @SerializedName("fechaEmision", alternate = ["fechaEmisionFactura", "fechaCreacion"]) val fechaEmision: String? = null,
     @SerializedName("estado") val estado: String?,
     @SerializedName("numeroFactura") val numeroFactura: String?,
     @SerializedName("factura") val factura: FacturaDto?,
@@ -20,6 +21,7 @@ data class CuentaPorCobrarResponseDto(
 data class FacturaDto(
     @SerializedName("id") val id: Long?,
     @SerializedName("numeroFactura") val numeroFactura: String?,
+    @SerializedName("fechaEmision", alternate = ["fechaCreacion"]) val fechaEmision: String? = null,
     @SerializedName("cliente") val cliente: ClienteDto?
 )
 

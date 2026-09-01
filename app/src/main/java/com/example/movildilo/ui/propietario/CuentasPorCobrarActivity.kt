@@ -36,6 +36,7 @@ import com.example.movildilo.ui.adapters.HistorialAbonosAdapter
 import com.example.movildilo.ui.adapters.ProductosFacturaAdapter
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.datepicker.MaterialDatePicker // NUEVO IMPORT
+import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.launch
@@ -62,6 +63,7 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
     // --- NUEVAS VISTAS PARA FECHAS ---
     private lateinit var etRangoFechas: TextInputEditText
     private lateinit var btnLimpiarFechas: ImageButton
+    private lateinit var actvTipoFiltroFecha: MaterialAutoCompleteTextView
 
     private lateinit var rvCuentasGeneral: RecyclerView
     private lateinit var rvClientesDirectorio: RecyclerView
@@ -78,6 +80,10 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
     private var estadoFiltro: String = "TODAS"
     private var fechaDesdeSel: String = ""
     private var fechaHastaSel: String = ""
+
+    // "vencimiento" o "emision" -> a qué campo de fecha aplica el rango seleccionado
+    private var tipoFiltroFecha: String = "vencimiento"
+    private val opcionesFiltroFecha = listOf("Fecha de Vencimiento", "Fecha de Creación (Emisión)")
 
     private val calendar = Calendar.getInstance()
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
@@ -136,6 +142,11 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
 
         etRangoFechas = findViewById(R.id.etRangoFechas)
         btnLimpiarFechas = findViewById(R.id.btnLimpiarFechas)
+        actvTipoFiltroFecha = findViewById(R.id.actvTipoFiltroFecha)
+
+        val adapterTipoFecha = ArrayAdapter(this, android.R.layout.simple_list_item_1, opcionesFiltroFecha)
+        actvTipoFiltroFecha.setAdapter(adapterTipoFecha)
+        actvTipoFiltroFecha.setText(opcionesFiltroFecha[0], false)
 
         rvCuentasGeneral = findViewById(R.id.rvCuentasGeneral)
         rvClientesDirectorio = findViewById(R.id.rvClientesDirectorio)
@@ -193,11 +204,23 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
             btnLimpiarFechas.visibility = View.GONE
             aplicarFiltros()
         }
+
+        actvTipoFiltroFecha.setOnItemClickListener { _, _, position, _ ->
+            tipoFiltroFecha = if (position == 1) "emision" else "vencimiento"
+            fechaDesdeSel = ""
+            fechaHastaSel = ""
+            etRangoFechas.setText("")
+            etRangoFechas.hint = if (tipoFiltroFecha == "emision") "Filtrar por Emisión" else "Filtrar por Vencimiento"
+            btnLimpiarFechas.visibility = View.GONE
+
+            aplicarFiltros()
+        }
     }
 
     private fun abrirSelectorFechas() {
         val builder = MaterialDatePicker.Builder.dateRangePicker()
-        builder.setTitleText("Seleccionar rango de vencimiento")
+        val tituloCampo = if (tipoFiltroFecha == "emision") "de emisión" else "de vencimiento"
+        builder.setTitleText("Seleccionar rango $tituloCampo")
         val picker = builder.build()
 
         picker.addOnPositiveButtonClickListener { selection ->
@@ -418,8 +441,8 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
                     else -> true
                 }
 
-                // NOTA: Para las cuentas por cobrar, usamos el substring para comparar solo yyyy-MM-dd
-                val fechaSoloDia = if (vencimiento.length >= 10) vencimiento.substring(0, 10) else vencimiento
+                val fechaEvaluar = if (tipoFiltroFecha == "emision") obtenerFechaEmision(item) else vencimiento
+                val fechaSoloDia = if (fechaEvaluar.length >= 10) fechaEvaluar.substring(0, 10) else fechaEvaluar
 
                 val coincideFecha = if (fechaDesdeSel.isNotEmpty() && fechaHastaSel.isNotEmpty()) {
                     fechaSoloDia.isNotEmpty() && fechaSoloDia in fechaDesdeSel..fechaHastaSel
@@ -439,6 +462,10 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
             adapterClientes.actualizarLista(clientesFiltrados)
             layoutSinResultados.visibility = if (clientesFiltrados.isEmpty() && clientesAgrupados.isNotEmpty()) View.VISIBLE else View.GONE
         }
+    }
+
+    private fun obtenerFechaEmision(item: CuentaPorCobrarResponseDto): String {
+        return item.fechaEmision ?: item.factura?.fechaEmision ?: ""
     }
 
     private fun obtenerNombreCliente(item: CuentaPorCobrarResponseDto): String {
