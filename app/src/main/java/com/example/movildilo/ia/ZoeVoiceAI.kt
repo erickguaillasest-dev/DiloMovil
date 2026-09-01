@@ -14,6 +14,7 @@ import com.example.movildilo.utils.Constants
 data class ItemVozIA(
     val producto: String,
     val cantidad: Int?,
+    val descuento: Double? = null,
     val descuentoPorcentaje: Int? = null
 )
 
@@ -31,6 +32,7 @@ data class ResultadoVozFactura(
     val eliminarProducto: String? = null,
     val eliminarCantidad: Int? = null,
     val cambiarCantidad: CambioCantidadVozIA? = null,
+    val descuentoGlobal: Double? = null,
     val descuentoGlobalPorcentaje: Int? = null,
     val emitirFactura: Boolean = false,
     val vaciarCarrito: Boolean = false
@@ -168,10 +170,11 @@ object ZoeVoiceAI {
               "metodoPago": "EFECTIVO" | "TRANSFERENCIA" | "TARJETA_CREDITO" | null,
               "cuotas": numero_entero_o_null,
               "bodega": "nombre de bodega extraído, o null",
-              "items": [ { "producto": "nombre extraído", "cantidad": numero_entero_o_null, "descuentoPorcentaje": numero_entero_o_null } ],
+              "items": [ { "producto": "nombre extraído", "cantidad": numero_entero_o_null, "descuento": numero_decimal_o_null, "descuentoPorcentaje": numero_entero_o_null } ],
               "eliminarProducto": "nombre del producto a quitar del carrito, o null",
               "eliminarCantidad": numero_entero_o_null,
               "cambiarCantidad": { "producto": "nombre del producto YA agregado al carrito", "cantidad": numero_entero_final } o null,
+              "descuentoGlobal": numero_decimal_o_null,
               "descuentoGlobalPorcentaje": numero_entero_o_null,
               "emitirFactura": true o false,
               "vaciarCarrito": true o false
@@ -191,7 +194,7 @@ object ZoeVoiceAI {
             7. Si no menciona algún campo, ese campo va en null (o "items": [] si no menciona ningún producto).
             8. PRODUCTOS: solo agrega un producto a "items" si el usuario lo nombró explílicamente pidiendo agregarlo. Reconoce CUALQUIER verbo o frase que signifique "agregar al ticket/factura/carrito", entre otros: "agrégame", "agrega", "ponme", "pon en el ticket", "mete", "métele", "incluye", "carga", "anota", "manda", "quiero", "dame", "necesito", "sube" (ej. "ponme dos cocas", "agrégame una leche", "mete tres panes al ticket", "incluye una máscara", "quiero tres panes", "cambia a la bodega norte y agrégame dos panes"). NUNCA inventes ni supongas un producto que el usuario no mencionó. Cada frase se interpreta sola, solo con lo que esa frase dice. Si la frase solo da el cliente, la forma de pago, la bodega o una palabra de confirmación, "items" va vacío.
             8b. NOMBRE DEL PRODUCTO: en "producto" pon el nombre o palabra clave del producto tal como lo dijo el usuario, SIN el verbo ni palabras sueltas como "el", "la", "producto", "al ticket", "por favor" (ej. si dice "agrégame el producto máscara" pon "producto": "mascara", no "el producto mascara"). El usuario puede decir solo una PARTE del nombre real del producto (ej. dice "máscara" y el catálogo tiene "Zen Máscara Facial 50ml"): eso es válido y esperado, no hace falta que coincida exacto ni completo con la lista de Productos — el sistema se encarga de buscar la coincidencia más parecida.
-            9. DESCUENTOS: si el usuario pide un descuento para UN producto puntual (ej. "2 coca colas con 10% de descuento", "la leche con un 5 por ciento menos"), pon ese número entero (0-100, sin el símbolo %) en "descuentoPorcentaje" DENTRO de ese item. Si pide un descuento para TODA la factura o el ticket completo (ej. "aplícale un 15% de descuento a todo", "dale un 10 por ciento de descuento general"), pon ese número entero en "descuentoGlobalPorcentaje" (a nivel raíz, no dentro de items). Si no menciona ningún descuento, ambos van in null.
+            9. DESCUENTOS: si el usuario pide un descuento PORCENTUAL para UN producto puntual (ej. "2 coca colas con 10% de descuento", "la leche con un 5 por ciento menos"), pon ese número entero (0-100, sin el símbolo %) en "descuentoPorcentaje" DENTRO de ese item. Si el usuario da un descuento en DÓLARES/MONTO fijo para un producto puntual (ej. "el pan con 2 dólares de descuento", "descuéntale 1.50 a la leche"), pon ese número decimal en "descuento" DENTRO de ese item (nunca ambos a la vez para el mismo item). Si pide un descuento para TODA la factura o el ticket completo en porcentaje (ej. "aplícale un 15% de descuento a todo", "dale un 10 por ciento de descuento general"), pon ese número entero en "descuentoGlobalPorcentaje" (a nivel raíz, no dentro de items). Si el descuento a toda la factura es en DÓLARES/MONTO fijo (ej. "descuéntale 5 dólares a toda la factura"), pon ese número decimal en "descuentoGlobal" (a nivel raíz). Si no menciona ningún descuento, todos esos campos van en null.
             10. NO devuelvas texto fuera del JSON. No expliques nada. No uses ```.
             11. Si pide vaciar todo el ticket o borrar todos los productos (ej. "borra todo", "elimina los productos del ticket", "vaciar carrito", "limpiar ticket"), pon "vaciarCarrito": true.
             12. BODEGA: si el usuario pide cambiar de bodega/almacén (ej. "cambia a la bodega norte", "usa la bodega centro", "de la bodega dos"), extrae el nombre en "bodega" aunque no agregue ningún producto en esa misma frase.
@@ -315,8 +318,12 @@ object ZoeVoiceAI {
             }
         }
 
-        val descuentoGlobal = if (f.contains("descuento") && (f.contains("todo") || f.contains("general") || f.contains("factura") || f.contains("ticket"))) {
+        val descuentoGlobalPct = if (f.contains("descuento") && (f.contains("todo") || f.contains("general") || f.contains("factura") || f.contains("ticket"))) {
             Regex("(\\d+)\\s*(%|por ciento)").find(f)?.groupValues?.get(1)?.toIntOrNull()
+        } else null
+
+        val descuentoGlobalMonto = if (descuentoGlobalPct == null && f.contains("descuento") && (f.contains("todo") || f.contains("general") || f.contains("factura") || f.contains("ticket"))) {
+            Regex("(\\d+(?:[.,]\\d+)?)\\s*(dolares|dolar|d[oó]lares|d[oó]lar|usd|\\$)").find(f)?.groupValues?.get(1)?.replace(",", ".")?.toDoubleOrNull()
         } else null
 
         val palabrasEmitir = listOf("emite", "emitir", "guarda la factura", "guardar factura", "cobra ya", "factura ya")
@@ -333,7 +340,8 @@ object ZoeVoiceAI {
             eliminarProducto = eliminarProducto,
             eliminarCantidad = eliminarCantidad,
             cambiarCantidad = cambiarCantidad,
-            descuentoGlobalPorcentaje = descuentoGlobal,
+            descuentoGlobal = descuentoGlobalMonto,
+            descuentoGlobalPorcentaje = descuentoGlobalPct,
             emitirFactura = emitirFactura,
             vaciarCarrito = vaciarCarrito
         )
@@ -342,7 +350,7 @@ object ZoeVoiceAI {
     fun estaVacio(r: ResultadoVozFactura): Boolean {
         return r.cliente == null && r.metodoPago == null && r.cuotas == null && r.bodega == null &&
                 r.items.isEmpty() && r.eliminarProducto == null && r.cambiarCantidad == null &&
-                r.descuentoGlobalPorcentaje == null && !r.emitirFactura && !r.vaciarCarrito
+                r.descuentoGlobal == null && r.descuentoGlobalPorcentaje == null && !r.emitirFactura && !r.vaciarCarrito
     }
 
     private fun parsearRespuesta(contenidoCrudo: String): ResultadoVozFactura? {
@@ -364,7 +372,9 @@ object ZoeVoiceAI {
                     val cantidad = if (itemObj.isNull("cantidad")) null else itemObj.optInt("cantidad", 1)
                     val descuentoItem = if (itemObj.isNull("descuentoPorcentaje")) null
                     else itemObj.optInt("descuentoPorcentaje", -1).takeIf { it in 0..100 }
-                    if (nombreProd != null) items.add(ItemVozIA(nombreProd, cantidad, descuentoItem))
+                    val descuentoMontoItem = if (itemObj.isNull("descuento")) null
+                    else itemObj.optDouble("descuento", -1.0).takeIf { it >= 0.0 && !it.isNaN() }
+                    if (nombreProd != null) items.add(ItemVozIA(nombreProd, cantidad, descuentoMontoItem, descuentoItem))
                 }
             }
 
@@ -387,6 +397,8 @@ object ZoeVoiceAI {
                 eliminarProducto = campoTexto("eliminarProducto"),
                 eliminarCantidad = if (obj.isNull("eliminarCantidad")) null else obj.optInt("eliminarCantidad", -1).takeIf { it > 0 },
                 cambiarCantidad = cambiarCantidad,
+                descuentoGlobal = if (obj.isNull("descuentoGlobal")) null
+                else obj.optDouble("descuentoGlobal", -1.0).takeIf { it >= 0.0 && !it.isNaN() },
                 descuentoGlobalPorcentaje = if (obj.isNull("descuentoGlobalPorcentaje")) null
                 else obj.optInt("descuentoGlobalPorcentaje", -1).takeIf { it in 0..100 },
                 emitirFactura = obj.optBoolean("emitirFactura", false),

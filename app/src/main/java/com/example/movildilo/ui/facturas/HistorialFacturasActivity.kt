@@ -855,7 +855,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
 
         if ((facturaClienteId == null && !facturaEsConsumidorFinal) || carritoTemporal.isEmpty()) {
             if (confirmadaPorVoz) {
-                avanzarPaso(VoiceStep.ESCUCHANDO, "Todavía faltan datos: cliente o productos. ¿Qué agregamos?")
+                avanzarPaso(VoiceStep.ESCUCHANDO, "Che, todavía faltan datos: cliente o productos. ¿Qué agregamos?")
             } else {
                 Toast.makeText(this, "Faltan datos para emitir la factura (cliente y/o productos).", Toast.LENGTH_SHORT).show()
             }
@@ -865,14 +865,14 @@ class HistorialFacturasActivity : AppCompatActivity() {
         if (facturaMetodoPago == "TARJETA_CREDITO" && !permiteTarjetaCredito()) {
             bloquearTarjetaSiConsumidorFinal(avisar = !confirmadaPorVoz)
             if (confirmadaPorVoz) {
-                avanzarPaso(VoiceStep.ESCUCHANDO, "Con Consumidor Final no se puede pagar con tarjeta. Cambié el pago a efectivo. ¿Qué más hacemos?")
+                avanzarPaso(VoiceStep.ESCUCHANDO, "Con Consumidor Final no se puede pagar con tarjeta, cambié el pago a efectivo. ¿Qué más hacemos?")
             }
             return
         }
 
         if (facturaMetodoPago == "TARJETA_CREDITO" && facturaCuotas <= 0) {
             if (confirmadaPorVoz) {
-                avanzarPaso(VoiceStep.ESCUCHANDO, "Falta elegir las cuotas de la tarjeta. ¿En cuántas cuotas?")
+                avanzarPaso(VoiceStep.ESCUCHANDO, "Falta elegir las cuotas de la tarjeta. ¿En cuántas cuotas, che?")
             } else {
                 etCuotasRef?.error = "Ingresa las cuotas"
                 Toast.makeText(this, "Selecciona en cuántas cuotas se paga con la tarjeta.", Toast.LENGTH_LONG).show()
@@ -976,21 +976,21 @@ class HistorialFacturasActivity : AppCompatActivity() {
     private fun calcularPasoYMensaje(): Pair<VoiceStep, String> {
         return when {
             facturaClienteId == null && !facturaEsConsumidorFinal ->
-                VoiceStep.ESCUCHANDO to "¡Hola! ¿A quién le facturamos?"
+                VoiceStep.ESCUCHANDO to "¡Dale! ¿A quién le facturamos?"
 
             !metodoPagoConfirmadoPorVoz ->
-                VoiceStep.ESCUCHANDO to "Cliente listo. ¿Con qué método de pago cancela? Efectivo, transferencia o tarjeta."
+                VoiceStep.ESCUCHANDO to "Cliente listo, che. ¿Con qué método de pago cancela? Efectivo, transferencia o tarjeta."
 
             facturaMetodoPago == "TARJETA_CREDITO" && facturaCuotas <= 0 ->
-                VoiceStep.ESCUCHANDO to "¿En cuántas cuotas?"
+                VoiceStep.ESCUCHANDO to "¿En cuántas cuotas, che?"
 
             carritoTemporal.isEmpty() ->
-                VoiceStep.ESCUCHANDO to "El ticket está vacío. ¿Qué producto agregamos?"
+                VoiceStep.ESCUCHANDO to "El ticket está vacío. ¿Qué producto le metemos?"
 
             else -> {
                 val totalFinal = calcularTotalesCarrito().total
                 val totalFmt = String.format(Locale.US, "%.2f", totalFinal)
-                VoiceStep.CONFIRMAR to "El precio total a cobrar con el descuento aplicado es de $totalFmt dólares. ¿Deseas emitir la factura o agregar algo más?"
+                VoiceStep.CONFIRMAR to "El total a cobrar con el descuento aplicado es de $totalFmt dólares. ¿Emitimos la factura o le agregamos algo más?"
             }
         }
     }
@@ -1262,6 +1262,28 @@ class HistorialFacturasActivity : AppCompatActivity() {
         hablar(mensaje) { escucharVoz() }
     }
 
+    /** Frases cortas SOLO de emitir (igual que esSoloEmitirCorto de la web): evita el viaje a la IA. */
+    private fun esSoloEmitirCorto(texto: String): Boolean {
+        val t = texto.trim()
+        if (t.isEmpty()) return false
+        val exactas = listOf(
+            "emite", "emitir", "cobra", "cobrar", "emite ya", "emitir ya", "cobra ya", "cobrar ya",
+            "factura ya", "emite la factura", "emitir la factura", "cobra la factura",
+            "guarda la factura", "guardar la factura", "genera la factura", "generar la factura",
+            "listo emite", "listo emitir", "si emite", "si emitir", "si cobra",
+            "emite por favor", "emitir por favor", "cobra por favor"
+        )
+        if (exactas.any { t == it || t == "$it por favor" || t == "$it gracias" }) return true
+        val palabras = t.split(Regex("\\s+"))
+        if (palabras.size <= 6) {
+            val tieneEmit = Regex("\\b(emite|emitir|cobra|cobrar)\\b").containsMatchIn(t) ||
+                    Regex("\\b(guarda|guardar|genera|generar)\\s+(la\\s+)?factura\\b").containsMatchIn(t)
+            val tieneExtra = Regex("\\b(agrega|agregar|pon|poner|cliente|producto|tarjeta|cuotas?|descuento|quita|elimina)\\b").containsMatchIn(t)
+            if (tieneEmit && !tieneExtra) return true
+        }
+        return false
+    }
+
     private fun procesarComandoVoz(transcriptOriginal: String) {
         val transcript = limpiarTexto(transcriptOriginal)
 
@@ -1282,7 +1304,7 @@ class HistorialFacturasActivity : AppCompatActivity() {
             } else {
                 val (paso, mensaje) = calcularPasoYMensaje()
                 voiceState = paso
-                hablar("Entendido, mantenemos los productos. $mensaje") { escucharVoz() }
+                hablar("Bárbaro, mantenemos los productos. $mensaje") { escucharVoz() }
             }
             return
         }
@@ -1294,6 +1316,12 @@ class HistorialFacturasActivity : AppCompatActivity() {
             return
         }
 
+        // Igual que la web: si es solo un "emite"/"cobra" corto y sin más datos, no llamamos a la IA.
+        if (voiceState != VoiceStep.CONFIRMAR && esSoloEmitirCorto(transcript)) {
+            emitirFactura(confirmadaPorVoz = true)
+            return
+        }
+
         val palabrasEmitir = listOf("emite", "emitir", "factura ya", "cobra ya", "guarda la factura", "guardar factura", "todo bien", "listo", "cobra", "cobrar", "ya esta", "ya está", "nada mas", "nada más")
         val quiereEmitirPalabra = palabrasEmitir.any { transcript.contains(it) }
 
@@ -1301,13 +1329,13 @@ class HistorialFacturasActivity : AppCompatActivity() {
             if (esRespuestaAfirmativa(transcript) || quiereEmitirPalabra) {
                 voiceState = VoiceStep.OFF
                 val totalFinal = calcularTotalesCarrito().total
-                hablar("¡Listo! Emitiendo factura por un total de ${String.format(Locale.US, "%.2f", totalFinal)} dólares.")
+                hablar("¡Dale! Emitiendo la factura por un total de ${String.format(Locale.US, "%.2f", totalFinal)} dólares.")
                 voiceHandler.postDelayed({ emitirFactura(confirmadaPorVoz = true) }, 800)
                 return
             }
             if (esRespuestaNegativa(transcript)) {
                 voiceState = VoiceStep.ESCUCHANDO
-                hablar("De acuerdo, no emitimos aún. ¿Qué deseas cambiar o agregar?") { escucharVoz() }
+                hablar("De una, no emitimos todavía. ¿Qué querés cambiar o agregar?") { escucharVoz() }
                 return
             }
         }
@@ -1450,6 +1478,12 @@ class HistorialFacturasActivity : AppCompatActivity() {
     }
 
     private fun aplicarResultadoIA(datos: ResultadoVozFactura, quiereEmitirPalabra: Boolean, fraseOriginal: String = "") {
+        if (datos.vaciarCarrito && carritoTemporal.isNotEmpty()) {
+            voiceState = VoiceStep.CONFIRMAR_VACIAR_CARRITO
+            hablar("¿Estás seguro de que deseas vaciar el ticket actual?") { escucharVoz() }
+            return
+        }
+
         val itemsUnicos = datos.items
             .filter { !it.producto.isNullOrBlank() }
             .distinctBy { limpiarTexto(it.producto) }
@@ -1561,6 +1595,17 @@ class HistorialFacturasActivity : AppCompatActivity() {
             etDescuentoGlobalRef?.setText(pct.toString())
             alertas.add("apliqué $pct% de descuento global")
         }
+        if (datos.descuentoGlobalPorcentaje == null) {
+            datos.descuentoGlobal?.takeIf { it > 0.0 }?.let { monto ->
+                val subtotalActual = calcularTotalesCarrito().subtotalBruto
+                if (subtotalActual > 0.0) {
+                    val pctEquivalente = ((monto / subtotalActual) * 100.0).coerceIn(0.0, 100.0)
+                    facturaDescuentoGlobalPorcentaje = pctEquivalente
+                    etDescuentoGlobalRef?.setText(String.format(Locale.US, "%.2f", pctEquivalente))
+                    alertas.add("apliqué $${String.format(Locale.US, "%.2f", monto)} de descuento a toda la factura")
+                }
+            }
+        }
 
         var bodegaIdActual = pendingBodegaId
         if (datos.bodega != null && bodegasList.isNotEmpty()) {
@@ -1624,7 +1669,12 @@ class HistorialFacturasActivity : AppCompatActivity() {
                                 cantidadFinal = stockActual
                                 alertas.add("solo puse $cantidadFinal de ${producto.nombre} por stock limitado")
                             }
-                            val descuentoItemPct = item.descuentoPorcentaje?.toDouble()?.coerceIn(0.0, 100.0) ?: 0.0
+                            val precioUnitItem = obtenerPrecioFactura(producto)
+                            val descuentoItemPct = item.descuentoPorcentaje?.toDouble()?.coerceIn(0.0, 100.0)
+                                ?: item.descuento?.takeIf { it > 0.0 }?.let { monto ->
+                                    val subtotalLinea = precioUnitItem * cantidadFinal
+                                    if (subtotalLinea > 0) ((monto / subtotalLinea) * 100.0).coerceIn(0.0, 100.0) else 0.0
+                                } ?: 0.0
                             agregarProductoAlCarrito(producto, cantidadFinal, bodegaParaEsteItem, descuentoItemPct)
                             algoAgregado = true
                         }

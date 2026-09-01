@@ -116,11 +116,7 @@ class ZoeBottomSheetDialog(
         actualizarEstadoVoz()
 
         if (listaChatUi.isEmpty()) {
-            val bienvenida = "¡Hola! Soy **Zoe**. Contame, $usuarioNombre, ¿qué revisamos hoy de **$negocioNombre**?\n\n" +
-                    "* **Consultar datos:** ventas, inventario o alertas.\n" +
-                    "* **Acciones rápidas:** decime *\"crea un producto\"*.\n" +
-                    "* **Navegación:** decime *\"llévame a mis bodegas\"*.\n" +
-                    "* **Guía interactiva:** decime *\"guíame\"*."
+            val bienvenida = "¡Hola! Soy **Zoe**. Cuentame, $usuarioNombre, ¿qué revisamos hoy?"
             agregarMensajeUi("assistant", bienvenida, null)
         } else {
             rvChatMensajes.scrollToPosition(listaChatUi.size - 1)
@@ -338,16 +334,25 @@ class ZoeBottomSheetDialog(
                 when (response.code()) {
                     429 -> {
                         escuchaContinuaActiva = false
-                        agregarMensajeUi("assistant", "Espera unos segundos, me estás hablando muy rápido.", "Espera unos segundos, me estás hablando muy rápido.")
+                        val msj = "Bancame un segundito, corazón. Me estás hablando muy rápido, dame un respiro y volvé a hablarme en un ratito."
+                        agregarMensajeUi("assistant", msj, msj)
                     }
-                    400, 413 -> agregarMensajeUi("assistant", "Veníamos hablando tanto que se me llenó la cabeza. ¿Puedes repetirlo más corto?", "Veníamos hablando tanto que se me llenó la cabeza. ¿Puedes repetirlo más corto?")
-                    else -> agregarMensajeUi("assistant", "Tuve un problema para responder. Intenta de nuevo en un momento.", "Tuve un problema para responder. Intenta de nuevo en un momento.")
+                    400, 413 -> {
+                        val msj = "Uy corazón, veníamos hablando tanto que se me llenó la cabeza jaja. ¿Podés repetirme más cortito?"
+                        agregarMensajeUi("assistant", msj, msj)
+                    }
+                    else -> {
+                        val msj = "Perdoname, parece que hay un problemita con internet."
+                        agregarMensajeUi("assistant", msj, msj)
+                    }
                 }
             }
         } catch (e: Exception) {
             withContext(Dispatchers.Main) {
                 btnEnviarMensaje.isEnabled = true
-                if (escuchaContinuaActiva && isAdded) rvChatMensajes.postDelayed({ cicloEscuchaContinua() }, 1000)
+                if (!isAdded) return@withContext
+                val msj = "Perdoname, parece que hay un problemita con internet."
+                agregarMensajeUi("assistant", msj, msj)
             }
         }
     }
