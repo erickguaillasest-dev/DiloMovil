@@ -129,6 +129,39 @@ class ZoeSpeechHelper(private val context: Context) {
 
     fun listoParaHablar(): Boolean = ttsListo
 
+    /**
+     * Parte el texto en frases cortas (misma lógica que dividirEnFrases en la web):
+     * protege los números decimales para que el punto no corte la cifra a la mitad,
+     * y agrupa oraciones hasta ~180 caracteres por trozo. Esto evita superar el límite
+     * de caracteres del motor de TextToSpeech en respuestas largas, y permite detectar
+     * con precisión cuándo terminó de hablar TODO el texto (no solo el primer trozo).
+     */
+    private fun dividirEnFrases(texto: String): List<String> {
+        val marcadorDecimal = "§DEC§"
+        val textoProtegido = texto.replace(Regex("(\\d)\\.(\\d)"), "$1${marcadorDecimal}$2")
+
+        val frases = Regex("[^.!?…]+[.!?…]*(\\s|$)").findAll(textoProtegido)
+            .map { it.value }.toList()
+            .ifEmpty { listOf(textoProtegido) }
+
+        val trozos = mutableListOf<String>()
+        var actual = ""
+        for (fraseCruda in frases) {
+            val frase = fraseCruda.trim()
+            if (frase.isEmpty()) continue
+            if ((actual + " " + frase).trim().length > 180) {
+                if (actual.isNotEmpty()) trozos.add(actual.trim())
+                actual = frase
+            } else {
+                actual = if (actual.isEmpty()) frase else "$actual $frase"
+            }
+        }
+        if (actual.isNotEmpty()) trozos.add(actual.trim())
+
+        val trozosFinales = trozos.ifEmpty { listOf(textoProtegido) }
+        return trozosFinales.map { it.replace(marcadorDecimal, ".") }
+    }
+
     fun hablar(texto: String, alTerminar: (() -> Unit)? = null) {
         // Bloqueo estricto del micrófono antes de comenzar a hablar para no escucharse a sí misma.
         detenerEscucha()
@@ -153,44 +186,61 @@ class ZoeSpeechHelper(private val context: Context) {
             return
         }
 
-        val utteranceId = "zoe_${System.currentTimeMillis()}"
-        tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-            override fun onStart(utteranceId: String?) {}
-            override fun onDone(utteranceId: String?) {
+        val frases = dividirEnFrases(limpio)
+        var completadas = 0
+        val idBase = "zoe_${System.currentTimeMillis()}"
+
+        fun marcarCompletada() {
+            completadas++
+            if (completadas >= frases.size) {
                 // Genera un delay real antes de reactivar el mic, asegurando que el altavoz se detuvo
                 manejadorPrincipal.postDelayed({ alTerminar?.invoke() }, 600)
             }
+        }
+
+        tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) {}
+            override fun onDone(utteranceId: String?) { marcarCompletada() }
             @Deprecated("Deprecated in Java")
-            override fun onError(utteranceId: String?) {
-                manejadorPrincipal.postDelayed({ alTerminar?.invoke() }, 600)
-            }
+            override fun onError(utteranceId: String?) { marcarCompletada() }
         })
-        tts.speak(limpio, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
+
+        frases.forEachIndexed { index, frase ->
+            val modoEncolado = if (index == 0) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD
+            tts.speak(frase, modoEncolado, null, "${idBase}_$index")
+        }
     }
 
     fun detenerHabla() {
         textToSpeech?.stop()
     }
 
-    fun escuchar(onResultado: (String) -> Unit, onError: (String) -> Unit, onEmpezoAEscuchar: (() -> Unit)? = null) {
+    fun escuchar(
+        onResultado: (String) -> Unit,
+        onError: (mensaje: String, codigoError: Int) -> Unit,
+        onEmpezoAEscuchar: (() -> Unit)? = null,
+        onParcial: ((String) -> Unit)? = null
+    ) {
         detenerHabla()
 
         if (!SpeechRecognizer.isRecognitionAvailable(context)) {
-            onError("El reconocimiento de voz no está disponible.")
+            onError("El reconocimiento de voz no está disponible.", SpeechRecognizer.ERROR_CLIENT)
             return
         }
         try {
             speechRecognizer?.destroy()
             speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context)
         } catch (_: Exception) {
-            onError("No se pudo iniciar el micrófono.")
+            onError("No se pudo iniciar el micrófono.", SpeechRecognizer.ERROR_CLIENT)
             return
         }
 
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, "es-AR")
-            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
+            // Habilitado para poder mostrar en pantalla lo que se va transcribiendo en vivo,
+            // igual que hace la versión web con interimResults.
+            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 15000L)
             putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 8000L)
             putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 6000L)
@@ -202,19 +252,30 @@ class ZoeSpeechHelper(private val context: Context) {
             override fun onRmsChanged(rmsdB: Float) {}
             override fun onBufferReceived(buffer: ByteArray?) {}
             override fun onEndOfSpeech() {}
-            override fun onError(error: Int) { onError("No te escuché bien, che. ¿Repetís?") }
+            override fun onError(error: Int) {
+                // Distinguimos el permiso denegado de un error recuperable (sin esto, un
+                // ciclo de "escucha continua" reintentaría en loop aunque el permiso esté negado).
+                val mensaje = if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS)
+                    "Necesito permiso de micrófono para poder escucharte."
+                else
+                    "No te escuché bien, che. ¿Repetís?"
+                onError(mensaje, error)
+            }
             override fun onResults(results: Bundle?) {
                 val texto = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.trim()
-                if (texto.isNullOrBlank()) onError("No entendí, che.") else onResultado(texto)
+                if (texto.isNullOrBlank()) onError("No entendí, che.", SpeechRecognizer.ERROR_NO_MATCH) else onResultado(texto)
             }
-            override fun onPartialResults(partialResults: Bundle?) {}
+            override fun onPartialResults(partialResults: Bundle?) {
+                val parcial = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
+                if (!parcial.isNullOrBlank()) onParcial?.invoke(parcial)
+            }
             override fun onEvent(eventType: Int, params: Bundle?) {}
         })
 
         try {
             speechRecognizer?.startListening(intent)
         } catch (_: Exception) {
-            onError("Error al iniciar el micrófono.")
+            onError("Error al iniciar el micrófono.", SpeechRecognizer.ERROR_CLIENT)
         }
     }
 

@@ -3,9 +3,13 @@ package com.example.movildilo.ui.propietario
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.util.TypedValue
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
+import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -49,6 +53,7 @@ class ConfiguracionNegocioActivity : AppCompatActivity() {
     private lateinit var spinnerMetodoCosteo: AutoCompleteTextView
     private lateinit var cbObligadoContabilidad: MaterialCheckBox
     private lateinit var btnGuardarConfiguracion: MaterialButton
+    private lateinit var btnEliminarNegocio: MaterialButton
     private lateinit var layoutLoading: View
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
 
@@ -144,6 +149,7 @@ class ConfiguracionNegocioActivity : AppCompatActivity() {
         spinnerMetodoCosteo = findViewById(R.id.spinnerMetodoCosteo)
         cbObligadoContabilidad = findViewById(R.id.cbObligadoContabilidad)
         btnGuardarConfiguracion = findViewById(R.id.btnGuardarConfiguracion)
+        btnEliminarNegocio = findViewById(R.id.btnEliminarNegocio)
         layoutLoading = findViewById(R.id.layoutLoading)
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout)
     }
@@ -160,6 +166,7 @@ class ConfiguracionNegocioActivity : AppCompatActivity() {
         }
         btnSubirLogo.setOnClickListener { mostrarOpcionesFoto() }
         btnGuardarConfiguracion.setOnClickListener { guardarCambios() }
+        btnEliminarNegocio.setOnClickListener { confirmarEliminarNegocio() }
 
         swipeRefreshLayout.setOnRefreshListener {
             if (negocioId != -1L) {
@@ -417,5 +424,121 @@ class ConfiguracionNegocioActivity : AppCompatActivity() {
             }
             .setCancelable(false)
             .show()
+    }
+
+    // ---------------------------------------------------------------
+    // ZONA DE PELIGRO: eliminar negocio (triple confirmación, igual que la web)
+    // ---------------------------------------------------------------
+
+    private fun dp(valor: Int): Int =
+        TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, valor.toFloat(), resources.displayMetrics).toInt()
+
+    private fun confirmarEliminarNegocio() {
+        if (negocioId == -1L) return
+
+        // Advertencia 1: confirmación normal
+        MaterialAlertDialogBuilder(this)
+            .setTitle("¿Estás absolutamente seguro?")
+            .setMessage("Esta acción eliminará TODO el negocio. Se perderán productos, ventas y configuración. ¡NO se puede deshacer!")
+            .setIcon(android.R.drawable.ic_dialog_alert)
+            .setNegativeButton("Cancelar", null)
+            .setPositiveButton("Sí, eliminar negocio") { _, _ -> mostrarUltimaAdvertencia() }
+            .show()
+    }
+
+    private fun mostrarUltimaAdvertencia() {
+        // Advertencia 2: doble check de seguridad
+        MaterialAlertDialogBuilder(this)
+            .setTitle("¡ÚLTIMA ADVERTENCIA!")
+            .setMessage("Estás a punto de borrar los datos de tu empresa para siempre. ¿Realmente quieres continuar?")
+            .setIcon(android.R.drawable.ic_dialog_alert)
+            .setNegativeButton("Me arrepentí", null)
+            .setPositiveButton("SÍ, ESTOY SEGURO") { _, _ -> pedirConfirmacionEscrita() }
+            .show()
+    }
+
+    private fun pedirConfirmacionEscrita() {
+        // Advertencia 3: validación por texto, el usuario debe escribir "ELIMINAR"
+        val input = EditText(this).apply {
+            hint = "Escribe ELIMINAR aquí..."
+        }
+        val contenedor = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(dp(24), dp(8), dp(24), dp(0))
+            addView(input)
+        }
+
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setTitle("Confirmación manual requerida")
+            .setMessage("Escribe la palabra ELIMINAR para confirmar la destrucción total del negocio.")
+            .setView(contenedor)
+            .setNegativeButton("Cancelar", null)
+            .setPositiveButton("Confirmar", null)
+            .create()
+
+        dialog.setOnShowListener {
+            val btnPositivo = dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE)
+            btnPositivo.isEnabled = false
+
+            input.addTextChangedListener(object : TextWatcher {
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                    btnPositivo.isEnabled = s?.toString() == "ELIMINAR"
+                }
+                override fun afterTextChanged(s: Editable?) {}
+            })
+
+            btnPositivo.setOnClickListener {
+                if (input.text.toString() == "ELIMINAR") {
+                    dialog.dismiss()
+                    ejecutarEliminacionNegocio()
+                }
+            }
+        }
+        dialog.show()
+    }
+
+    private fun ejecutarEliminacionNegocio() {
+        val authHeader = sessionManager.getAuthHeader() ?: run {
+            Toast.makeText(this, "Sesión no válida.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val dialogCargando = MaterialAlertDialogBuilder(this)
+            .setTitle("Destruyendo negocio...")
+            .setMessage("Por favor espera...")
+            .setCancelable(false)
+            .show()
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val response = RetrofitClient.apiService.eliminarNegocio(authHeader, negocioId)
+                withContext(Dispatchers.Main) {
+                    dialogCargando.dismiss()
+                    if (response.isSuccessful) {
+                        MaterialAlertDialogBuilder(this@ConfiguracionNegocioActivity)
+                            .setTitle("¡Negocio Eliminado!")
+                            .setMessage("Tu negocio ha sido eliminado para siempre. Cerrando sesión...")
+                            .setCancelable(false)
+                            .setPositiveButton("Aceptar") { _, _ ->
+                                sessionManager.clearSession()
+                                finish()
+                            }
+                            .show()
+                    } else {
+                        MaterialAlertDialogBuilder(this@ConfiguracionNegocioActivity)
+                            .setTitle("Acceso Denegado")
+                            .setMessage("No se pudo eliminar. Asegúrate de ser el PROPIETARIO del negocio.")
+                            .setPositiveButton("Aceptar", null)
+                            .show()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    dialogCargando.dismiss()
+                    Toast.makeText(this@ConfiguracionNegocioActivity, "Error de red: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
 }

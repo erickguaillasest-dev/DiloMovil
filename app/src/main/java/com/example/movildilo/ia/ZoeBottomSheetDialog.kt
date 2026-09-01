@@ -278,9 +278,33 @@ class ZoeBottomSheetDialog(
     private fun cicloEscuchaContinua() {
         if (!escuchaContinuaActiva || !isAdded || !datosCargados) return
         voz.escuchar(
-            onResultado = { if (isAdded) procesarMensajeUsuario(it) },
-            onError = { if (isAdded && escuchaContinuaActiva) rvChatMensajes.postDelayed({ cicloEscuchaContinua() }, 800) },
-            onEmpezoAEscuchar = { actualizarIconoMic() }
+            onResultado = {
+                if (isAdded) {
+                    etMensajeChat.setText("")
+                    procesarMensajeUsuario(it)
+                }
+            },
+            onError = { mensaje, codigoError ->
+                if (codigoError == android.speech.SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
+                    // No tiene sentido seguir reintentando en loop si el permiso fue denegado.
+                    escuchaContinuaActiva = false
+                    actualizarIconoMic()
+                    if (isAdded) Toast.makeText(requireContext(), mensaje, Toast.LENGTH_LONG).show()
+                } else if (isAdded && escuchaContinuaActiva) {
+                    rvChatMensajes.postDelayed({ cicloEscuchaContinua() }, 800)
+                }
+            },
+            onEmpezoAEscuchar = {
+                etMensajeChat.setText("")
+                actualizarIconoMic()
+            },
+            onParcial = { texto ->
+                // Transcripción en vivo, igual que transcriptEnVivo$ en la web.
+                if (isAdded) {
+                    etMensajeChat.setText(texto)
+                    etMensajeChat.setSelection(texto.length)
+                }
+            }
         )
     }
 

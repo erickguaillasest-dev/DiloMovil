@@ -182,10 +182,13 @@ object ZoeOnboardingManager {
                 procesarComandoDeGuia(activity, texto)
                 if (activa) escucharComandosDeLaGuia(activity)
             },
-            onError = { _ ->
+            onError = { _, codigoError ->
                 escuchandoManualmente = false
                 ZoeGuideOverlay.ocultarEscuchando()
-                if (activa) escucharComandosDeLaGuia(activity)
+                // Si el permiso de micrófono fue denegado no tiene sentido reintentar en loop.
+                if (activa && codigoError != android.speech.SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
+                    escucharComandosDeLaGuia(activity)
+                }
             }
         )
     }

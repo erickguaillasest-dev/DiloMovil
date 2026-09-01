@@ -67,7 +67,7 @@ class ChatAdapter(
 
     private fun parseMarkdown(text: String): Spanned {
         val htmlFormatted = text
-            .replace(Regex("\\*\\*(.*?)\\*\\*"), "<b>$1</b>")
+            .replace(Regex("\\*\\*(.*?)\\*\\*"), "<font color=\"#EA580C\"><b>$1</b></font>")
             .replace("\n", "<br/>")
 
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
