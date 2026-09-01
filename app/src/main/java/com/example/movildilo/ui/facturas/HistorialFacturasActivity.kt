@@ -42,6 +42,7 @@ import com.example.movildilo.R
 import com.example.movildilo.ai.ResultadoVozFactura
 import com.example.movildilo.ai.ZoeVoiceAI
 import com.example.movildilo.data.api.RetrofitClient
+import com.example.movildilo.data.local.DataCache
 import com.example.movildilo.data.local.SessionManager
 import com.example.movildilo.data.model.dto.inventario.BodegaDto
 import com.example.movildilo.data.model.dto.usuarios.ClienteResponseDto
@@ -297,10 +298,6 @@ class HistorialFacturasActivity : AppCompatActivity() {
 
     // CARGA OPTIMIZADA: Filtra de manera local por el mes actual para evitar sobrecarga de memoria
     private fun cargarDatosSimultaneos() {
-        layoutLoading.visibility = View.VISIBLE
-        layoutVacio.visibility = View.GONE
-        rvFacturas.visibility = View.GONE
-
         val authHeader = sessionManager.getAuthHeader()
         if (authHeader == null) {
             layoutLoading.visibility = View.GONE
@@ -308,67 +305,80 @@ class HistorialFacturasActivity : AppCompatActivity() {
             return
         }
 
+        val calendar = Calendar.getInstance()
+        val currentYear = calendar.get(Calendar.YEAR)
+        val currentMonth = calendar.get(Calendar.MONTH) + 1
+        val mesActualStr = String.format(Locale.US, "%04d-%02d", currentYear, currentMonth)
+
+        // CACHÉ LOCAL: el endpoint de facturas es lento en el backend (a más facturas,
+        // más tarda), y eso no lo podemos cambiar desde la app. Lo que sí podemos hacer es
+        // pintar de una vez lo último que se guardó la vez anterior, para que la pantalla
+        // nunca se vea vacía mientras esperamos al servidor. Si no hay nada en caché
+        // (primera vez que se abre la pantalla), sí mostramos el spinner de carga.
+        val cache = DataCache(this)
+        val cacheKey = DataCache.keyFacturas(negocioId)
+        val facturasCacheadas = cache.obtenerLista<FacturaResponseDto>(cacheKey, DataCache.tipoLista<FacturaResponseDto>())
+
+        if (!facturasCacheadas.isNullOrEmpty()) {
+            val facturasMesCache = facturasCacheadas.filter { it.fechaEmision?.startsWith(mesActualStr) == true }
+            layoutLoading.visibility = View.GONE
+            if (facturasMesCache.isEmpty()) {
+                layoutVacio.visibility = View.VISIBLE
+                rvFacturas.visibility = View.GONE
+            } else {
+                layoutVacio.visibility = View.GONE
+                rvFacturas.visibility = View.VISIBLE
+                adapter.actualizarLista(facturasMesCache)
+            }
+        } else {
+            layoutLoading.visibility = View.VISIBLE
+            layoutVacio.visibility = View.GONE
+            rvFacturas.visibility = View.GONE
+        }
+
+        // NOTA DE RENDIMIENTO: esta pantalla solo necesita "facturas" para pintarse.
+        // Antes se pedían también clientes/bodegas/productos/inventario/negocio/iva aquí mismo,
+        // duplicando lo que ya hace cargarCatalogosFacturaConcurrentes() (usada al abrir
+        // "Nueva Factura"). Eso obligaba a esperar 7 peticiones en paralelo para mostrar
+        // una simple lista, y si cualquiera de las 6 sobrantes fallaba o era lenta, la
+        // pantalla se quedaba cargando o mostraba "Error al obtener facturas" aunque las
+        // facturas en sí hubieran llegado bien. Ahora la lista se pinta apenas responde
+        // getFacturas, y los catálogos auxiliares se precargan aparte, sin bloquear.
         lifecycleScope.launch(Dispatchers.IO) {
-            supervisorScope {
-                val reqFacturas = async { runCatching { RetrofitClient.apiService.getFacturas(authHeader, negocioId) }.getOrNull() }
-                val reqClientes = async { runCatching { RetrofitClient.apiService.getClientes(authHeader, negocioId) }.getOrNull() }
-                val reqBodegas = async { runCatching { RetrofitClient.apiService.getBodegas(authHeader, negocioId) }.getOrNull() }
-                val reqProductos = async { runCatching { RetrofitClient.apiService.getCatalogo(authHeader, negocioId) }.getOrNull() }
-                val reqInventario = async { runCatching { RetrofitClient.apiService.getInventario(authHeader, negocioId) }.getOrNull() }
-                val reqNegocio = async { runCatching { RetrofitClient.apiService.getNegocio(authHeader, negocioId) }.getOrNull() }
-                val reqIva = async { runCatching { RetrofitClient.apiService.getIva(authHeader) }.getOrNull() }
+            val respFacturas = runCatching { RetrofitClient.apiService.getFacturas(authHeader, negocioId) }.getOrNull()
+            val todasFacturas = respFacturas?.body()
 
-                val respFacturas = reqFacturas.await()
-                val respClientes = reqClientes.await()
-                val respBodegas = reqBodegas.await()
-                val respProductos = reqProductos.await()
-                val respInventario = reqInventario.await()
-                val respNegocio = reqNegocio.await()
-                val respIva = reqIva.await()
+            withContext(Dispatchers.Main) {
+                layoutLoading.visibility = View.GONE
+                swipeRefreshLayout.isRefreshing = false
 
-                if (respClientes?.isSuccessful == true) clientesList = respClientes.body() ?: emptyList()
-                if (respBodegas?.isSuccessful == true) bodegasList = respBodegas.body() ?: emptyList()
-                if (respProductos?.isSuccessful == true) productosList = respProductos.body() ?: emptyList()
-                if (respInventario?.isSuccessful == true) inventarioList = respInventario.body() ?: emptyList()
-                if (respNegocio?.isSuccessful == true) negocioActual = respNegocio.body()
-                if (respIva?.isSuccessful == true) {
-                    val ivaActualTexto = respIva.body()?.get("ivaActual")
-                    if (!ivaActualTexto.isNullOrBlank()) {
-                        val ivaDecimal = ivaActualTexto.toDoubleOrNull()
-                        if (ivaDecimal != null) porcentajeIvaActual = ivaDecimal * 100.0
-                    }
-                }
-
-                // Filtrar únicamente las facturas del mes actual para que la interfaz no se congele
-                val calendar = Calendar.getInstance()
-                val currentYear = calendar.get(Calendar.YEAR)
-                val currentMonth = calendar.get(Calendar.MONTH) + 1
-                val mesActualStr = String.format(Locale.US, "%04d-%02d", currentYear, currentMonth)
-
-                val todasFacturas = respFacturas?.body() ?: emptyList()
-                val facturasMesActual = todasFacturas.filter { it.fechaEmision?.startsWith(mesActualStr) == true }
-
-                withContext(Dispatchers.Main) {
-                    layoutLoading.visibility = View.GONE
-                    swipeRefreshLayout.isRefreshing = false
-
-                    if (respFacturas?.isSuccessful == true) {
-                        if (facturasMesActual.isEmpty()) {
-                            layoutVacio.visibility = View.VISIBLE
-                            rvFacturas.visibility = View.GONE
-                        } else {
-                            layoutVacio.visibility = View.GONE
-                            rvFacturas.visibility = View.VISIBLE
-                            adapter.actualizarLista(facturasMesActual)
-                        }
-                    } else if (respFacturas?.code() == 401) {
-                        Toast.makeText(this@HistorialFacturasActivity, "Sesión expirada", Toast.LENGTH_SHORT).show()
+                if (respFacturas?.isSuccessful == true && todasFacturas != null) {
+                    cache.guardarLista(cacheKey, todasFacturas)
+                    val facturasMesActual = todasFacturas.filter { it.fechaEmision?.startsWith(mesActualStr) == true }
+                    if (facturasMesActual.isEmpty()) {
+                        layoutVacio.visibility = View.VISIBLE
+                        rvFacturas.visibility = View.GONE
                     } else {
-                        Toast.makeText(this@HistorialFacturasActivity, "Error al obtener facturas", Toast.LENGTH_SHORT).show()
+                        layoutVacio.visibility = View.GONE
+                        rvFacturas.visibility = View.VISIBLE
+                        adapter.actualizarLista(facturasMesActual)
                     }
+                } else if (respFacturas?.code() == 401) {
+                    Toast.makeText(this@HistorialFacturasActivity, "Sesión expirada", Toast.LENGTH_SHORT).show()
+                } else if (facturasCacheadas.isNullOrEmpty()) {
+                    // Solo mostramos el error si no teníamos nada en caché para mostrar;
+                    // si ya había datos cacheados pintados, no interrumpimos con un error,
+                    // el usuario sigue viendo la última versión conocida.
+                    Toast.makeText(this@HistorialFacturasActivity, "Error al obtener facturas", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this@HistorialFacturasActivity, "No se pudo actualizar. Mostrando datos guardados.", Toast.LENGTH_SHORT).show()
                 }
             }
         }
+
+        // Precarga en segundo plano de los catálogos para "Nueva Factura" (clientes, bodegas,
+        // productos, inventario, negocio, iva). No bloquea la lista de facturas de arriba.
+        cargarCatalogosFacturaConcurrentes()
     }
 
     private fun cargarCatalogosFacturaConcurrentes(onListo: (() -> Unit)? = null) {

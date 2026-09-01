@@ -38,6 +38,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
+import com.example.movildilo.data.local.DataCache
 import com.example.movildilo.data.local.SessionManager
 import com.example.movildilo.data.model.dto.usuarios.ClienteReporteDto
 import com.example.movildilo.data.model.dto.usuarios.ClienteResponseDto
@@ -316,22 +317,69 @@ class RendimientoComercialActivity : AppCompatActivity() {
             return
         }
 
-        if (!swipeRefreshLayout.isRefreshing) {
+        // CACHÉ LOCAL: getFacturas es lento en el backend con negocios grandes y hoy no se
+        // puede tocar el servidor. Pintamos de una vez la última versión guardada (si existe)
+        // para que "Rendimiento del mes" no se quede en blanco ni marque error mientras el
+        // servidor responde, y actualizamos todo en cuanto llega la respuesta fresca.
+        val cache = DataCache(this)
+        val keyFacturas = DataCache.keyFacturas(negocioId)
+        val keyCuentas = DataCache.keyCuentasPorCobrar(negocioId)
+        val keyClientes = DataCache.keyClientes(negocioId)
+
+        val facturasCache = cache.obtenerLista<FacturaResponseDto>(keyFacturas, DataCache.tipoLista<FacturaResponseDto>())
+        val cuentasCache = cache.obtenerLista<CuentaPorCobrarResponseDto>(keyCuentas, DataCache.tipoLista<CuentaPorCobrarResponseDto>())
+        val clientesCache = cache.obtenerLista<ClienteResponseDto>(keyClientes, DataCache.tipoLista<ClienteResponseDto>())
+
+        val hayCache = !facturasCache.isNullOrEmpty()
+        if (hayCache) {
+            facturasRaw = facturasCache ?: emptyList()
+            cuentasRaw = cuentasCache ?: emptyList()
+            clientesRaw = clientesCache ?: emptyList()
+            procesarMetricas()
+            renderTodo()
+            mostrarLoading(false)
+        } else if (!swipeRefreshLayout.isRefreshing) {
             mostrarLoading(true)
         }
 
         lifecycleScope.launch(Dispatchers.IO) {
             val api = RetrofitClient.apiService
 
-            val facturasReq = async { runCatching { api.getFacturas(authHeader, negocioId) }.getOrNull()?.body() ?: emptyList() }
+            val facturasReq = async { runCatching { api.getFacturas(authHeader, negocioId) }.getOrNull() }
             val negocioReq = async { runCatching { api.getNegocio(authHeader, negocioId) }.getOrNull()?.body() }
-            val cuentasReq = async { runCatching { api.getCuentasPorCobrar(authHeader, negocioId) }.getOrNull()?.body() ?: emptyList() }
-            val clientesReq = async { runCatching { api.getClientes(authHeader, negocioId) }.getOrNull()?.body() ?: emptyList() }
+            val cuentasReq = async { runCatching { api.getCuentasPorCobrar(authHeader, negocioId) }.getOrNull() }
+            val clientesReq = async { runCatching { api.getClientes(authHeader, negocioId) }.getOrNull() }
 
-            facturasRaw = facturasReq.await()
-            cuentasRaw = cuentasReq.await()
-            clientesRaw = clientesReq.await()
+            val respFacturas = facturasReq.await()
+            val respCuentas = cuentasReq.await()
+            val respClientes = clientesReq.await()
             val negocio = negocioReq.await()
+
+            // Si la petición fresca falló y ya estábamos mostrando caché, dejamos la caché
+            // en pantalla en vez de reemplazarla por listas vacías.
+            val facturasNuevas = respFacturas?.body()
+            if (facturasNuevas != null) {
+                facturasRaw = facturasNuevas
+                cache.guardarLista(keyFacturas, facturasNuevas)
+            } else if (!hayCache) {
+                facturasRaw = emptyList()
+            }
+
+            val cuentasNuevas = respCuentas?.body()
+            if (cuentasNuevas != null) {
+                cuentasRaw = cuentasNuevas
+                cache.guardarLista(keyCuentas, cuentasNuevas)
+            } else if (!hayCache) {
+                cuentasRaw = emptyList()
+            }
+
+            val clientesNuevos = respClientes?.body()
+            if (clientesNuevos != null) {
+                clientesRaw = clientesNuevos
+                cache.guardarLista(keyClientes, clientesNuevos)
+            } else if (!hayCache) {
+                clientesRaw = emptyList()
+            }
 
             if (negocio != null) {
                 negocioNombre = negocio.nombreComercial ?: negocio.razonSocial ?: "Mi Negocio"
@@ -342,6 +390,11 @@ class RendimientoComercialActivity : AppCompatActivity() {
             withContext(Dispatchers.Main) {
                 renderTodo()
                 mostrarLoading(false)
+                if (facturasNuevas == null && !hayCache) {
+                    Toast.makeText(this@RendimientoComercialActivity, "Error al cargar datos", Toast.LENGTH_SHORT).show()
+                } else if (facturasNuevas == null && hayCache) {
+                    Toast.makeText(this@RendimientoComercialActivity, "No se pudo actualizar. Mostrando datos guardados.", Toast.LENGTH_SHORT).show()
+                }
                 onComplete?.invoke()
             }
         }
