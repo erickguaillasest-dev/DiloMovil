@@ -2,6 +2,17 @@ package com.example.movildilo.ia
 
 object ZoeKnowledgeBase {
 
+    private val INFO_GENERAL_DILO = listOf(
+        "Dilo es un sistema de facturación y gestión de inventario para negocios, disponible en versión web (computadora) y en esta app móvil.",
+        "Código de invitación: cada negocio tiene un código único, visible y copiable solo por Propietario/Administrador en el módulo Mi Equipo. Se comparte con un nuevo colaborador para que pida unirse; luego el Propietario/Administrador debe APROBAR o RECHAZAR esa solicitud desde el mismo módulo antes de que el colaborador tenga acceso.",
+        "Roles disponibles y qué pueden ver: PROPIETARIO y ADMINISTRADOR tienen control total de todos los módulos. VENDEDOR y CAJERO solo ven Facturas y Ventas, Clientes, Cuentas por Cobrar, Rendimiento Comercial y Perfil. BODEGUERO e INVENTARIO solo ven Catálogo de Productos, Categorías, Inventario y Bodegas, Compras, Proveedores y Perfil.",
+        "El dueño real del negocio (quien lo creó, no simplemente cualquiera con rol PROPIETARIO) aparece resaltado con una corona en Mi Equipo. A él NO se le puede cambiar el rol ni expulsarlo del negocio, ni siquiera otro PROPIETARIO/ADMINISTRADOR puede hacerlo — es una protección fija del sistema.",
+        "Métodos de pago que acepta el sistema: Efectivo, Transferencia y Tarjeta de Crédito (con cuotas). Regla fija: a un cliente 'Consumidor Final' nunca se le puede facturar con Tarjeta de Crédito.",
+        "La app necesita conexión a internet para casi todo: sincronizar datos del negocio, facturar, y para que vos (Zoe) puedas responder. Sin internet, la mayoría de las funciones no van a andar.",
+        "Para que puedas escucharme o hablarme por voz, la app pide permiso de micrófono al celular. Si el usuario lo negó antes, tiene que activarlo manualmente desde los Ajustes del sistema Android, en Aplicaciones > Dilo > Permisos.",
+        "Diferencias con la web: desde el celular NO se puede hacer todo lo que se hace en la versión web (por ejemplo firma electrónica o exportaciones contables avanzadas); para eso hay que usar la computadora."
+    )
+
     private val MODULOS_PROPIETARIO = listOf(
         "Panel de Control (Inicio): resumen del negocio en vivo — ventas del mes, facturas emitidas, clientes activos y alertas de stock bajo.",
         "Facturas y Ventas: emitir comprobantes nuevos (manual o por voz con Zoe, con descuento por producto y descuento global), ver el historial completo e imprimir/compartir el PDF de cada una.",
@@ -60,8 +71,9 @@ object ZoeKnowledgeBase {
         pantallasNavegables: List<Pair<String, String>> = emptyList()
     ): String {
         val modulosDelRol = when (rolUsuario.uppercase()) {
-            "VENDEDOR" -> MODULOS_VENDEDOR
-            "BODEGUERO" -> MODULOS_BODEGUERO
+            "VENDEDOR", "CAJERO" -> MODULOS_VENDEDOR
+            "BODEGUERO", "INVENTARIO" -> MODULOS_BODEGUERO
+            "PROPIETARIO", "ADMINISTRADOR" -> MODULOS_PROPIETARIO
             else -> MODULOS_PROPIETARIO
         }
 
@@ -71,10 +83,13 @@ object ZoeKnowledgeBase {
         return """
             Eres "Zoe", la asistente virtual EXCLUSIVA del software Dilo. Tienes una personalidad femenina, seductora, carismática y hablas con un marcado acento argentino inconfundible (porteño). Tratas al usuario de "vos" y usas expresiones sutiles y atractivas. Hablas con **$usuarioNombre** (rol: **$rolUsuario**) de **"$negocioNombre"**.
 
-            1. MÓDULOS Y PANTALLAS DISPONIBLES PARA ESTE USUARIO EN LA APP MÓVIL (es tu único universo de conocimiento sobre la app):
+            1. INFORMACIÓN GENERAL DE DILO (cómo funciona la app, más allá de los datos de este negocio puntual):
+            ${INFO_GENERAL_DILO.joinToString("\n            ") { "- $it" }}
+
+            2. MÓDULOS Y PANTALLAS DISPONIBLES PARA ESTE USUARIO EN LA APP MÓVIL (es tu único universo de conocimiento sobre la app):
             ${modulosDelRol.joinToString("\n            ") { "- $it" }}
 
-            2. CAPACIDADES PROPIAS DE ZOE (vos misma):
+            3. CAPACIDADES PROPIAS DE ZOE (vos misma):
             ${FUNCIONES_ZOE.joinToString("\n            ") { "- $it" }}
 
             📊 DATOS REALES DE LA BASE DE DATOS EN TIEMPO REAL (tu único universo de conocimiento sobre el negocio):
@@ -86,8 +101,9 @@ object ZoeKnowledgeBase {
             REGLAS DE SEGURIDAD MÁXIMA (OBLIGATORIAS):
 
             1. CERO INVENTOS (MÓDULOS Y DATOS):
-               - Respondé SOLO con datos que aparezcan en la sección **DATOS REALES** o en los MÓDULOS Y PANTALLAS listados arriba. No inventes números ni nombres. Si el dato no está en el contexto, decilo con honestidad ("no tengo ese dato cargado todavía").
+               - Respondé SOLO con datos que aparezcan en la sección **DATOS REALES**, en **INFORMACIÓN GENERAL DE DILO** o en los MÓDULOS Y PANTALLAS listados arriba. No inventes números ni nombres. Si el dato no está en el contexto, decilo con honestidad ("no tengo ese dato cargado todavía").
                - **ESTRICTO SOBRE LOS MÓDULOS:** PROHIBIDO inventar módulos, pantallas o funciones que no existan. Si el usuario pregunta a dónde puede ir o qué puede hacer, nombra ÚNICAMENTE los módulos listados en "MÓDULOS Y PANTALLAS DISPONIBLES". Decí solamente lo que son y su descripción tal cual te la pasé, sin adornos técnicos irreales.
+               - Si te preguntan algo sobre cómo funciona Dilo en general (código de invitación, roles, permisos, métodos de pago, diferencias con la web, etc.), respondé con la sección **INFORMACIÓN GENERAL DE DILO**, nunca inventando nada que no esté ahí.
 
             2. CERO OFF-TOPIC:
                - Solo hablás de facturación, inventario, ventas, stock, equipo y Dilo. Si te preguntan algo que no tiene nada que ver con el sistema ni con el negocio (charla casual, cultura general, tareas ajenas, temas personales, etc.), respondé exactamente: "Perdoname lindo, soy Zoe y solo puedo ayudarte con tu negocio." — y no contestes la pregunta ajena aunque la sepas.

@@ -26,7 +26,6 @@ import com.example.movildilo.data.model.dto.ia.ChatItem
 import com.example.movildilo.data.model.dto.ia.GroqMessage
 import com.example.movildilo.data.model.dto.ia.GroqRequest
 import com.example.movildilo.ui.adapters.ChatAdapter
-import com.google.android.material.R
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
@@ -61,6 +60,7 @@ class ZoeBottomSheetDialog(
     private lateinit var voz: ZoeSpeechHelper
     private var vozActivada: Boolean = false
     private var escuchaContinuaActiva: Boolean = false
+    private var datosCargados: Boolean = false
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -72,7 +72,7 @@ class ZoeBottomSheetDialog(
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val dialog = super.onCreateDialog(savedInstanceState) as BottomSheetDialog
         dialog.setOnShowListener { dialogInterface ->
-            val bottomSheet = (dialogInterface as BottomSheetDialog).findViewById<View>(R.id.design_bottom_sheet)
+            val bottomSheet = (dialogInterface as BottomSheetDialog).findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
             bottomSheet?.let {
                 val behavior = BottomSheetBehavior.from(it)
                 behavior.state = BottomSheetBehavior.STATE_EXPANDED
@@ -117,8 +117,20 @@ class ZoeBottomSheetDialog(
 
         if (listaChatUi.isEmpty()) {
             val bienvenida = "¡Hola! Soy **Zoe**. Cuentame, $usuarioNombre, ¿qué revisamos hoy?"
+            val mensajeSincronizando = "Sincronizando datos de tu negocio..."
             agregarMensajeUi("assistant", bienvenida, null)
+            agregarMensajeUi("assistant", mensajeSincronizando, null)
+            bloquearInterfazCargando(true)
+
+            rvChatMensajes.postDelayed({
+                datosCargados = true
+                bloquearInterfazCargando(false)
+                val mensajeListo = "¡Listo, che! Datos de la base de datos sincronizados correctamente. Ya podés consultarme lo que quieras de tu negocio."
+                agregarMensajeUi("assistant", mensajeListo, mensajeListo)
+            }, 1500)
         } else {
+            datosCargados = true
+            bloquearInterfazCargando(false)
             rvChatMensajes.scrollToPosition(listaChatUi.size - 1)
         }
 
@@ -131,6 +143,7 @@ class ZoeBottomSheetDialog(
         }
 
         btnEnviarMensaje.setOnClickListener {
+            if (!datosCargados) return@setOnClickListener
             val texto = etMensajeChat.text.toString().trim()
             if (texto.isNotEmpty()) {
                 etMensajeChat.setText("")
@@ -146,6 +159,7 @@ class ZoeBottomSheetDialog(
         }
 
         btnMicChat.setOnClickListener {
+            if (!datosCargados) return@setOnClickListener
             if (escuchaContinuaActiva) detenerEscuchaContinua()
             else {
                 vozActivada = true
@@ -155,7 +169,24 @@ class ZoeBottomSheetDialog(
             }
         }
 
-        btnIniciarGuia.setOnClickListener { iniciarGuiaDeBienvenida() }
+        btnIniciarGuia.setOnClickListener {
+            if (datosCargados) iniciarGuiaDeBienvenida()
+        }
+    }
+
+    private fun bloquearInterfazCargando(cargando: Boolean) {
+        btnEnviarMensaje.isEnabled = !cargando
+        btnMicChat.isEnabled = !cargando
+        etMensajeChat.isEnabled = !cargando
+        if (cargando) {
+            etMensajeChat.hint = "Cargando datos..."
+            btnEnviarMensaje.alpha = 0.5f
+            btnMicChat.alpha = 0.5f
+        } else {
+            etMensajeChat.hint = "Escribe un mensaje..."
+            btnEnviarMensaje.alpha = 1.0f
+            btnMicChat.alpha = 1.0f
+        }
     }
 
     private fun actualizarEstadoVoz() {
@@ -164,6 +195,7 @@ class ZoeBottomSheetDialog(
     }
 
     private fun procesarMensajeUsuario(texto: String) {
+        if (!datosCargados) return
         val creacion = ZoeActionRouter.detectarCreacion(texto)
         val cambio = ZoeActionRouter.detectarCambio(texto)
         val navegacion = ZoeActionRouter.detectarNavegacion(texto)
@@ -212,7 +244,6 @@ class ZoeBottomSheetDialog(
         cerrarConPequenaDemora { activity?.let { ZoeActionRouter.navegar(it, destino, accion) } }
     }
 
-    // Navega a la vista solicitada y pasa el parámetro para auto-abrir a Zoe allí
     private fun irAVista(destino: Class<out Activity>, nombreLegible: String) {
         agregarMensajeUi("assistant", "¡Claro! Te llevo a **$nombreLegible**.")
         cerrarConPequenaDemora {
@@ -232,18 +263,20 @@ class ZoeBottomSheetDialog(
     }
 
     private fun pedirPermisoYEscuchar() {
+        if (!datosCargados) return
         if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) iniciarEscuchaContinua()
         else requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
     }
 
     private fun iniciarEscuchaContinua() {
+        if (!datosCargados) return
         escuchaContinuaActiva = true
         actualizarIconoMic()
         cicloEscuchaContinua()
     }
 
     private fun cicloEscuchaContinua() {
-        if (!escuchaContinuaActiva || !isAdded) return
+        if (!escuchaContinuaActiva || !isAdded || !datosCargados) return
         voz.escuchar(
             onResultado = { if (isAdded) procesarMensajeUsuario(it) },
             onError = { if (isAdded && escuchaContinuaActiva) rvChatMensajes.postDelayed({ cicloEscuchaContinua() }, 800) },
@@ -284,8 +317,9 @@ class ZoeBottomSheetDialog(
     private val MAX_REINTENTOS_429 = 3
 
     private fun enviarPreguntaAGroq(preguntaUsuario: String) {
+        if (!datosCargados) return
         agregarMensajeUi("user", preguntaUsuario)
-        btnEnviarMensaje.isEnabled = false
+        bloquearInterfazCargando(true)
 
         val pantallasNavegables = ZoeActionRouter.pantallasNavegablesParaRol(rolUsuario)
         val manualDelSistema = ZoeKnowledgeBase.construirManualCompleto(usuarioNombre, negocioNombre, rolUsuario, contextoNegocioTexto, alertasTexto, pantallasNavegables)
@@ -298,11 +332,6 @@ class ZoeBottomSheetDialog(
         }
     }
 
-    /**
-     * Igual que la versión web (ejecutarPeticionGroq): ante un 429 reintenta en silencio
-     * con backoff exponencial (o respetando el header Retry-After) antes de rendirse,
-     * y solo entonces le muestra un mensaje de error al usuario.
-     */
     private suspend fun ejecutarPeticionGroqConReintentos(mensajes: List<GroqMessage>, intento: Int) {
         try {
             val response = GroqApiClient.apiService.enviarMensajeChat(
@@ -312,8 +341,9 @@ class ZoeBottomSheetDialog(
 
             if (response.isSuccessful) {
                 withContext(Dispatchers.Main) {
-                    btnEnviarMensaje.isEnabled = true
+                    bloquearInterfazCargando(false)
                     if (!isAdded) return@withContext
+
                     val respuestaCruda = response.body()?.choices?.firstOrNull()?.message?.content ?: "Sin respuesta."
                     procesarRespuestaAsistente(respuestaCruda)
                 }
@@ -329,7 +359,7 @@ class ZoeBottomSheetDialog(
             }
 
             withContext(Dispatchers.Main) {
-                btnEnviarMensaje.isEnabled = true
+                bloquearInterfazCargando(false)
                 if (!isAdded) return@withContext
                 when (response.code()) {
                     429 -> {
@@ -349,7 +379,7 @@ class ZoeBottomSheetDialog(
             }
         } catch (e: Exception) {
             withContext(Dispatchers.Main) {
-                btnEnviarMensaje.isEnabled = true
+                bloquearInterfazCargando(false)
                 if (!isAdded) return@withContext
                 val msj = "Perdoname, parece que hay un problemita con internet."
                 agregarMensajeUi("assistant", msj, msj)
@@ -357,10 +387,6 @@ class ZoeBottomSheetDialog(
         }
     }
 
-    /**
-     * Igual que limpiarTextoParaVoz() de la web: si el modelo no mandó <voz>, igual
-     * armamos un texto hablable limpiando el markdown en vez de quedarnos mudos.
-     */
     private fun limpiarTextoParaVozFallback(texto: String): String {
         return texto
             .replace(Regex("[*#|>_~]"), "")
@@ -378,10 +404,6 @@ class ZoeBottomSheetDialog(
             .trim()
     }
 
-    /**
-     * Extrae <voz>, limpia la respuesta y — igual que la web con [[NAVEGAR:/ruta]] — detecta
-     * si el modelo pidió navegar con [[NAVEGAR:id]] para llevarlo a esa pantalla.
-     */
     private fun procesarRespuestaAsistente(respuestaCruda: String) {
         var texto = respuestaCruda
 
@@ -402,7 +424,6 @@ class ZoeBottomSheetDialog(
         val textoVoz = if (vozMatch != null) {
             vozMatch.groupValues[1].trim()
         } else {
-            // Fallback: nunca nos quedamos mudos, igual que la web.
             textoPantalla = texto.replace(Regex("<voz>|</voz>", RegexOption.IGNORE_CASE), "").trim()
             limpiarTextoParaVozFallback(textoPantalla)
         }

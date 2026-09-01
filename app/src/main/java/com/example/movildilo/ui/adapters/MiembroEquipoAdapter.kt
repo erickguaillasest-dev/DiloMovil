@@ -41,6 +41,10 @@ class MiembroEquipoAdapter(
         val cardOpciones: MaterialCardView = view.findViewById(R.id.cardOpcionesMiembro)
         val btnOpciones: ImageView = view.findViewById(R.id.btnOpcionesMiembro)
         val btnDesactivar: MaterialButton = view.findViewById(R.id.btnDesactivar)
+
+        // Se guarda el ancho de borde original para poder restaurarlo cuando
+        // esta vista se recicla y deja de mostrar al dueño del negocio.
+        val strokeWidthDefault: Int = cardMiembro.strokeWidth
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -68,6 +72,7 @@ class MiembroEquipoAdapter(
 
         when {
             esPendiente -> {
+                holder.cardMiembro.strokeWidth = holder.strokeWidthDefault
                 holder.cardMiembro.setCardBackgroundColor(Color.parseColor("#FFFBEB"))
                 holder.cardMiembro.strokeColor = Color.parseColor("#FDE68A")
                 holder.cardAvatar.setCardBackgroundColor(Color.parseColor("#D97706"))
@@ -101,10 +106,21 @@ class MiembroEquipoAdapter(
                     holder.cardOpciones.visibility = View.GONE
                     holder.btnEditarRol.visibility = View.GONE
                     holder.btnDesactivar.visibility = View.GONE
+
+                    // Resaltado visual: este es el dueño real del negocio, no un simple PROPIETARIO
+                    holder.cardMiembro.setCardBackgroundColor(Color.parseColor("#FFFBEB"))
+                    holder.cardMiembro.strokeColor = Color.parseColor("#FBBF24")
+                    holder.cardMiembro.strokeWidth = 4
+                    holder.cardAvatar.setCardBackgroundColor(Color.parseColor("#B45309"))
+                    holder.tvNombre.text = "👑 ${holder.tvNombre.text}"
+                    holder.tvRol.text = "DUEÑO DEL NEGOCIO"
                 } else {
                     holder.cardOpciones.visibility = View.VISIBLE
                     holder.btnEditarRol.visibility = View.VISIBLE
                     holder.btnDesactivar.visibility = View.VISIBLE
+
+                    // Restaurar estilo normal por si esta vista reciclada antes mostraba al dueño
+                    holder.cardMiembro.strokeWidth = holder.strokeWidthDefault
 
                     holder.btnDesactivar.text = "Desactivar"
                     holder.btnDesactivar.setTextColor(Color.parseColor("#EF4444"))
@@ -130,6 +146,7 @@ class MiembroEquipoAdapter(
             }
 
             else -> {
+                holder.cardMiembro.strokeWidth = holder.strokeWidthDefault
                 holder.cardMiembro.setCardBackgroundColor(Color.parseColor("#FFFFFF"))
                 holder.cardMiembro.strokeColor = Color.parseColor("#E2E8F0")
                 holder.cardAvatar.setCardBackgroundColor(Color.parseColor("#64748B"))

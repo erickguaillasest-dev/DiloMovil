@@ -318,6 +318,11 @@ class Mi_equipo : AppCompatActivity() {
     }
 
     private fun desactivarMiembro(miembro: MiembroResponseDto) {
+        if (miembro.esCreador == true) {
+            Toast.makeText(this, "No se puede expulsar al dueño/fundador del negocio.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val authHeader = sessionManager.getAuthHeader() ?: return
         val miembroId = miembro.id ?: miembro.usuarioId
 
@@ -356,6 +361,11 @@ class Mi_equipo : AppCompatActivity() {
     }
 
     private fun cambiarRol(miembro: MiembroResponseDto) {
+        if (miembro.esCreador == true) {
+            Toast.makeText(this, "No se puede modificar el rol del dueño/fundador del negocio.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val miembroId = miembro.id ?: miembro.usuarioId
 
         if (miembroId == null) {
