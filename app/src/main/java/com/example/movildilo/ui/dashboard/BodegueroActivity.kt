@@ -1,4 +1,3 @@
-// BodegueroActivity.kt
 package com.example.movildilo.ui.dashboard
 
 import android.content.Intent
@@ -71,6 +70,7 @@ class BodegueroActivity : AppCompatActivity() {
 
     private var contextoNegocioTexto: String = "Cargando información del almacén..."
     private var alertasTexto: String = "No hay alertas de caducidad o stock registradas."
+    private var stockBajoTexto: String = "Cargando alertas de stock..."
 
     private val ROLES_AUTORIZADOS = listOf("PROPIETARIO", "ADMINISTRADOR", "BODEGUERO", "INVENTARIO")
 
@@ -141,10 +141,10 @@ class BodegueroActivity : AppCompatActivity() {
         btnLogout.setOnClickListener { confirmarCerrarSesion() }
 
         btnNotifications.setOnClickListener {
-            val alertasActuales = alertasTexto
+            val mensaje = "📦 STOCK BAJO\n$stockBajoTexto\n\n⏳ PRÓXIMOS A CADUCAR\n$alertasTexto"
             MaterialAlertDialogBuilder(this)
                 .setTitle("Notificaciones y Alertas")
-                .setMessage(alertasActuales)
+                .setMessage(mensaje)
                 .setPositiveButton("Entendido", null)
                 .show()
         }
@@ -249,6 +249,14 @@ class BodegueroActivity : AppCompatActivity() {
                 }
 
                 val itemsBajoStock = inventario.filter { (it.cantidadActual ?: 0) <= (it.stockMinimo ?: 5) }
+
+                stockBajoTexto = if (itemsBajoStock.isNotEmpty()) {
+                    itemsBajoStock.take(20).joinToString("\n") { i ->
+                        "• ${i.productoNombre ?: "Producto"} en ${i.bodegaNombre ?: "bodega"}: quedan ${i.cantidadActual ?: 0} (mínimo ${i.stockMinimo ?: 5})"
+                    }
+                } else {
+                    "No hay productos con stock bajo."
+                }
 
                 withContext(Dispatchers.Main) {
                     tvBusinessName.text = negocioNombreReal

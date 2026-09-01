@@ -683,6 +683,11 @@ class RendimientoComercialActivity : AppCompatActivity() {
                     subtotal = it.subtotalItem
                 )
             }
+            // Buscamos la factura original en facturasRaw para tomar el IVA con el que
+            // REALMENTE se emitió (porcentajeIvaAplicado), no un valor fijo. Si el negocio
+            // cambió su tasa de IVA con el tiempo (ej. 16% -> 15%), cada factura debe seguir
+            // mostrando el porcentaje con el que se emitió en su momento.
+            val facturaOrigenRaw = facturasRaw.find { f -> f.numeroFactura == doc.numero }
             val datos = DetalleFacturaDialogHelper.DatosFactura(
                 numero = doc.numero,
                 fecha = doc.fecha,
@@ -691,6 +696,7 @@ class RendimientoComercialActivity : AppCompatActivity() {
                 estado = doc.estado,
                 total = doc.monto,
                 descuentoGlobal = doc.descuentoGlobal,
+                porcentajeIva = facturaOrigenRaw?.porcentajeIvaAplicado ?: 15.0,
                 items = items,
                 clienteIdentificacion = cliente.identificacion
             )

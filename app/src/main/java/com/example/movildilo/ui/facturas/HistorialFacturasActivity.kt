@@ -1951,7 +1951,12 @@ class HistorialFacturasActivity : AppCompatActivity() {
             estado = fac.estadoFormateado,
             total = fac.totalCalculado,
             descuentoGlobal = fac.totalDescuento ?: 0.0,
-            porcentajeIva = porcentajeIvaActual,
+            // Usamos el IVA que se aplicó REALMENTE al momento de emitir esta factura
+            // (fac.porcentajeIvaAplicado), no el IVA vigente hoy (porcentajeIvaActual).
+            // Si la app cambia de tasa con el tiempo (ej. 16% -> 15%), las facturas viejas
+            // deben seguir mostrando el porcentaje con el que se emitieron. Solo si el
+            // backend no lo envía (facturas muy antiguas sin ese dato) caemos al actual.
+            porcentajeIva = fac.porcentajeIvaAplicado ?: porcentajeIvaActual,
             items = items,
             mostrarBotonImprimir = true,
             onImprimir = { prepararGeneracionPDF(fac) }

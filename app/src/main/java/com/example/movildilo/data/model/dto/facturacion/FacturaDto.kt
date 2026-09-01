@@ -41,6 +41,7 @@ data class FacturaResponseDto(
     @SerializedName("metodoPago", alternate = ["formaPago", "tipo"]) val metodoPago: String? = null,
     @SerializedName("totalFactura", alternate = ["total", "monto"]) val totalFactura: Double? = null,
     @SerializedName("totalDescuento", alternate = ["descuentoGlobal", "total_descuento"]) val totalDescuento: Double? = 0.0,
+    @SerializedName("porcentajeIvaAplicado", alternate = ["porcentaje_iva_aplicado", "ivaAplicado", "iva_aplicado"]) val porcentajeIvaAplicado: Double? = null,
     @SerializedName("clienteNombre") val clienteNombre: String? = null,
     @SerializedName("cliente") val cliente: ClienteResponseDto? = null,
     @SerializedName("detalles") val detalles: List<DetalleFacturaResponseDto>? = emptyList()
