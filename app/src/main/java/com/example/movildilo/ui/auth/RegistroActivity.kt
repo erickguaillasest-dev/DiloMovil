@@ -10,6 +10,7 @@ import android.widget.*
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.widget.NestedScrollView
 import androidx.lifecycle.lifecycleScope
 import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
@@ -51,13 +52,14 @@ class RegistroActivity : AppCompatActivity() {
     private lateinit var tvGoToLogin: TextView
     private lateinit var ivTogglePassword: ImageView
     private lateinit var tvTerminos: TextView
+    private lateinit var scrollViewRegistro: ScrollView
+    private lateinit var containerFormulario: LinearLayout
 
     private var listaParroquias: List<ParroquiaResponseDto> = emptyList()
 
     private lateinit var ivFotoPerfil: ImageView
     private lateinit var fabSeleccionarFoto: FloatingActionButton
 
-    // Launcher para seleccionar imagen de la galería
     private val selectImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) {
             fotoPerfilUri = uri
@@ -71,7 +73,6 @@ class RegistroActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_registro)
 
-        // Inicializar vistas
         btnRegresar = findViewById(R.id.btnRegresar)
         etCedula = findViewById(R.id.etCedula)
         etPrimerNombre = findViewById(R.id.etPrimerNombre)
@@ -90,11 +91,14 @@ class RegistroActivity : AppCompatActivity() {
         tvGoToLogin = findViewById(R.id.tvGoToLogin)
         tvTerminos = findViewById(R.id.tvTerminos)
         ivTogglePassword = findViewById(R.id.ivTogglePassword)
+        scrollViewRegistro = findViewById(R.id.main)
+
+        // Nota: Asegúrate de agregar android:id="@+id/containerFormulario" en el LinearLayout interno de tu XML de registro para que esto funcione perfectamente sin espacios vacíos.
+        containerFormulario = findViewById(R.id.containerFormulario)
 
         ivFotoPerfil = findViewById(R.id.ivFotoPerfil)
         fabSeleccionarFoto = findViewById(R.id.fabSeleccionarFoto)
 
-        // Eventos
         btnRegresar.setOnClickListener { finish() }
         etFechaNacimiento.setOnClickListener { mostrarCalendario() }
         ivTogglePassword.setOnClickListener { togglePasswordVisibility() }
@@ -110,8 +114,56 @@ class RegistroActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
-        // Cargar datos
+        // Listener dinámico del teclado para ajustar el padding inferior exactamente a la altura del teclado virtual sin espacios extra
+        scrollViewRegistro.viewTreeObserver.addOnGlobalLayoutListener {
+            val r = android.graphics.Rect()
+            scrollViewRegistro.getWindowVisibleDisplayFrame(r)
+            val screenHeight = scrollViewRegistro.rootView.height
+            val keypadHeight = screenHeight - r.bottom
+
+            if (keypadHeight > screenHeight * 0.15) {
+                containerFormulario.setPadding(
+                    containerFormulario.paddingLeft,
+                    containerFormulario.paddingTop,
+                    containerFormulario.paddingRight,
+                    keypadHeight
+                )
+            } else {
+                containerFormulario.setPadding(
+                    containerFormulario.paddingLeft,
+                    containerFormulario.paddingTop,
+                    containerFormulario.paddingRight,
+                    resources.getDimensionPixelSize(R.dimen.espacio_medio)
+                )
+            }
+        }
+
+        configurarEnfoqueYTeclado()
         cargarParroquiasDesdeBackend()
+    }
+
+    private fun configurarEnfoqueYTeclado() {
+        val campos = listOf(
+            etCedula, etPrimerNombre, etSegundoNombre, etApellidoPaterno,
+            etApellidoMaterno, etEmail, etTelefono, etDireccion, etPassword, etConfirmPassword
+        )
+        campos.forEach { campo ->
+            campo.setOnFocusChangeListener { view, hasFocus ->
+                if (hasFocus) {
+                    scrollViewRegistro.post {
+
+                        var topCoord = 0
+                        var currentView: android.view.View? = view
+                        while (currentView != null && currentView != scrollViewRegistro) {
+                            topCoord += currentView.top
+                            currentView = currentView.parent as? android.view.View
+                        }
+
+                        scrollViewRegistro.smoothScrollTo(0, (topCoord - 100).coerceAtLeast(0))
+                    }
+                }
+            }
+        }
     }
 
     private fun cargarParroquiasDesdeBackend() {
@@ -189,10 +241,32 @@ class RegistroActivity : AppCompatActivity() {
             etPassword.transformationMethod = PasswordTransformationMethod.getInstance()
         }
 
-        // Mantiene la posición del cursor
         if (cursorPosition >= 0) {
             etPassword.setSelection(cursorPosition)
         }
+    }
+
+    private fun validarCedulaEcuatoriana(cedula: String): Boolean {
+        if (cedula.length != 10 || !cedula.all { it.isDigit() }) return false
+        val provincia = cedula.substring(0, 2).toIntOrNull() ?: return false
+        if (provincia < 1 || (provincia > 24 && provincia !== 30)) return false
+        val tercerDigito = cedula.substring(2, 3).toIntOrNull() ?: return false
+        if (tercerDigito >= 6) return false
+
+        var suma = 0
+        for (i in 0 until 9) {
+            var digito = cedula.substring(i, i + 1).toIntOrNull() ?: return false
+            if (i % 2 == 0) {
+                digito *= 2
+                if (digito > 9) digito -= 9
+            }
+            suma += digito
+        }
+
+        val digitoVerificador = cedula.substring(9, 10).toIntOrNull() ?: return false
+        val decenaSuperior = if (suma % 10 == 0) suma else ((suma / 10) + 1) * 10
+        val resultado = decenaSuperior - suma
+        return resultado == digitoVerificador
     }
 
     private fun onRegisterClicked() {
@@ -208,8 +282,7 @@ class RegistroActivity : AppCompatActivity() {
         val password = etPassword.text.toString()
         val confirmPassword = etConfirmPassword.text.toString()
 
-        // Limpia errores previos de una corrida anterior
-        listOf(etCedula, etPrimerNombre, etApellidoPaterno, etEmail, etTelefono, etFechaNacimiento, etPassword, etConfirmPassword)
+        listOf(etCedula, etPrimerNombre, etApellidoPaterno, etEmail, etTelefono, etFechaNacimiento, etDireccion, etPassword, etConfirmPassword)
             .forEach { FormValidator.marcarErrorEditText(it, null) }
 
         var campoConError: EditText? = null
@@ -220,47 +293,77 @@ class RegistroActivity : AppCompatActivity() {
             }
         }
 
-        marcar(etCedula, FormValidator.cedulaEcuatoriana(cedula, "La cédula"))
-        marcar(etPrimerNombre, FormValidator.soloTexto(primerNombre, "El primer nombre"))
-        marcar(etApellidoPaterno, FormValidator.soloTexto(apellidoPaterno, "El apellido paterno"))
-        if (apellidoMaterno.isNotBlank()) marcar(etApellidoMaterno, FormValidator.soloTexto(apellidoMaterno, "El apellido materno", obligatorio = false))
-        marcar(etEmail, FormValidator.correo(correo))
-        if (telefono.isNotBlank()) marcar(etTelefono, FormValidator.telefono(telefono, obligatorio = false))
-        marcar(etFechaNacimiento, FormValidator.requerido(fechaNac, "La fecha de nacimiento"))
-        marcar(etPassword, FormValidator.password(password, minimo = 8))
-        marcar(etConfirmPassword, FormValidator.confirmarPassword(password, confirmPassword))
+        val soloLetrasRegex = Regex("^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]+$")
+        val soloDiezNumRegex = Regex("^[0-9]{10}$")
+
+        if (cedula.isBlank() || !soloDiezNumRegex.matches(cedula) || !validarCedulaEcuatoriana(cedula)) {
+            marcar(etCedula, "Cédula ecuatoriana inválida")
+        }
+        if (primerNombre.isBlank() || primerNombre.length < 3 || !soloLetrasRegex.matches(primerNombre)) {
+            marcar(etPrimerNombre, "El primer nombre debe tener al menos 3 letras y solo texto")
+        }
+        if (segundoNombre.isNotBlank() && !soloLetrasRegex.matches(segundoNombre)) {
+            marcar(etSegundoNombre, "Solo se permiten letras")
+        }
+        if (apellidoPaterno.isBlank() || apellidoPaterno.length < 3 || !soloLetrasRegex.matches(apellidoPaterno)) {
+            marcar(etApellidoPaterno, "El apellido paterno debe tener al menos 3 letras y solo texto")
+        }
+        if (apellidoMaterno.isNotBlank() && !soloLetrasRegex.matches(apellidoMaterno)) {
+            marcar(etApellidoMaterno, "Solo se permiten letras")
+        }
+        if (correo.isBlank() || !android.util.Patterns.EMAIL_ADDRESS.matcher(correo).matches()) {
+            marcar(etEmail, "Correo electrónico inválido")
+        }
+        if (telefono.isBlank() || !soloDiezNumRegex.matches(telefono)) {
+            marcar(etTelefono, "El teléfono debe tener exactamente 10 dígitos")
+        }
+        if (fechaNac.isBlank()) {
+            marcar(etFechaNacimiento, "La fecha de nacimiento es requerida")
+        }
+        if (direccion.isBlank() || direccion.length < 5) {
+            marcar(etDireccion, "La dirección debe tener al menos 5 caracteres")
+        }
+        if (password.isBlank() || password.length < 8) {
+            marcar(etPassword, "La contraseña debe tener al menos 8 caracteres")
+        }
+        if (confirmPassword.isBlank() || password != confirmPassword) {
+            marcar(etConfirmPassword, "Las contraseñas no coinciden")
+        }
 
         if (campoConError != null) {
             campoConError?.requestFocus()
+            scrollViewRegistro.smoothScrollTo(0, campoConError?.top ?: 0)
             return
         }
 
-        // Validar edad mínima (18 años) a partir de la fecha seleccionada
         if (fechaNac.isNotBlank()) {
             try {
                 val partes = fechaNac.split("-")
-                val fecha = Calendar.getInstance().apply {
+                val birthDate = Calendar.getInstance().apply {
                     set(partes[0].toInt(), partes[1].toInt() - 1, partes[2].toInt())
                 }
-                val hoy = Calendar.getInstance()
-                var edad = hoy.get(Calendar.YEAR) - fecha.get(Calendar.YEAR)
-                if (hoy.get(Calendar.DAY_OF_YEAR) < fecha.get(Calendar.DAY_OF_YEAR)) edad--
-                if (edad < 18) {
-                    Toast.makeText(this, "Debes ser mayor de 18 años para registrarte (tienes $edad años según la fecha ingresada).", Toast.LENGTH_LONG).show()
+                val today = Calendar.getInstance()
+                var age = today.get(Calendar.YEAR) - birthDate.get(Calendar.YEAR)
+                val m = today.get(Calendar.MONTH) - birthDate.get(Calendar.MONTH)
+                if (m < 0 || (m === 0 && today.get(Calendar.DAY_OF_MONTH) < birthDate.get(Calendar.DAY_OF_MONTH))) {
+                    age--
+                }
+                if (age < 18) {
+                    Toast.makeText(this, "Debes ser mayor de 18 años para registrarte.", Toast.LENGTH_LONG).show()
                     return
                 }
-            } catch (_: Exception) {
-                // Si la fecha no se pudo interpretar, se deja pasar (el backend la validará de todas formas)
-            }
+                if (age > 99) {
+                    Toast.makeText(this, "Edad no válida.", Toast.LENGTH_LONG).show()
+                    return
+                }
+            } catch (_: Exception) {}
         }
 
-        // Validar selección de parroquia
         if (spinnerParroquia.selectedItemPosition <= 0) {
             Toast.makeText(this, "Selecciona tu parroquia de la lista antes de continuar.", Toast.LENGTH_SHORT).show()
             return
         }
 
-        // Validar Términos y Condiciones
         if (!cbTerminos.isChecked) {
             Toast.makeText(
                 this,
@@ -283,16 +386,16 @@ class RegistroActivity : AppCompatActivity() {
         val registroDto = RegistroDto(
             dni = cedula,
             primerNombre = primerNombre,
-            segundoNombre = segundoNombre.ifBlank { null },
+            segundoNombre = segundoNombre.ifBlank { "" },
             apellidoPaterno = apellidoPaterno,
-            apellidoMaterno = apellidoMaterno.ifBlank { null },
+            apellidoMaterno = apellidoMaterno.ifBlank { "" },
             email = correo,
             password = password,
             fechaNacimiento = fechaNac,
-            telefono = telefono.ifBlank { null },
-            direccion = direccion.ifBlank { null },
+            telefono = telefono,
+            direccion = direccion,
             id_parroquia = idParroquia,
-            fotoPerfil = null
+            fotoPerfil = ""
         )
 
         realizarRegistro(registroDto)
@@ -330,7 +433,7 @@ class RegistroActivity : AppCompatActivity() {
                 } else {
                     setLoading(false)
                     val mensaje = when (response.code()) {
-                        400 -> "La cédula o el correo ya se encuentran registrados o los datos son inválidos."
+                        409 -> "Esta cédula o correo electrónico ya se encuentran registrados."
                         else -> "Error en el servidor (código ${response.code()})"
                     }
                     Toast.makeText(this@RegistroActivity, mensaje, Toast.LENGTH_SHORT).show()
@@ -344,7 +447,7 @@ class RegistroActivity : AppCompatActivity() {
                 ).show()
             } catch (e: Exception) {
                 setLoading(false)
-                Toast.makeText(this@RegistroActivity, "Ocurrió un error: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(this@RegistroActivity, "Ocurrió un error: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }

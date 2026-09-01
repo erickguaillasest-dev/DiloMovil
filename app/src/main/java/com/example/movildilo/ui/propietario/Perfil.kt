@@ -188,9 +188,7 @@ class Perfil : AppCompatActivity() {
             if (isEditing) pickImageLauncher.launch("image/*")
         }
 
-        etFechaNacimiento.setOnClickListener {
-            if (isEditing) mostrarDatePicker()
-        }
+        // Bloqueado: la fecha de nacimiento no debe abrir el DatePicker para edición
     }
 
     private fun toggleChangePassword() {
@@ -206,26 +204,6 @@ class Perfil : AppCompatActivity() {
             etNuevaContrasena.error = null
             etConfirmarContrasena.error = null
         }
-    }
-
-    private fun mostrarDatePicker() {
-        val calendar = Calendar.getInstance()
-        val year = calendar.get(Calendar.YEAR)
-        val month = calendar.get(Calendar.MONTH)
-        val day = calendar.get(Calendar.DAY_OF_MONTH)
-
-        val datePickerDialog = DatePickerDialog(
-            this,
-            { _, selectedYear, selectedMonth, selectedDay ->
-                val fechaFormateada = String.format(Locale.US, "%04d-%02d-%02d", selectedYear, selectedMonth + 1, selectedDay)
-                etFechaNacimiento.setText(fechaFormateada)
-                tilFechaNacimiento.error = null
-            },
-            year,
-            month,
-            day
-        )
-        datePickerDialog.show()
     }
 
     private fun cargarMiPerfil(onComplete: (() -> Unit)? = null) {
@@ -355,7 +333,12 @@ class Perfil : AppCompatActivity() {
         etApellidoPaterno.setText(usuario.apellidoPaterno)
         etApellidoMaterno.setText(usuario.apellidoMaterno)
         etTelefono.setText(usuario.telefono)
+
+        // Mantener campo de fecha bloqueado/inmutable en la UI de edición al igual que el correo
         etFechaNacimiento.setText(usuario.fechaNacimiento)
+        etFechaNacimiento.isEnabled = false
+        etFechaNacimiento.isFocusable = false
+
         etDireccion.setText(usuario.direccion)
         parroquiaSeleccionadaId = usuario.idParroquia ?: usuario.parroquia?.id
         if (parroquiasList.isNotEmpty()) configurarDropdownParroquias()
@@ -423,7 +406,8 @@ class Perfil : AppCompatActivity() {
         val apellidoMaterno = etApellidoMaterno.text?.toString()?.trim().orEmpty()
         val telefono = etTelefono.text?.toString()?.trim().orEmpty()
         val direccion = etDireccion.text?.toString()?.trim().orEmpty()
-        val fechaNacimiento = etFechaNacimiento.text?.toString()?.trim().orEmpty()
+        // Mantener la fecha original existente ya que el campo está bloqueado para edición
+        val fechaNacimiento = usuarioActual?.fechaNacimiento.orEmpty()
 
         var esValido = true
 

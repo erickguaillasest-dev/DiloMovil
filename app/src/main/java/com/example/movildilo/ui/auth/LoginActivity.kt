@@ -5,6 +5,8 @@ import android.os.Bundle
 import android.text.InputType
 import android.util.Patterns
 import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -37,6 +39,9 @@ class LoginActivity : AppCompatActivity() {
     private var tvEmailError: TextView? = null
     private var tvPasswordError: TextView? = null
 
+    private lateinit var scrollViewLogin: ScrollView
+    private lateinit var containerFormulario: LinearLayout
+
     private lateinit var sessionManager: SessionManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,6 +68,9 @@ class LoginActivity : AppCompatActivity() {
         tvEmailError = findViewById(R.id.tvEmailError)
         tvPasswordError = findViewById(R.id.tvPasswordError)
 
+        scrollViewLogin = findViewById(R.id.main)
+        containerFormulario = findViewById(R.id.containerFormulario)
+
         etEmail.setOnFocusChangeListener { _, tieneFoco -> if (tieneFoco) FormValidator.marcarErrorSimple(etEmail, tvEmailError, null) }
         etPassword.setOnFocusChangeListener { _, tieneFoco -> if (tieneFoco) FormValidator.marcarErrorSimple(etPassword, tvPasswordError, null) }
 
@@ -85,6 +93,51 @@ class LoginActivity : AppCompatActivity() {
                     }.show()
                 }.show()
             }.show()
+        }
+
+        // Ajuste dinámico del teclado virtual para evitar que tape los campos de texto
+        scrollViewLogin.viewTreeObserver.addOnGlobalLayoutListener {
+            val r = android.graphics.Rect()
+            scrollViewLogin.getWindowVisibleDisplayFrame(r)
+            val screenHeight = scrollViewLogin.rootView.height
+            val keypadHeight = screenHeight - r.bottom
+
+            if (keypadHeight > screenHeight * 0.15) {
+                containerFormulario.setPadding(
+                    containerFormulario.paddingLeft,
+                    containerFormulario.paddingTop,
+                    containerFormulario.paddingRight,
+                    keypadHeight
+                )
+            } else {
+                containerFormulario.setPadding(
+                    containerFormulario.paddingLeft,
+                    containerFormulario.paddingTop,
+                    containerFormulario.paddingRight,
+                    resources.getDimensionPixelSize(R.dimen.espacio_medio)
+                )
+            }
+        }
+
+        configurarEnfoqueYTeclado()
+    }
+
+    private fun configurarEnfoqueYTeclado() {
+        val campos = listOf(etEmail, etPassword)
+        campos.forEach { campo ->
+            campo.setOnFocusChangeListener { view, hasFocus ->
+                if (hasFocus) {
+                    scrollViewLogin.post {
+                        var topCoord = 0
+                        var currentView: android.view.View? = view
+                        while (currentView != null && currentView != scrollViewLogin) {
+                            topCoord += currentView.top
+                            currentView = currentView.parent as? android.view.View
+                        }
+                        scrollViewLogin.smoothScrollTo(0, (topCoord - 100).coerceAtLeast(0))
+                    }
+                }
+            }
         }
     }
 
@@ -125,7 +178,17 @@ class LoginActivity : AppCompatActivity() {
             valido = false
         }
         if (!valido) {
-            if (errorCorreo != null) etEmail.requestFocus() else etPassword.requestFocus()
+            val campoError = if (errorCorreo != null) etEmail else etPassword
+            campoError.requestFocus()
+            scrollViewLogin.post {
+                var topCoord = 0
+                var currentView: android.view.View? = campoError
+                while (currentView != null && currentView != scrollViewLogin) {
+                    topCoord += currentView.top
+                    currentView = currentView.parent as? android.view.View
+                }
+                scrollViewLogin.smoothScrollTo(0, (topCoord - 100).coerceAtLeast(0))
+            }
             return
         }
 
@@ -145,7 +208,6 @@ class LoginActivity : AppCompatActivity() {
                     val body = response.body()
                     if (body != null) {
 
-                        // 1. PRIORIDAD ABSOLUTA: Verificar si la cuenta está suspendida
                         if (body.suspendido == true) {
                             setLoading(false)
                             sessionManager.clearSession()
@@ -153,7 +215,6 @@ class LoginActivity : AppCompatActivity() {
                             return@launch
                         }
 
-                        // 2. Verificar estado pendiente
                         val rolAux = body.rol?.uppercase()?.trim() ?: ""
                         if (rolAux == "PENDIENTE" || rolAux == "PENDING") {
                             setLoading(false)
@@ -267,7 +328,6 @@ class LoginActivity : AppCompatActivity() {
 
                     val errorBodyStr = response.errorBody()?.string() ?: ""
 
-                    // VALIDACIÓN ESTRICTA DE SUSPENSIÓN ANTE CUALQUIER RESPUESTA DE ERROR (403, 400, etc.)
                     if (errorBodyStr.contains("suspendido", ignoreCase = true) ||
                         errorBodyStr.contains("suspension", ignoreCase = true) ||
                         response.code() == 403 && errorBodyStr.contains("suspendido", ignoreCase = true)) {
@@ -276,7 +336,6 @@ class LoginActivity : AppCompatActivity() {
                         return@launch
                     }
 
-                    // Validación exclusiva para solicitudes pendientes
                     if (errorBodyStr.contains("pendiente", ignoreCase = true) || errorBodyStr.contains("pending", ignoreCase = true)) {
                         sessionManager.clearSession()
                         SolicitudPendienteDialog(this@LoginActivity).show()
@@ -305,7 +364,7 @@ class LoginActivity : AppCompatActivity() {
                 ).show()
             } catch (e: Exception) {
                 setLoading(false)
-                Toast.makeText(this@LoginActivity, "Ocurrió un error: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(this@LoginActivity, "Ocurrió un error: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }

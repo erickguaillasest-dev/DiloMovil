@@ -1,17 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/web_background"
-    android:fillViewport="true">
+    android:fillViewport="true"
+    android:focusableInTouchMode="true">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="20dp">
 
-        <!-- Botón de regresar corregido con restricciones de ConstraintLayout -->
+        <!-- Botón de regresar  -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnRegresar"
             style="@style/Widget.Material3.Button.IconButton"
@@ -40,12 +42,13 @@
             app:strokeWidth="0dp">
 
             <LinearLayout
+                android:id="@+id/containerFormulario"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@color/card_background"
                 android:orientation="vertical"
-                android:paddingHorizontal="20dp"
-                android:paddingTop="28dp"
+                android:paddingHorizontal="24dp"
+                android:paddingTop="32dp"
                 android:paddingBottom="24dp">
 
                 <!-- Título -->
