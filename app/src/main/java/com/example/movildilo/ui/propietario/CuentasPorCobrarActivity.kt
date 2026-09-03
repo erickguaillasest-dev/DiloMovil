@@ -141,12 +141,15 @@ class CuentasPorCobrarActivity : AppCompatActivity() {
     private fun abrirChatZoe() {
         val userMap = sessionManager.getUserMap()
         val nombreUsuario = userMap?.get("primerNombre")?.toString() ?: userMap?.get("nombre")?.toString() ?: "Usuario"
+        val rolUsuario = sessionManager.getUserRole() ?: "PROPIETARIO"
+        val negocioNombre = userMap?.get("negocioNombre")?.toString() ?: userMap?.get("nombreNegocio")?.toString() ?: "Tu Negocio"
+
         val dialogZoe = ZoeBottomSheetDialog(
             usuarioNombre = nombreUsuario,
-            negocioNombre = "Mi Empresa",
-            contextoNegocioTexto = "Estás visualizando las cuentas por cobrar.",
-            alertasTexto = "Sin alertas recientes.",
-            groqApiKey = Constants.GROQ_API_KEY_CHAT
+            negocioNombre = negocioNombre,
+            negocioId = negocioId.toString(),
+            groqApiKey = Constants.GROQ_API_KEY_CHAT,
+            rolUsuario = rolUsuario
         )
         dialogZoe.show(supportFragmentManager, "ZoeChatBottomSheet")
     }

@@ -317,13 +317,17 @@ class BodegueroActivity : AppCompatActivity() {
     }
 
     private fun abrirChatZoe() {
+        val userMap = sessionManager.getUserMap()
+        val nombreUsuario = userMap?.get("primerNombre")?.toString() ?: userMap?.get("nombre")?.toString() ?: "Usuario"
+        val rolUsuario = sessionManager.getUserRole() ?: "PROPIETARIO"
+        val negocioNombre = userMap?.get("negocioNombre")?.toString() ?: userMap?.get("nombreNegocio")?.toString() ?: "Tu Negocio"
+
         val dialogZoe = ZoeBottomSheetDialog(
-            usuarioNombre = usuarioNombre,
-            negocioNombre = negocioNombreReal,
-            contextoNegocioTexto = contextoNegocioTexto,
-            alertasTexto = alertasTexto,
+            usuarioNombre = nombreUsuario,
+            negocioNombre = negocioNombre,
+            negocioId = negocioId.toString(),
             groqApiKey = Constants.GROQ_API_KEY_CHAT,
-            rolUsuario = "BODEGUERO"
+            rolUsuario = rolUsuario
         )
         dialogZoe.show(supportFragmentManager, "ZoeChatBottomSheet")
     }
