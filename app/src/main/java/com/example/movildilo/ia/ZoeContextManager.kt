@@ -7,13 +7,14 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import java.util.Locale
 
-
 object ZoeContextManager {
 
+    // Tiempo de vigencia del caché en memoria: 3 minutos
     private const val TIEMPO_CACHE_MS = 3 * 60 * 1000L
     private var ultimaActualizacion: Long = 0
     private var negocioIdCacheado: Long = -1L
 
+    // Variables de caché de contexto ya procesado en formato Markdown
     private var contextoPropietario = ""
     private var contextoVendedor = ""
     private var contextoBodeguero = ""
@@ -187,6 +188,7 @@ object ZoeContextManager {
             - Miembros activos del equipo (${equipoActivo.size}): $listaEquipo.
         """.trimIndent()
 
+        // --- Ensamblado final por rol ---
         contextoBodeguero = """
             **Catálogo de Productos y Categorías:**
             $textoCatalogo

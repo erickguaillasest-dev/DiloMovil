@@ -23,7 +23,10 @@ import com.example.movildilo.R
 import com.example.movildilo.data.api.RetrofitClient
 import com.example.movildilo.data.local.SessionManager
 import com.example.movildilo.data.model.dto.inventario.InventarioResponseDto
+import com.example.movildilo.ia.ZoeActionRouter
+import com.example.movildilo.ia.ZoeBottomSheetDialog
 import com.example.movildilo.ui.adapters.InventarioAdapter
+import com.example.movildilo.utils.Constants
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
@@ -85,6 +88,26 @@ class InventarioBodegasActivity : AppCompatActivity() {
         } else {
             Toast.makeText(this, "No se encontró un negocio activo en la sesión", Toast.LENGTH_SHORT).show()
         }
+
+        if (intent.getBooleanExtra(ZoeActionRouter.EXTRA_MANTENER_ZOE_ABIERTA, false)) {
+            abrirChatZoe()
+        }
+    }
+
+    private fun abrirChatZoe() {
+        val userMap = sessionManager.getUserMap()
+        val nombreUsuario = userMap?.get("primerNombre")?.toString() ?: userMap?.get("nombre")?.toString() ?: "Usuario"
+        val rolUsuario = sessionManager.getUserRole() ?: "PROPIETARIO"
+        val negocioNombre = userMap?.get("negocioNombre")?.toString() ?: userMap?.get("nombreNegocio")?.toString() ?: "Tu Negocio"
+
+        val dialogZoe = ZoeBottomSheetDialog(
+            usuarioNombre = nombreUsuario,
+            negocioNombre = negocioNombre,
+            negocioId = negocioId.toString(),
+            groqApiKey = Constants.GROQ_API_KEY_CHAT,
+            rolUsuario = rolUsuario
+        )
+        dialogZoe.show(supportFragmentManager, "ZoeChatBottomSheet")
     }
 
     private fun initViews() {
